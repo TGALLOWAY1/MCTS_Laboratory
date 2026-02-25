@@ -329,7 +329,7 @@ Automated frontend setup script for:
 
 ### New Directories
 - `frontend/` - Complete React frontend application
-- `documentation/` - Project documentation
+- `docs/` - Project documentation
 - `logs/` - Tensorboard log files
 - `checkpoints/` - Saved model checkpoints
 
