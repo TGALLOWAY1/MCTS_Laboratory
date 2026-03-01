@@ -316,10 +316,20 @@ class WebWorkerGameBridge:
                 "opponent_adjacency": float(compute_opponent_adjacency(game.board, p))
             }
         
-        # PERSISTENCE: Backfill frontier metrics into any history entry that is missing them.
-        # We loop all entries (not just the latest) so that saveGame() always captures
-        # complete data regardless of when the user triggers a save.
-        for hist_entry in game.game_history:
+        # PERSISTENCE: Backfill frontier metrics and round indices into any history entry missing them.
+        # We loop all entries so that saveGame() captures complete data regardless of timing.
+        seat_index_map = {"RED": 0, "BLUE": 1, "YELLOW": 2, "GREEN": 3}
+        for idx, hist_entry in enumerate(game.game_history):
+            # 1. Backfill indices (move, round, seat)
+            if "move_index" not in hist_entry:
+                hist_entry["move_index"] = idx
+                hist_entry["round_index"] = idx // 4
+                hist_entry["position_in_round"] = idx % 4
+                player_name = hist_entry.get("player_to_move")
+                if player_name in seat_index_map:
+                    hist_entry["seat_index"] = seat_index_map[player_name]
+
+            # 2. Backfill frontier metrics
             m = hist_entry.get("metrics", {})
             if "frontier_metrics" not in m:
                 m["frontier_metrics"] = all_frontier_metrics

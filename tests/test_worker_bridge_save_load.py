@@ -73,10 +73,23 @@ class TestSaveFormat:
         assert len(self.history) > 0, "game_history must not be empty after moves"
 
     def test_each_entry_has_required_top_level_keys(self):
+        # Must have at least these keys; extra keys (like move_index) are allowed.
         required = {"turn_number", "player_to_move", "action", "board_state", "metrics"}
         for i, entry in enumerate(self.history):
             missing = required - set(entry.keys())
             assert not missing, f"Turn {i+1} missing keys: {missing}"
+
+    def test_each_entry_has_round_alignment_indices(self):
+        """New round indices should be present in all history entries."""
+        required = {"move_index", "round_index", "position_in_round", "seat_index"}
+        for i, entry in enumerate(self.history):
+            missing = required - set(entry.keys())
+            assert not missing, f"Turn {i+1} missing indices: {missing}"
+            
+            # Basic logic checks
+            assert entry["move_index"] == i
+            assert entry["round_index"] == i // 4
+            assert entry["position_in_round"] == i % 4
 
     def test_action_has_required_fields(self):
         required = {"piece_id", "orientation", "anchor_row", "anchor_col"}
