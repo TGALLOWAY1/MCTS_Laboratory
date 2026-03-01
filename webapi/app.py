@@ -383,6 +383,9 @@ class GameManager:
                 game_data['move_records'].append({
                     "sequenceIndex": seq,
                     "moveIndex": game.get_move_count(),
+                    "roundIndex": seq // 4,
+                    "positionInRound": seq % 4,
+                    "seatIndex": player.value - 1,
                     "player": player_name,
                     "agentType": type(agent).__name__,
                     "isHuman": False,
@@ -414,6 +417,9 @@ class GameManager:
         game_data['move_records'].append({
             "sequenceIndex": seq,
             "moveIndex": None,
+            "roundIndex": seq // 4,
+            "positionInRound": seq % 4,
+            "seatIndex": player.value - 1,
             "player": player_name,
             "agentType": agent_type,
             "isHuman": agent_type == "human",
