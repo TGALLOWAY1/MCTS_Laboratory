@@ -112,6 +112,10 @@ export const AnalysisDashboard: React.FC = () => {
                     <div className="flex-1 min-h-[160px] bg-charcoal-800 border border-charcoal-700 rounded-lg p-2 flex flex-col hover:border-gray-600 transition-colors">
                         <ModuleE_FrontierChart gameHistory={gameHistory} currentTurn={currentSliderTurn || totalTurns} />
                     </div>
+
+                    <div className="flex-1 min-h-[160px] bg-charcoal-800 border border-charcoal-700 rounded-lg p-2 flex flex-col hover:border-gray-600 transition-colors">
+                        <ModuleF_UrgencyChart gameHistory={gameHistory} currentTurn={currentSliderTurn || totalTurns} />
+                    </div>
                 </div>
 
                 {/* CENTER COLUMN: Spatial Visualizations */}
@@ -166,7 +170,15 @@ export const AnalysisDashboard: React.FC = () => {
                     </div>
 
                     <div className="shrink-0 bg-charcoal-800 border border-charcoal-700 rounded-lg p-2 hover:border-gray-600 transition-colors">
-                        <PlayerStatusSummary metrics={metrics} remainingPieces={activeTurnData?.metrics?.remaining_pieces} />
+                        <PlayerStatusSummary
+                            metrics={metrics}
+                            remainingPieces={activeTurnData?.metrics?.remaining_pieces}
+                            pieceLockRisk={activeTurnData?.metrics?.piece_lock_risk || gameState?.piece_lock_risk}
+                        />
+                    </div>
+
+                    <div className="shrink-0 bg-charcoal-800 border border-charcoal-700 rounded-lg p-2 hover:border-gray-600 transition-colors">
+                        <SelfBlockRiskCard selfBlockRisk={gameState?.self_block_risk} />
                     </div>
                 </div>
 
@@ -207,6 +219,13 @@ const SectionTitle: React.FC<{ title: string }> = ({ title }) => (
 
 // --- Subcomponents for the dashboard ---
 
+const FRONTIER_MODE_INFO = {
+    Default: { label: 'Default', title: 'Show frontier (usable corner) points in your player color' },
+    Flexibility: { label: 'Flex', title: 'Flexibility: how many legal moves pass through this corner. High = many placement options.' },
+    Urgency: { label: 'Urgency', title: 'Urgency: Flexibility × Threat. Points with NO opponent pressure are grey (can wait).' },
+    Cluster: { label: 'Cluster', title: 'Color by redundancy cluster — corners sharing similar move-sets are grouped by color.' },
+};
+
 const FrontierMap: React.FC<{
     frontiers: Record<number, { r: number, c: number }[]>,
     boardState: number[][],
@@ -214,7 +233,7 @@ const FrontierMap: React.FC<{
     frontierMetrics?: any,
     frontierClusters?: any
 }> = ({ frontiers, boardState, selectedPlayer, frontierMetrics, frontierClusters }) => {
-    const [colorMode, setColorMode] = useState<'Default' | 'Urgency' | 'Cluster'>('Default');
+    const [colorMode, setColorMode] = useState<'Default' | 'Flexibility' | 'Urgency' | 'Cluster'>('Default');
     const size = boardState.length;
     // Build a quick lookup for selected player's frontier
     const fMap = Array(size).fill(0).map(() => Array(size).fill(false));
@@ -223,12 +242,22 @@ const FrontierMap: React.FC<{
         fMap[r][c] = true;
     }
 
+    const hasMetrics = !!(frontierMetrics?.urgency && Object.keys(frontierMetrics.urgency).length > 0);
+
     return (
         <div className="flex-1 flex flex-col min-h-0 relative">
+            {/* Mode toggle buttons */}
             <div className="absolute top-[-26px] right-0 flex gap-1 z-10">
-                <button onClick={() => setColorMode('Default')} className={`text-[9px] px-1.5 py-0.5 rounded ${colorMode === 'Default' ? 'bg-slate-500 text-white' : 'bg-charcoal-700 text-gray-400 hover:text-gray-200'}`}>Def</button>
-                <button onClick={() => setColorMode('Urgency')} className={`text-[9px] px-1.5 py-0.5 rounded ${colorMode === 'Urgency' ? 'bg-slate-500 text-white' : 'bg-charcoal-700 text-gray-400 hover:text-gray-200'}`}>Urg</button>
-                <button onClick={() => setColorMode('Cluster')} className={`text-[9px] px-1.5 py-0.5 rounded ${colorMode === 'Cluster' ? 'bg-slate-500 text-white' : 'bg-charcoal-700 text-gray-400 hover:text-gray-200'}`}>Cls</button>
+                {(['Default', 'Flexibility', 'Urgency', 'Cluster'] as const).map(mode => (
+                    <button
+                        key={mode}
+                        onClick={() => setColorMode(mode)}
+                        title={FRONTIER_MODE_INFO[mode].title}
+                        className={`text-[9px] px-1.5 py-0.5 rounded transition-colors ${colorMode === mode ? 'bg-slate-500 text-white' : 'bg-charcoal-700 text-gray-400 hover:text-gray-200'}`}
+                    >
+                        {FRONTIER_MODE_INFO[mode].label}
+                    </button>
+                ))}
             </div>
             <div className="flex-1 flex items-center justify-center min-h-0 bg-slate-900 rounded p-[1px]">
                 <div className="grid gap-[1px] w-full max-w-full max-h-full aspect-square" style={{ gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${size}, minmax(0, 1fr))` }}>
@@ -242,25 +271,32 @@ const FrontierMap: React.FC<{
                             if (val !== selectedPlayer) bg += ' opacity-40';
                         } else if (isFrontier) {
                             const key = `${r},${c}`;
+                            let flex = 0;
+                            let bp = 0;
                             let urg = 0;
                             let cid = -1;
 
                             if (frontierMetrics || frontierClusters) {
-                                const u = frontierMetrics?.utility?.[key];
-                                const bp = frontierMetrics?.block_pressure?.[key];
+                                flex = frontierMetrics?.utility?.[key] || 0;
+                                bp = frontierMetrics?.block_pressure?.[key] || 0;
                                 urg = frontierMetrics?.urgency?.[key] || 0;
                                 cid = frontierClusters?.cluster_id?.[key] ?? -1;
 
-                                if (u !== undefined) {
-                                    title = `[${r}, ${c}]\nUtility: ${u}\nBlock Pressure: ${bp}\nUrgency: ${urg}\nCluster ID: ${cid}`;
+                                if (flex !== undefined) {
+                                    title = `[${r}, ${c}]\nFlexibility (Utility): ${flex}\nBlock Pressure: ${bp}\nUrgency: ${urg}\nCluster ID: ${cid}`;
                                 }
                             }
 
                             if (colorMode === 'Default') {
                                 bg = ['', 'bg-red-400', 'bg-blue-400', 'bg-yellow-300', 'bg-green-400'][selectedPlayer] + ' shadow-[0_0_8px_currentColor]';
+                            } else if (colorMode === 'Flexibility') {
+                                if (flex >= 30) bg = 'bg-red-500 shadow-[0_0_8px_currentColor]';
+                                else if (flex >= 15) bg = 'bg-orange-400 shadow-[0_0_4px_currentColor]';
+                                else if (flex >= 5) bg = 'bg-yellow-500';
+                                else bg = 'bg-slate-500';
                             } else if (colorMode === 'Urgency') {
-                                if (urg >= 4) bg = 'bg-red-500 shadow-[0_0_8px_currentColor]';
-                                else if (urg >= 2) bg = 'bg-orange-400 shadow-[0_0_4px_currentColor]';
+                                if (urg >= 10) bg = 'bg-red-500 shadow-[0_0_8px_currentColor]';
+                                else if (urg >= 5) bg = 'bg-orange-400 shadow-[0_0_4px_currentColor]';
                                 else if (urg >= 1) bg = 'bg-yellow-500';
                                 else bg = 'bg-slate-500';
                             } else if (colorMode === 'Cluster') {
@@ -272,13 +308,35 @@ const FrontierMap: React.FC<{
                                 }
                             }
                         }
-                        return <div key={`${r}-${c}`} className={`${bg} ${isFrontier ? 'rounded-full scale-75 cursor-help' : 'rounded-sm'} transition-colors`} title={title} />
+                        return <div key={`${r}-${c}`} className={`${bg} ${isFrontier ? 'rounded-full scale-75 cursor-help' : 'rounded-sm'} transition-colors`} title={title} />;
                     }))}
                 </div>
             </div>
+            {/* Mode legend */}
+            {colorMode !== 'Default' && (
+                <div className="mt-1 text-[8px] text-slate-500 leading-tight text-center">
+                    {!hasMetrics && (
+                        <span className="text-amber-600">Metric data missing — play a move to populate</span>
+                    )}
+                    {hasMetrics && (
+                        <>
+                            {colorMode === 'Flexibility' && (
+                                <span><span className="text-red-400">■</span> High (&ge;30) &nbsp;<span className="text-orange-400">■</span> Med (&ge;15) &nbsp;<span className="text-yellow-500">■</span> Low (&ge;5) &nbsp;<span className="text-slate-500">■</span> None</span>
+                            )}
+                            {colorMode === 'Urgency' && (
+                                <span><span className="text-red-400">■</span> Critical &nbsp;<span className="text-orange-400">■</span> Contested &nbsp;<span className="text-yellow-500">■</span> Low &nbsp;<span className="text-slate-500">■</span> Safe (Can Wait)</span>
+                            )}
+                            {colorMode === 'Cluster' && (
+                                <span>Each color = a redundancy cluster &nbsp;<span className="text-slate-500">■</span> = isolated / no cluster</span>
+                            )}
+                        </>
+                    )}
+                </div>
+            )}
         </div>
     );
 };
+
 
 const DeadZoneMap: React.FC<{ deadZones: Record<number, boolean[][]>, boardState: number[][], selectedPlayer: number }> = ({ deadZones, boardState, selectedPlayer }) => {
     const size = boardState.length;
@@ -433,28 +491,31 @@ const PiecesRemainingTable: React.FC<{ remainingPieces?: Record<string, number[]
     );
 };
 
-const PlayerStatusSummary: React.FC<{ metrics: DashboardMetrics, remainingPieces?: Record<string, number[]> }> = ({ metrics, remainingPieces }) => {
+const PlayerStatusSummary: React.FC<{ metrics: DashboardMetrics, remainingPieces?: Record<string, number[]>, pieceLockRisk?: Record<string, number> }> = ({ metrics, remainingPieces, pieceLockRisk }) => {
     const players = [2, 4, 1, 3]; // BLUE, GREEN, RED, YELLOW
 
     return (
         <div>
             <h3 className="text-[10px] font-bold text-gray-400 uppercase text-center mb-2 tracking-wider">Player Status</h3>
-            <div className="grid grid-cols-3 text-[9px] uppercase tracking-wider text-gray-500 mb-1 px-2 text-center">
+            <div className="grid grid-cols-4 text-[9px] uppercase tracking-wider text-gray-500 mb-1 px-2 text-center">
                 <div className="text-left py-1">Player</div>
-                <div className="py-1">Frontier Size</div>
-                <div className="py-1">Pieces Left</div>
+                <div className="py-1">Frontier</div>
+                <div className="py-1">Pieces</div>
+                <div className="py-1">Lock Risk</div>
             </div>
             <div className="flex flex-col gap-1">
                 {players.map(p => {
                     const pName = PLAYER_NAMES[p];
                     const fSize = metrics.frontiers[p].length;
                     const handSize = remainingPieces && Array.isArray(remainingPieces[pName]) ? remainingPieces[pName].length : 0;
+                    const lockRisk = pieceLockRisk?.[pName] ?? 0;
 
                     return (
-                        <div key={p} className="grid grid-cols-3 text-[11px] font-mono bg-charcoal-900 rounded border border-charcoal-700 px-2 py-1.5 text-center items-center h-[28px]">
+                        <div key={p} className="grid grid-cols-4 text-[11px] font-mono bg-charcoal-900 rounded border border-charcoal-700 px-2 py-1.5 text-center items-center h-[28px]">
                             <div className="font-bold text-left tracking-widest" style={{ color: PLAYER_COLORS[p], textShadow: `0 0 10px ${PLAYER_COLORS[p]}40` }}>{pName}</div>
                             <div className="text-slate-300">{fSize}</div>
                             <div className="text-slate-300">{handSize}</div>
+                            <div className={lockRisk > 0 ? 'text-red-400 font-bold' : 'text-slate-500'}>{lockRisk}</div>
                         </div>
                     );
                 })}
@@ -543,4 +604,83 @@ export const ModuleE_FrontierChart: React.FC<{ gameHistory: any[]; currentTurn: 
     );
 });
 
+export const ModuleF_UrgencyChart: React.FC<{ gameHistory: any[]; currentTurn: number; }> = React.memo(({ gameHistory, currentTurn }) => {
+    const chartData = useMemo(() => {
+        if (!gameHistory || gameHistory.length === 0) return [];
+        return gameHistory.map((entry, idx) => {
+            const turnNum = idx + 1;
+            const fm = entry.metrics?.frontier_metrics;
+            if (!fm) return { turn: turnNum };
+            const result: Record<string, any> = { turn: turnNum };
+            for (const playerName of ['RED', 'BLUE', 'YELLOW', 'GREEN']) {
+                const playerFm = fm[playerName];
+                if (playerFm?.urgency) {
+                    const urgencyValues = Object.values(playerFm.urgency) as number[];
+                    result[playerName] = urgencyValues.length > 0
+                        ? Math.max(...urgencyValues)
+                        : 0;
+                } else {
+                    result[playerName] = 0;
+                }
+            }
+            return result;
+        });
+    }, [gameHistory]);
 
+    return (
+        <div className="flex flex-col h-full w-full min-w-0">
+            <h3 className="text-[10px] font-bold mb-2 text-slate-400 uppercase text-center shrink-0">Frontier Urgency (Max) vs Turn</h3>
+            <div className="flex-1 w-full min-h-0">
+                <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                        <XAxis dataKey="turn" stroke="#64748B" fontSize={8} tickMargin={5} minTickGap={10} />
+                        <YAxis stroke="#64748B" fontSize={8} tickCount={5} />
+                        <Tooltip contentStyle={{ backgroundColor: '#0F172A', borderColor: '#334155', borderRadius: '4px', fontSize: '10px' }} itemStyle={{ fontSize: '10px', padding: '2px 0' }} labelStyle={{ color: '#94A3B8', marginBottom: '4px' }} />
+                        <ReferenceLine x={currentTurn} stroke="#94A3B8" strokeWidth={1} strokeDasharray="3 3" />
+                        <Line type="monotone" dataKey="RED" stroke="#EF4444" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                        <Line type="monotone" dataKey="BLUE" stroke="#3B82F6" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                        <Line type="monotone" dataKey="YELLOW" stroke="#EAB308" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                        <Line type="monotone" dataKey="GREEN" stroke="#22C55E" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                    </LineChart>
+                </ResponsiveContainer>
+            </div>
+        </div>
+    );
+});
+
+const SelfBlockRiskCard: React.FC<{ selfBlockRisk?: { top_moves: Array<{ piece_id: number; risk: number; clusters_touched: number; frontier_points_used: number }> } }> = ({ selfBlockRisk }) => {
+    const moves = selfBlockRisk?.top_moves?.slice(0, 5) || [];
+
+    return (
+        <div>
+            <h3 className="text-[10px] font-bold text-gray-400 uppercase text-center mb-2 tracking-wider">Self-Block Risk (Current Player)</h3>
+            {moves.length === 0 ? (
+                <div className="text-[10px] text-slate-500 text-center py-2">No risky moves detected</div>
+            ) : (
+                <div className="overflow-x-auto text-[10px] font-mono">
+                    <table className="w-full text-center border-collapse">
+                        <thead>
+                            <tr className="border-b border-charcoal-700">
+                                <th className="py-1 text-gray-500 font-normal">Piece</th>
+                                <th className="py-1 text-gray-500 font-normal">Risk</th>
+                                <th className="py-1 text-gray-500 font-normal">Clusters</th>
+                                <th className="py-1 text-gray-500 font-normal">Frontiers</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {moves.map((m, i) => (
+                                <tr key={i} className="border-b border-charcoal-700/50 hover:bg-white/5 transition-colors">
+                                    <td className="py-1 text-slate-300">P{m.piece_id}</td>
+                                    <td className={`py-1 font-bold ${m.risk >= 6 ? 'text-red-400' : m.risk >= 3 ? 'text-orange-400' : 'text-yellow-400'}`}>{m.risk}</td>
+                                    <td className="py-1 text-slate-400">{m.clusters_touched}</td>
+                                    <td className="py-1 text-slate-400">{m.frontier_points_used}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+        </div>
+    );
+};
