@@ -136,16 +136,8 @@ class WebWorkerGameBridge:
         center_control = game._calculate_center_bonus(current_player) // 2
         frontier_size = len(game.board.get_frontier(current_player))
         
-        # --- Milestone 4: PieceLockRisk ---
-        # PieceLockRisk: count(piece_id in remaining_pieces where has_move is False)
-        piece_lock_risk = 0
-        has_move = {pid: False for pid in range(1, 22) if pid not in pieces_used_current}
-        for m in current_player_moves:
-            has_move[m.piece_id] = True
-            
-        for pid, can_place in has_move.items():
-            if not can_place:
-                piece_lock_risk += 1
+        # piece_lock_risk is now computed per-player inside the per-player loop below
+        piece_lock_risk = {}  # Dict keyed by player name
         
         mobility_metrics = {
             "totalPlacements": mobility.totalPlacements,
@@ -159,21 +151,31 @@ class WebWorkerGameBridge:
         # Calculate nested metrics for all players
         all_frontier_metrics = {}
         all_frontier_clusters = {}
-        
-        # 1-ply BlockPressure setup: union of all players' moves
-        block_pressure_map = [[False]*20 for _ in range(20)]
-        for p in EnginePlayer:
-            for m in all_players_legal_moves[p]:
-                cached_ops = game.move_generator.piece_orientations_cache.get(m.piece_id)
-                if cached_ops:
-                    pts = m.get_positions(cached_ops)
-                    for pt in pts:
-                        if 0 <= pt.row < 20 and 0 <= pt.col < 20:
-                            block_pressure_map[pt.row][pt.col] = True
 
         for p in EnginePlayer:
             p_frontier_cells = game.board.get_frontier(p)
             p_moves = all_players_legal_moves[p]
+            
+            # --- Milestone 4: PieceLockRisk (per-player) ---
+            p_pieces_used = list(game.board.player_pieces_used[p])
+            p_has_move = {pid: False for pid in range(1, 22) if pid not in p_pieces_used}
+            for m in p_moves:
+                if m.piece_id in p_has_move:
+                    p_has_move[m.piece_id] = True
+            piece_lock_risk[p.name] = sum(1 for can_place in p_has_move.values() if not can_place)
+            
+            # --- BlockPressure: only count OPPONENT moves occupying frontier cells ---
+            block_pressure_map = [[False]*20 for _ in range(20)]
+            for opp in EnginePlayer:
+                if opp == p:
+                    continue  # Skip the frontier owner's own moves
+                for m in all_players_legal_moves[opp]:
+                    cached_ops = game.move_generator.piece_orientations_cache.get(m.piece_id)
+                    if cached_ops:
+                        pts = m.get_positions(cached_ops)
+                        for pt in pts:
+                            if 0 <= pt.row < 20 and 0 <= pt.col < 20:
+                                block_pressure_map[pt.row][pt.col] = True
             
             # --- Frontier Metrics (Utility, BP, Urgency) ---
             p_metrics = {
@@ -199,7 +201,7 @@ class WebWorkerGameBridge:
             for fr, fc in p_frontier_cells:
                 key = f"{fr},{fc}"
                 if block_pressure_map[fr][fc]:
-                    p_metrics["block_pressure"][key] = 1 # Simple occupancy check
+                    p_metrics["block_pressure"][key] = 1 # Opponent occupancy check
                 
                 u = p_metrics["utility"][key]
                 bp = p_metrics["block_pressure"][key]

@@ -73,7 +73,7 @@ export interface GameState {
     cluster_sizes: number[];
     num_clusters: number;
   }>;
-  piece_lock_risk?: number;
+  piece_lock_risk?: Record<string, number>;
   self_block_risk?: {
     top_moves: Array<{
       piece_id: number;
@@ -149,7 +149,7 @@ export interface GameHistoryEntry {
       cluster_sizes: number[];
       num_clusters: number;
     }>;
-    piece_lock_risk?: number;
+    piece_lock_risk?: Record<string, number>;
     self_block_risk?: any;
   };
 }

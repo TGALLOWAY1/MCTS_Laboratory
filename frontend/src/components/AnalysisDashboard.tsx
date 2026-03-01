@@ -112,6 +112,10 @@ export const AnalysisDashboard: React.FC = () => {
                     <div className="flex-1 min-h-[160px] bg-charcoal-800 border border-charcoal-700 rounded-lg p-2 flex flex-col hover:border-gray-600 transition-colors">
                         <ModuleE_FrontierChart gameHistory={gameHistory} currentTurn={currentSliderTurn || totalTurns} />
                     </div>
+
+                    <div className="flex-1 min-h-[160px] bg-charcoal-800 border border-charcoal-700 rounded-lg p-2 flex flex-col hover:border-gray-600 transition-colors">
+                        <ModuleF_UrgencyChart gameHistory={gameHistory} currentTurn={currentSliderTurn || totalTurns} />
+                    </div>
                 </div>
 
                 {/* CENTER COLUMN: Spatial Visualizations */}
@@ -166,7 +170,15 @@ export const AnalysisDashboard: React.FC = () => {
                     </div>
 
                     <div className="shrink-0 bg-charcoal-800 border border-charcoal-700 rounded-lg p-2 hover:border-gray-600 transition-colors">
-                        <PlayerStatusSummary metrics={metrics} remainingPieces={activeTurnData?.metrics?.remaining_pieces} />
+                        <PlayerStatusSummary
+                            metrics={metrics}
+                            remainingPieces={activeTurnData?.metrics?.remaining_pieces}
+                            pieceLockRisk={activeTurnData?.metrics?.piece_lock_risk || gameState?.piece_lock_risk}
+                        />
+                    </div>
+
+                    <div className="shrink-0 bg-charcoal-800 border border-charcoal-700 rounded-lg p-2 hover:border-gray-600 transition-colors">
+                        <SelfBlockRiskCard selfBlockRisk={gameState?.self_block_risk} />
                     </div>
                 </div>
 
@@ -433,28 +445,31 @@ const PiecesRemainingTable: React.FC<{ remainingPieces?: Record<string, number[]
     );
 };
 
-const PlayerStatusSummary: React.FC<{ metrics: DashboardMetrics, remainingPieces?: Record<string, number[]> }> = ({ metrics, remainingPieces }) => {
+const PlayerStatusSummary: React.FC<{ metrics: DashboardMetrics, remainingPieces?: Record<string, number[]>, pieceLockRisk?: Record<string, number> }> = ({ metrics, remainingPieces, pieceLockRisk }) => {
     const players = [2, 4, 1, 3]; // BLUE, GREEN, RED, YELLOW
 
     return (
         <div>
             <h3 className="text-[10px] font-bold text-gray-400 uppercase text-center mb-2 tracking-wider">Player Status</h3>
-            <div className="grid grid-cols-3 text-[9px] uppercase tracking-wider text-gray-500 mb-1 px-2 text-center">
+            <div className="grid grid-cols-4 text-[9px] uppercase tracking-wider text-gray-500 mb-1 px-2 text-center">
                 <div className="text-left py-1">Player</div>
-                <div className="py-1">Frontier Size</div>
-                <div className="py-1">Pieces Left</div>
+                <div className="py-1">Frontier</div>
+                <div className="py-1">Pieces</div>
+                <div className="py-1">Lock Risk</div>
             </div>
             <div className="flex flex-col gap-1">
                 {players.map(p => {
                     const pName = PLAYER_NAMES[p];
                     const fSize = metrics.frontiers[p].length;
                     const handSize = remainingPieces && Array.isArray(remainingPieces[pName]) ? remainingPieces[pName].length : 0;
+                    const lockRisk = pieceLockRisk?.[pName] ?? 0;
 
                     return (
-                        <div key={p} className="grid grid-cols-3 text-[11px] font-mono bg-charcoal-900 rounded border border-charcoal-700 px-2 py-1.5 text-center items-center h-[28px]">
+                        <div key={p} className="grid grid-cols-4 text-[11px] font-mono bg-charcoal-900 rounded border border-charcoal-700 px-2 py-1.5 text-center items-center h-[28px]">
                             <div className="font-bold text-left tracking-widest" style={{ color: PLAYER_COLORS[p], textShadow: `0 0 10px ${PLAYER_COLORS[p]}40` }}>{pName}</div>
                             <div className="text-slate-300">{fSize}</div>
                             <div className="text-slate-300">{handSize}</div>
+                            <div className={lockRisk > 0 ? 'text-red-400 font-bold' : 'text-slate-500'}>{lockRisk}</div>
                         </div>
                     );
                 })}
@@ -543,4 +558,83 @@ export const ModuleE_FrontierChart: React.FC<{ gameHistory: any[]; currentTurn: 
     );
 });
 
+export const ModuleF_UrgencyChart: React.FC<{ gameHistory: any[]; currentTurn: number; }> = React.memo(({ gameHistory, currentTurn }) => {
+    const chartData = useMemo(() => {
+        if (!gameHistory || gameHistory.length === 0) return [];
+        return gameHistory.map((entry, idx) => {
+            const turnNum = idx + 1;
+            const fm = entry.metrics?.frontier_metrics;
+            if (!fm) return { turn: turnNum };
+            const result: Record<string, any> = { turn: turnNum };
+            for (const playerName of ['RED', 'BLUE', 'YELLOW', 'GREEN']) {
+                const playerFm = fm[playerName];
+                if (playerFm?.urgency) {
+                    const urgencyValues = Object.values(playerFm.urgency) as number[];
+                    result[playerName] = urgencyValues.length > 0
+                        ? Math.max(...urgencyValues)
+                        : 0;
+                } else {
+                    result[playerName] = 0;
+                }
+            }
+            return result;
+        });
+    }, [gameHistory]);
 
+    return (
+        <div className="flex flex-col h-full w-full min-w-0">
+            <h3 className="text-[10px] font-bold mb-2 text-slate-400 uppercase text-center shrink-0">Frontier Urgency (Max) vs Turn</h3>
+            <div className="flex-1 w-full min-h-0">
+                <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                        <XAxis dataKey="turn" stroke="#64748B" fontSize={8} tickMargin={5} minTickGap={10} />
+                        <YAxis stroke="#64748B" fontSize={8} tickCount={5} />
+                        <Tooltip contentStyle={{ backgroundColor: '#0F172A', borderColor: '#334155', borderRadius: '4px', fontSize: '10px' }} itemStyle={{ fontSize: '10px', padding: '2px 0' }} labelStyle={{ color: '#94A3B8', marginBottom: '4px' }} />
+                        <ReferenceLine x={currentTurn} stroke="#94A3B8" strokeWidth={1} strokeDasharray="3 3" />
+                        <Line type="monotone" dataKey="RED" stroke="#EF4444" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                        <Line type="monotone" dataKey="BLUE" stroke="#3B82F6" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                        <Line type="monotone" dataKey="YELLOW" stroke="#EAB308" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                        <Line type="monotone" dataKey="GREEN" stroke="#22C55E" strokeWidth={1.5} dot={false} isAnimationActive={false} />
+                    </LineChart>
+                </ResponsiveContainer>
+            </div>
+        </div>
+    );
+});
+
+const SelfBlockRiskCard: React.FC<{ selfBlockRisk?: { top_moves: Array<{ piece_id: number; risk: number; clusters_touched: number; frontier_points_used: number }> } }> = ({ selfBlockRisk }) => {
+    const moves = selfBlockRisk?.top_moves?.slice(0, 5) || [];
+
+    return (
+        <div>
+            <h3 className="text-[10px] font-bold text-gray-400 uppercase text-center mb-2 tracking-wider">Self-Block Risk (Current Player)</h3>
+            {moves.length === 0 ? (
+                <div className="text-[10px] text-slate-500 text-center py-2">No risky moves detected</div>
+            ) : (
+                <div className="overflow-x-auto text-[10px] font-mono">
+                    <table className="w-full text-center border-collapse">
+                        <thead>
+                            <tr className="border-b border-charcoal-700">
+                                <th className="py-1 text-gray-500 font-normal">Piece</th>
+                                <th className="py-1 text-gray-500 font-normal">Risk</th>
+                                <th className="py-1 text-gray-500 font-normal">Clusters</th>
+                                <th className="py-1 text-gray-500 font-normal">Frontiers</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {moves.map((m, i) => (
+                                <tr key={i} className="border-b border-charcoal-700/50 hover:bg-white/5 transition-colors">
+                                    <td className="py-1 text-slate-300">P{m.piece_id}</td>
+                                    <td className={`py-1 font-bold ${m.risk >= 6 ? 'text-red-400' : m.risk >= 3 ? 'text-orange-400' : 'text-yellow-400'}`}>{m.risk}</td>
+                                    <td className="py-1 text-slate-400">{m.clusters_touched}</td>
+                                    <td className="py-1 text-slate-400">{m.frontier_points_used}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+        </div>
+    );
+};
