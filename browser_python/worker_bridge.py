@@ -205,7 +205,7 @@ class WebWorkerGameBridge:
                 
                 u = p_metrics["utility"][key]
                 bp = p_metrics["block_pressure"][key]
-                p_metrics["urgency"][key] = u * (1 + bp)
+                p_metrics["urgency"][key] = u * bp
             
             all_frontier_metrics[p.name] = p_metrics
             

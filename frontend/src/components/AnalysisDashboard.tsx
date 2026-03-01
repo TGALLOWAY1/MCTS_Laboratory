@@ -221,8 +221,9 @@ const SectionTitle: React.FC<{ title: string }> = ({ title }) => (
 
 const FRONTIER_MODE_INFO = {
     Default: { label: 'Default', title: 'Show frontier (usable corner) points in your player color' },
-    Urgency: { label: 'Urgency', title: 'Color by urgency = how many legal moves use this corner × (1 + opponent pressure). Red=high, grey=low' },
-    Cluster: { label: 'Cluster', title: 'Color by redundancy cluster — corners sharing similar move-sets are grouped by color. Isolated corners (no cluster) are grey.' },
+    Flexibility: { label: 'Flex', title: 'Flexibility: how many legal moves pass through this corner. High = many placement options.' },
+    Urgency: { label: 'Urgency', title: 'Urgency: Flexibility × Threat. Points with NO opponent pressure are grey (can wait).' },
+    Cluster: { label: 'Cluster', title: 'Color by redundancy cluster — corners sharing similar move-sets are grouped by color.' },
 };
 
 const FrontierMap: React.FC<{
@@ -232,7 +233,7 @@ const FrontierMap: React.FC<{
     frontierMetrics?: any,
     frontierClusters?: any
 }> = ({ frontiers, boardState, selectedPlayer, frontierMetrics, frontierClusters }) => {
-    const [colorMode, setColorMode] = useState<'Default' | 'Urgency' | 'Cluster'>('Default');
+    const [colorMode, setColorMode] = useState<'Default' | 'Flexibility' | 'Urgency' | 'Cluster'>('Default');
     const size = boardState.length;
     // Build a quick lookup for selected player's frontier
     const fMap = Array(size).fill(0).map(() => Array(size).fill(false));
@@ -247,7 +248,7 @@ const FrontierMap: React.FC<{
         <div className="flex-1 flex flex-col min-h-0 relative">
             {/* Mode toggle buttons */}
             <div className="absolute top-[-26px] right-0 flex gap-1 z-10">
-                {(['Default', 'Urgency', 'Cluster'] as const).map(mode => (
+                {(['Default', 'Flexibility', 'Urgency', 'Cluster'] as const).map(mode => (
                     <button
                         key={mode}
                         onClick={() => setColorMode(mode)}
@@ -270,25 +271,32 @@ const FrontierMap: React.FC<{
                             if (val !== selectedPlayer) bg += ' opacity-40';
                         } else if (isFrontier) {
                             const key = `${r},${c}`;
+                            let flex = 0;
+                            let bp = 0;
                             let urg = 0;
                             let cid = -1;
 
                             if (frontierMetrics || frontierClusters) {
-                                const u = frontierMetrics?.utility?.[key];
-                                const bp = frontierMetrics?.block_pressure?.[key];
+                                flex = frontierMetrics?.utility?.[key] || 0;
+                                bp = frontierMetrics?.block_pressure?.[key] || 0;
                                 urg = frontierMetrics?.urgency?.[key] || 0;
                                 cid = frontierClusters?.cluster_id?.[key] ?? -1;
 
-                                if (u !== undefined) {
-                                    title = `[${r}, ${c}]\nUtility: ${u}\nBlock Pressure: ${bp}\nUrgency: ${urg}\nCluster ID: ${cid}`;
+                                if (flex !== undefined) {
+                                    title = `[${r}, ${c}]\nFlexibility (Utility): ${flex}\nBlock Pressure: ${bp}\nUrgency: ${urg}\nCluster ID: ${cid}`;
                                 }
                             }
 
                             if (colorMode === 'Default') {
                                 bg = ['', 'bg-red-400', 'bg-blue-400', 'bg-yellow-300', 'bg-green-400'][selectedPlayer] + ' shadow-[0_0_8px_currentColor]';
+                            } else if (colorMode === 'Flexibility') {
+                                if (flex >= 30) bg = 'bg-red-500 shadow-[0_0_8px_currentColor]';
+                                else if (flex >= 15) bg = 'bg-orange-400 shadow-[0_0_4px_currentColor]';
+                                else if (flex >= 5) bg = 'bg-yellow-500';
+                                else bg = 'bg-slate-500';
                             } else if (colorMode === 'Urgency') {
-                                if (urg >= 4) bg = 'bg-red-500 shadow-[0_0_8px_currentColor]';
-                                else if (urg >= 2) bg = 'bg-orange-400 shadow-[0_0_4px_currentColor]';
+                                if (urg >= 10) bg = 'bg-red-500 shadow-[0_0_8px_currentColor]';
+                                else if (urg >= 5) bg = 'bg-orange-400 shadow-[0_0_4px_currentColor]';
                                 else if (urg >= 1) bg = 'bg-yellow-500';
                                 else bg = 'bg-slate-500';
                             } else if (colorMode === 'Cluster') {
@@ -307,17 +315,21 @@ const FrontierMap: React.FC<{
             {/* Mode legend */}
             {colorMode !== 'Default' && (
                 <div className="mt-1 text-[8px] text-slate-500 leading-tight text-center">
-                    {colorMode === 'Urgency' && !hasMetrics && (
-                        <span className="text-amber-600">Urgency data missing — play a move to populate</span>
+                    {!hasMetrics && (
+                        <span className="text-amber-600">Metric data missing — play a move to populate</span>
                     )}
-                    {colorMode === 'Urgency' && hasMetrics && (
-                        <span><span className="text-red-400">■</span> High (&ge;4) &nbsp;<span className="text-orange-400">■</span> Med (&ge;2) &nbsp;<span className="text-yellow-500">■</span> Low (&ge;1) &nbsp;<span className="text-slate-500">■</span> None</span>
-                    )}
-                    {colorMode === 'Cluster' && !hasMetrics && (
-                        <span className="text-amber-600">Cluster data missing — play a move to populate</span>
-                    )}
-                    {colorMode === 'Cluster' && hasMetrics && (
-                        <span>Each color = a redundancy cluster &nbsp;<span className="text-slate-500">■</span> = isolated / no cluster</span>
+                    {hasMetrics && (
+                        <>
+                            {colorMode === 'Flexibility' && (
+                                <span><span className="text-red-400">■</span> High (&ge;30) &nbsp;<span className="text-orange-400">■</span> Med (&ge;15) &nbsp;<span className="text-yellow-500">■</span> Low (&ge;5) &nbsp;<span className="text-slate-500">■</span> None</span>
+                            )}
+                            {colorMode === 'Urgency' && (
+                                <span><span className="text-red-400">■</span> Critical &nbsp;<span className="text-orange-400">■</span> Contested &nbsp;<span className="text-yellow-500">■</span> Low &nbsp;<span className="text-slate-500">■</span> Safe (Can Wait)</span>
+                            )}
+                            {colorMode === 'Cluster' && (
+                                <span>Each color = a redundancy cluster &nbsp;<span className="text-slate-500">■</span> = isolated / no cluster</span>
+                            )}
+                        </>
                     )}
                 </div>
             )}
