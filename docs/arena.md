@@ -21,6 +21,11 @@ python scripts/arena.py \
   --notes "fair-time benchmark"
 ```
 
+Two benchmark configs are provided:
+
+- `scripts/arena_config.json`: as-is benchmark (different per-agent `thinking_time_ms`)
+- `scripts/arena_config_fair_time.json`: fair-time benchmark (equal `thinking_time_ms` for all agents)
+
 Print resolved config without running:
 
 ```bash
@@ -57,6 +62,16 @@ For MCTS-style agents, useful `params` include:
 - `iterations_per_ms`: conversion rate used in deterministic mode.
 - `iterations`: baseline max iterations.
 - `exploration_constant`, `time_limit`, and other agent-specific knobs.
+- learned-evaluator controls:
+  - `learned_model_path`: `.pkl` model artifact path
+  - `leaf_evaluation_enabled`
+  - `progressive_bias_enabled`
+  - `progressive_bias_weight`
+  - `potential_shaping_enabled`
+  - `potential_shaping_gamma`
+  - `potential_shaping_weight`
+  - `potential_mode`: `prob` or `logit`
+  - `max_rollout_moves`
 
 Legacy map-style agent configs (old `scripts/arena_config.json` shape) are still accepted and converted automatically.
 
@@ -107,3 +122,58 @@ Given the same config and seed, `games.jsonl` winners and final scores should ma
 - `snapshot_diagnostics` (if snapshots enabled): feature distributions, high-correlation pairs, and winner-lead-by-checkpoint diagnostics
 
 `summary.md` renders the same core metrics in a concise report for quick inspection.
+
+## Win-Probability Modeling
+
+Train v1 calibrated baseline (pairwise logistic regression):
+
+```bash
+python scripts/train_winprob_v1.py \
+  --snapshots arena_runs/<run_id> \
+  --output-model models/winprob_logreg_v1.pkl \
+  --output-report reports/winprob_logreg_v1.md
+```
+
+Train v2 nonlinear phase-aware baseline (gradient boosting):
+
+```bash
+python scripts/train_winprob_v2.py \
+  --snapshots arena_runs/<run_id> \
+  --output-model models/winprob_gbt_v2.pkl \
+  --output-report reports/winprob_gbt_v2.md
+```
+
+Both scripts:
+
+- build pairwise rows (`x = features_i - features_j`)
+- split by `game_id` to avoid leakage
+- report `log_loss`, `Brier`, and optional pairwise AUC
+- persist model artifacts for MCTS integration
+
+## Learned Evaluator in MCTS
+
+Use learned evaluation options in an MCTS agent config:
+
+```json
+{
+  "name": "mcts_learned_v1",
+  "type": "mcts",
+  "thinking_time_ms": 100,
+  "params": {
+    "learned_model_path": "models/winprob_logreg_v1.pkl",
+    "leaf_evaluation_enabled": true,
+    "progressive_bias_enabled": true,
+    "progressive_bias_weight": 0.25,
+    "potential_shaping_enabled": true,
+    "potential_shaping_gamma": 1.0,
+    "potential_shaping_weight": 1.0,
+    "potential_mode": "prob"
+  }
+}
+```
+
+Recommended rollout for incremental risk:
+
+1. enable `leaf_evaluation_enabled` only
+2. then enable `progressive_bias_enabled`
+3. then evaluate `potential_shaping_enabled`

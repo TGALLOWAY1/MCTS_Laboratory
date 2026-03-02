@@ -56,6 +56,10 @@ This project provides a full-stack implementation of Blokus with:
 - Arena system for round-robin tournaments
 - Agent performance statistics
 - Match result logging and analysis
+- Snapshot dataset export (`snapshots.parquet` / `snapshots.csv`) for ML modeling
+- Win-probability training scripts:
+  - `scripts/train_winprob_v1.py` (pairwise logistic regression, calibrated baseline)
+  - `scripts/train_winprob_v2.py` (phase-aware gradient boosting)
 
 ## Stage 3 Self-Play League (Checkpoint-Only)
 
@@ -186,6 +190,29 @@ PYTHONPATH=. python benchmarks/bench_selfplay_league.py \\
    Frontend runs at `http://localhost:5173`
 
 3. **Open your browser** and navigate to `http://localhost:5173`
+
+### Arena + Win-Probability Workflow
+
+Run a reproducible 100-game arena benchmark:
+
+```bash
+python scripts/arena.py --config scripts/arena_config.json
+```
+
+Run fair-time benchmark (equal think times):
+
+```bash
+python scripts/arena.py --config scripts/arena_config_fair_time.json
+```
+
+Train v1/v2 win-probability models from a completed run:
+
+```bash
+python scripts/train_winprob_v1.py --snapshots arena_runs/<run_id>
+python scripts/train_winprob_v2.py --snapshots arena_runs/<run_id>
+```
+
+Detailed arena/modeling docs: [`docs/arena.md`](docs/arena.md), [`docs/datasets.md`](docs/datasets.md)
 
 ## 📖 Usage
 

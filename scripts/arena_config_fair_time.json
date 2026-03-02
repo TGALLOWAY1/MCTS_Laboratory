@@ -1,0 +1,59 @@
+{
+  "agents": [
+    {
+      "name": "mcts_25ms",
+      "type": "gameplay_fast_mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations": 5000,
+        "iterations_per_ms": 20.0,
+        "exploration_constant": 1.414
+      }
+    },
+    {
+      "name": "mcts_50ms",
+      "type": "gameplay_fast_mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations": 5000,
+        "iterations_per_ms": 20.0,
+        "exploration_constant": 1.414
+      }
+    },
+    {
+      "name": "mcts_100ms",
+      "type": "gameplay_fast_mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations": 5000,
+        "iterations_per_ms": 20.0,
+        "exploration_constant": 1.414
+      }
+    },
+    {
+      "name": "mcts_200ms",
+      "type": "gameplay_fast_mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations": 5000,
+        "iterations_per_ms": 20.0,
+        "exploration_constant": 1.414
+      }
+    }
+  ],
+  "num_games": 100,
+  "seed": 20260301,
+  "seat_policy": "round_robin",
+  "output_root": "arena_runs",
+  "max_turns": 2500,
+  "snapshots": {
+    "enabled": true,
+    "strategy": "fixed_ply",
+    "checkpoints": [8, 16, 24, 32, 40, 48, 56, 64]
+  },
+  "notes": "fair-time benchmark with equal thinking times"
+}

@@ -14,7 +14,7 @@ Welcome to the Blokus RL documentation directory. This folder aggregates all tec
 - **/training/**: Documentation covering SB3 / PettingZoo reinforcement learning pipelines, RL agent evaluation, and metrics.
 - **/webapi/**: Documentation for FastAPI gameplay and research endpoints.
 - **/metrics/**: Notes on advanced mobility metrics, frontier calculations, etc.
-- **arena.md**: Reproducible arena experiment runner, output artifacts, and summary interpretation.
-- **datasets.md**: Arena dataset schemas (`games.jsonl`, snapshots parquet/csv) and loading examples.
+- **arena.md**: Reproducible arena experiment runner, output artifacts, summary interpretation, win-probability training commands, and learned-evaluator MCTS integration.
+- **datasets.md**: Arena dataset schemas (`games.jsonl`, snapshots parquet/csv), pairwise transformation, and loading examples.
 
 *To start running or developing the project, please see the root [README.md](../README.md).*

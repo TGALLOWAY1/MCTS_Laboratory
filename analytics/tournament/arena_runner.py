@@ -441,6 +441,15 @@ def build_agent(config: AgentConfig, seed: int) -> _ArenaAgentAdapter:
             exploration_constant=float(params.get("exploration_constant", 1.414)),
             use_transposition_table=bool(params.get("use_transposition_table", True)),
             seed=seed,
+            learned_model_path=params.get("learned_model_path"),
+            leaf_evaluation_enabled=bool(params.get("leaf_evaluation_enabled", False)),
+            progressive_bias_enabled=bool(params.get("progressive_bias_enabled", False)),
+            progressive_bias_weight=float(params.get("progressive_bias_weight", 0.25)),
+            potential_shaping_enabled=bool(params.get("potential_shaping_enabled", False)),
+            potential_shaping_gamma=float(params.get("potential_shaping_gamma", 1.0)),
+            potential_shaping_weight=float(params.get("potential_shaping_weight", 1.0)),
+            potential_mode=str(params.get("potential_mode", "prob")),
+            max_rollout_moves=int(params.get("max_rollout_moves", 50)),
         )
         return _SelectActionAdapter(agent)
 
@@ -981,4 +990,3 @@ def run_experiment(run_config: RunConfig, *, verbose: bool = False) -> Dict[str,
         "summary": summary,
         "snapshot_rows": len(all_snapshot_rows),
     }
-
