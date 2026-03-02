@@ -14,5 +14,6 @@ Welcome to the Blokus RL documentation directory. This folder aggregates all tec
 - **/training/**: Documentation covering SB3 / PettingZoo reinforcement learning pipelines, RL agent evaluation, and metrics.
 - **/webapi/**: Documentation for the FastAPI endpoints and WebSocket implementation.
 - **/metrics/**: Notes on advanced mobility metrics, frontier calculations, etc.
+- **arena.md**: Reproducible arena experiment runner, output artifacts, and summary interpretation.
 
 *To start running or developing the project, please see the root [README.md](../README.md).*
