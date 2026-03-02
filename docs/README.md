@@ -15,5 +15,6 @@ Welcome to the Blokus RL documentation directory. This folder aggregates all tec
 - **/webapi/**: Documentation for FastAPI gameplay and research endpoints.
 - **/metrics/**: Notes on advanced mobility metrics, frontier calculations, etc.
 - **arena.md**: Reproducible arena experiment runner, output artifacts, and summary interpretation.
+- **datasets.md**: Arena dataset schemas (`games.jsonl`, snapshots parquet/csv) and loading examples.
 
 *To start running or developing the project, please see the root [README.md](../README.md).*

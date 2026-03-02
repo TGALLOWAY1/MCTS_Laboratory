@@ -50,5 +50,10 @@
   "seat_policy": "round_robin",
   "output_root": "arena_runs",
   "max_turns": 2500,
+  "snapshots": {
+    "enabled": true,
+    "strategy": "fixed_ply",
+    "checkpoints": [8, 16, 24, 32, 40, 48, 56, 64]
+  },
   "notes": "as-is benchmark with different thinking times"
 }

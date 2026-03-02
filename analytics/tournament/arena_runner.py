@@ -10,7 +10,7 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple
 
 import numpy as np
 
@@ -19,15 +19,31 @@ from agents.gameplay_fast_mcts import GameplayFastMCTSAgent
 from agents.heuristic_agent import HeuristicAgent
 from agents.random_agent import RandomAgent
 from analytics.tournament.arena_stats import compute_summary, render_summary_markdown
+from analytics.winprob.features import (
+    SNAPSHOT_FEATURE_COLUMNS,
+    build_snapshot_runtime_context,
+    coerce_feature_dict,
+    extract_player_snapshot_features,
+)
 from engine.board import Player
 from engine.game import BlokusGame
-from engine.move_generator import Move
+from engine.move_generator import LegalMoveGenerator, Move
 from mcts.mcts_agent import MCTSAgent
+
+try:
+    import pandas as pd
+except Exception:  # pragma: no cover - optional dependency path
+    pd = None
 
 
 DEFAULT_OUTPUT_ROOT = "arena_runs"
 DEFAULT_MAX_TURNS = 2500
 SUPPORTED_SEAT_POLICIES = {"randomized", "round_robin"}
+DEFAULT_SNAPSHOT_PLYS = [8, 16, 24, 32, 40, 48, 56, 64]
+
+
+def _default_snapshot_plys() -> List[int]:
+    return list(DEFAULT_SNAPSHOT_PLYS)
 
 
 @dataclass(frozen=True)
@@ -69,6 +85,41 @@ class AgentConfig:
 
 
 @dataclass(frozen=True)
+class SnapshotConfig:
+    """Snapshot logging configuration for ML dataset generation."""
+
+    enabled: bool = False
+    strategy: str = "fixed_ply"
+    checkpoints: List[int] = field(default_factory=_default_snapshot_plys)
+
+    @classmethod
+    def from_dict(cls, item: Mapping[str, Any]) -> "SnapshotConfig":
+        strategy = str(item.get("strategy", "fixed_ply"))
+        checkpoints_raw = item.get("checkpoints", _default_snapshot_plys())
+        if not isinstance(checkpoints_raw, list):
+            raise ValueError("snapshots.checkpoints must be a list of integers")
+        checkpoints = sorted({int(value) for value in checkpoints_raw if int(value) >= 0})
+        return cls(
+            enabled=bool(item.get("enabled", False)),
+            strategy=strategy,
+            checkpoints=checkpoints,
+        )
+
+    def validate(self) -> None:
+        if self.strategy != "fixed_ply":
+            raise ValueError(
+                f"Unsupported snapshot strategy '{self.strategy}'. Supported values: ['fixed_ply']."
+            )
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "enabled": self.enabled,
+            "strategy": self.strategy,
+            "checkpoints": list(self.checkpoints),
+        }
+
+
+@dataclass(frozen=True)
 class RunConfig:
     """Top-level experiment configuration."""
 
@@ -79,6 +130,7 @@ class RunConfig:
     output_root: str = DEFAULT_OUTPUT_ROOT
     max_turns: int = DEFAULT_MAX_TURNS
     notes: str = ""
+    snapshots: SnapshotConfig = field(default_factory=SnapshotConfig)
 
     @classmethod
     def from_dict(cls, config: Mapping[str, Any]) -> "RunConfig":
@@ -95,6 +147,10 @@ class RunConfig:
         output_root = str(config.get("output_root", DEFAULT_OUTPUT_ROOT))
         max_turns = int(config.get("max_turns", DEFAULT_MAX_TURNS))
         notes = str(config.get("notes", ""))
+        snapshots_raw = config.get("snapshots") or {}
+        if not isinstance(snapshots_raw, Mapping):
+            raise ValueError("RunConfig 'snapshots' must be an object when provided.")
+        snapshots = SnapshotConfig.from_dict(snapshots_raw)
         run_config = cls(
             agents=agents,
             num_games=num_games,
@@ -103,6 +159,7 @@ class RunConfig:
             output_root=output_root,
             max_turns=max_turns,
             notes=notes,
+            snapshots=snapshots,
         )
         run_config.validate()
         return run_config
@@ -122,6 +179,7 @@ class RunConfig:
             )
         if self.max_turns <= 0:
             raise ValueError("max_turns must be > 0.")
+        self.snapshots.validate()
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -132,6 +190,7 @@ class RunConfig:
             "output_root": self.output_root,
             "max_turns": self.max_turns,
             "notes": self.notes,
+            "snapshots": self.snapshots.to_dict(),
         }
 
     @property
@@ -449,6 +508,62 @@ def _compute_ranks(scores_by_player: Mapping[str, int]) -> Dict[str, int]:
     return {player_id: score_to_rank[score] for player_id, score in scores_by_player.items()}
 
 
+def _build_snapshot_rows_for_checkpoint(
+    *,
+    run_id: str,
+    game_id: str,
+    game_index: int,
+    game_seed: int,
+    seat_assignment: Mapping[str, str],
+    checkpoint_index: int,
+    checkpoint_ply: int,
+    game: BlokusGame,
+    turn_count: int,
+    max_turns: int,
+    move_generator: LegalMoveGenerator,
+) -> List[Dict[str, Any]]:
+    context = build_snapshot_runtime_context(
+        game.board,
+        turn_index=turn_count,
+        max_turns=max_turns,
+    )
+    current_player_id = int(game.get_current_player().value)
+    rows: List[Dict[str, Any]] = []
+    for player in Player:
+        player_id = int(player.value)
+        features = extract_player_snapshot_features(
+            game.board,
+            player=player,
+            context=context,
+            move_generator=move_generator,
+        )
+        row: Dict[str, Any] = {
+            "run_id": run_id,
+            "game_id": game_id,
+            "game_index": int(game_index),
+            "game_seed": int(game_seed),
+            "checkpoint_index": int(checkpoint_index),
+            "checkpoint_ply": int(checkpoint_ply),
+            "ply": int(context.ply),
+            "turn_index": int(turn_count),
+            "current_player_id": current_player_id,
+            "player_id": player_id,
+            "player_name": player.name,
+            "agent_name": seat_assignment[str(player_id)],
+            "seat_index": player_id - 1,
+            "winner_id": None,
+            "winner_ids_json": None,
+            "label_is_winner": None,
+            "final_score": None,
+            "final_rank": None,
+            "final_scores_json": None,
+            "is_tie": None,
+        }
+        row.update(coerce_feature_dict(features))
+        rows.append(row)
+    return rows
+
+
 def run_single_game(
     *,
     run_id: str,
@@ -457,8 +572,8 @@ def run_single_game(
     run_config: RunConfig,
     seat_assignment: Mapping[str, str],
     agent_configs: Mapping[str, AgentConfig],
-) -> Dict[str, Any]:
-    """Run one game and return a machine-readable game record."""
+) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+    """Run one game and return game record + snapshot rows."""
     random.seed(game_seed)
     np.random.seed(game_seed)
     game_id = f"{run_id}_g{game_index:04d}"
@@ -481,11 +596,46 @@ def run_single_game(
     }
 
     game = BlokusGame()
+    move_generator = LegalMoveGenerator()
     passes = 0
     invalid_actions = 0
     turn_count = 0
     truncated = False
     error: Optional[str] = None
+
+    snapshot_rows: List[Dict[str, Any]] = []
+    checkpoint_hits: Set[int] = set()
+    checkpoint_to_index = {
+        checkpoint_ply: idx
+        for idx, checkpoint_ply in enumerate(sorted(run_config.snapshots.checkpoints))
+    }
+
+    def maybe_capture_snapshot() -> None:
+        if not run_config.snapshots.enabled:
+            return
+        current_ply = int(game.board.move_count)
+        if current_ply not in checkpoint_to_index:
+            return
+        if current_ply in checkpoint_hits:
+            return
+        snapshot_rows.extend(
+            _build_snapshot_rows_for_checkpoint(
+                run_id=run_id,
+                game_id=game_id,
+                game_index=game_index,
+                game_seed=game_seed,
+                seat_assignment=seat_assignment,
+                checkpoint_index=checkpoint_to_index[current_ply],
+                checkpoint_ply=current_ply,
+                game=game,
+                turn_count=turn_count,
+                max_turns=run_config.max_turns,
+                move_generator=move_generator,
+            )
+        )
+        checkpoint_hits.add(current_ply)
+
+    maybe_capture_snapshot()  # Supports checkpoint at ply=0.
 
     try:
         while not game.is_game_over() and turn_count < run_config.max_turns:
@@ -531,6 +681,8 @@ def run_single_game(
                 game.board._update_current_player()
                 game._check_game_over()
                 continue
+
+            maybe_capture_snapshot()
     except Exception as exc:
         error = str(exc)
 
@@ -539,19 +691,34 @@ def run_single_game(
         game.board.game_over = True
 
     game_result = game.get_game_result()
-    scores_by_player = {str(player_id): int(score) for player_id, score in game_result.scores.items()}
+    scores_by_player = {
+        str(player_id): int(score) for player_id, score in game_result.scores.items()
+    }
+    final_ranks = _compute_ranks(scores_by_player)
     winner_ids = [int(player_id) for player_id in game_result.winner_ids]
     winner_agents = [seat_assignment[str(player_id)] for player_id in winner_ids]
+    winner_id = winner_ids[0] if len(winner_ids) == 1 else None
     agent_scores = {
         seat_assignment[player_id]: score for player_id, score in scores_by_player.items()
     }
     agent_ranks = {
         seat_assignment[player_id]: rank
-        for player_id, rank in _compute_ranks(scores_by_player).items()
+        for player_id, rank in final_ranks.items()
     }
 
+    for row in snapshot_rows:
+        player_id = int(row["player_id"])
+        player_key = str(player_id)
+        row["winner_id"] = winner_id
+        row["winner_ids_json"] = json.dumps(winner_ids, sort_keys=True)
+        row["label_is_winner"] = int(player_id in winner_ids)
+        row["final_score"] = int(scores_by_player[player_key])
+        row["final_rank"] = int(final_ranks[player_key])
+        row["final_scores_json"] = json.dumps(scores_by_player, sort_keys=True)
+        row["is_tie"] = bool(game_result.is_tie)
+
     duration_sec = time.perf_counter() - start
-    for agent_name, stats_entry in per_agent_stats.items():
+    for stats_entry in per_agent_stats.values():
         moves = stats_entry["moves"]
         stats_entry["avg_time_ms"] = (
             stats_entry["total_time_ms"] / moves if moves > 0 else 0.0
@@ -580,9 +747,10 @@ def run_single_game(
         "winner_agents": winner_agents,
         "is_tie": bool(game_result.is_tie),
         "final_scores": scores_by_player,
-        "final_ranks": _compute_ranks(scores_by_player),
+        "final_ranks": final_ranks,
         "agent_scores": agent_scores,
         "agent_ranks": agent_ranks,
+        "winner_id": winner_id,
         "moves_made": int(game.board.move_count),
         "turn_count": int(turn_count),
         "passes": int(passes),
@@ -590,9 +758,10 @@ def run_single_game(
         "duration_sec": float(duration_sec),
         "truncated": bool(truncated),
         "agent_move_stats": per_agent_stats,
+        "snapshot_checkpoints_hit": sorted(checkpoint_hits),
         "error": error,
     }
-    return record
+    return record, snapshot_rows
 
 
 def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
@@ -630,6 +799,105 @@ def _append_index_row(
         writer.writerow(row)
 
 
+def _write_snapshots_dataset(
+    run_dir: Path,
+    snapshot_rows: Sequence[Mapping[str, Any]],
+) -> Dict[str, Any]:
+    if not snapshot_rows:
+        return {
+            "enabled": False,
+            "rows": 0,
+            "path_parquet": None,
+            "path_csv": None,
+            "parquet_written": False,
+            "parquet_error": None,
+        }
+    if pd is None:
+        raise RuntimeError("pandas is required for snapshot dataset writing.")
+
+    dataframe = pd.DataFrame(snapshot_rows)
+    csv_path = run_dir / "snapshots.csv"
+    dataframe.to_csv(csv_path, index=False)
+
+    parquet_path = run_dir / "snapshots.parquet"
+    parquet_written = False
+    parquet_error: Optional[str] = None
+    try:
+        dataframe.to_parquet(parquet_path, index=False)
+        parquet_written = True
+    except Exception as exc:  # pragma: no cover - depends on parquet engine availability
+        parquet_error = str(exc)
+        (run_dir / "snapshots_parquet_error.txt").write_text(
+            "Failed to write snapshots.parquet.\n"
+            f"Reason: {parquet_error}\n"
+            "Install pyarrow or fastparquet to enable parquet output.\n",
+            encoding="utf-8",
+        )
+
+    return {
+        "enabled": True,
+        "rows": int(len(dataframe)),
+        "path_parquet": str(parquet_path) if parquet_written else None,
+        "path_csv": str(csv_path),
+        "parquet_written": parquet_written,
+        "parquet_error": parquet_error,
+    }
+
+
+def _build_snapshot_diagnostics(snapshot_rows: Sequence[Mapping[str, Any]]) -> Dict[str, Any]:
+    if not snapshot_rows or pd is None:
+        return {}
+
+    dataframe = pd.DataFrame(snapshot_rows)
+    distributions: Dict[str, Dict[str, float]] = {}
+    for column in SNAPSHOT_FEATURE_COLUMNS:
+        if column not in dataframe.columns:
+            continue
+        series = dataframe[column].astype(float)
+        distributions[column] = {
+            "mean": float(series.mean()),
+            "std": float(series.std(ddof=0)),
+            "p25": float(series.quantile(0.25)),
+            "p75": float(series.quantile(0.75)),
+            "min": float(series.min()),
+            "max": float(series.max()),
+        }
+
+    corr_pairs: List[Dict[str, Any]] = []
+    numeric_df = dataframe[SNAPSHOT_FEATURE_COLUMNS].astype(float)
+    corr = numeric_df.corr().fillna(0.0)
+    columns = list(corr.columns)
+    for i, col_a in enumerate(columns):
+        for j in range(i + 1, len(columns)):
+            col_b = columns[j]
+            value = float(corr.iloc[i, j])
+            if abs(value) >= 0.95:
+                corr_pairs.append(
+                    {"feature_a": col_a, "feature_b": col_b, "correlation": value}
+                )
+    corr_pairs.sort(key=lambda item: abs(item["correlation"]), reverse=True)
+
+    winner_lead: Dict[str, Dict[str, float]] = {}
+    lead_metric = "utility_frontier_plus_mobility"
+    if lead_metric in dataframe.columns and "label_is_winner" in dataframe.columns:
+        for checkpoint, sub_df in dataframe.groupby("checkpoint_index"):
+            winners = sub_df[sub_df["label_is_winner"] == 1]
+            losers = sub_df[sub_df["label_is_winner"] == 0]
+            if winners.empty or losers.empty:
+                continue
+            winner_lead[str(int(checkpoint))] = {
+                "winner_mean": float(winners[lead_metric].mean()),
+                "non_winner_mean": float(losers[lead_metric].mean()),
+                "gap": float(winners[lead_metric].mean() - losers[lead_metric].mean()),
+            }
+
+    return {
+        "feature_distributions": distributions,
+        "high_correlation_pairs": corr_pairs[:100],
+        "winner_lead_by_checkpoint": winner_lead,
+    }
+
+
 def run_experiment(run_config: RunConfig, *, verbose: bool = False) -> Dict[str, Any]:
     """Run a full arena experiment and write all required artifacts."""
     run_id, run_dir = _prepare_run_directory(run_config)
@@ -642,6 +910,7 @@ def run_experiment(run_config: RunConfig, *, verbose: bool = False) -> Dict[str,
 
     games_path = run_dir / "games.jsonl"
     all_games: List[Dict[str, Any]] = []
+    all_snapshot_rows: List[Dict[str, Any]] = []
     agent_configs = {agent.name: agent for agent in run_config.agents}
     with games_path.open("w", encoding="utf-8") as handle:
         for game_index in range(run_config.num_games):
@@ -652,7 +921,7 @@ def run_experiment(run_config: RunConfig, *, verbose: bool = False) -> Dict[str,
                 game_seed,
                 run_config.seat_policy,
             )
-            record = run_single_game(
+            record, snapshot_rows = run_single_game(
                 run_id=run_id,
                 game_index=game_index,
                 game_seed=game_seed,
@@ -662,6 +931,7 @@ def run_experiment(run_config: RunConfig, *, verbose: bool = False) -> Dict[str,
             )
             handle.write(json.dumps(record, sort_keys=True) + "\n")
             all_games.append(record)
+            all_snapshot_rows.extend(snapshot_rows)
             if verbose:
                 winners = ",".join(record["winner_agents"])
                 print(
@@ -680,6 +950,18 @@ def run_experiment(run_config: RunConfig, *, verbose: bool = False) -> Dict[str,
         },
         run_config=run_config_payload,
     )
+
+    snapshot_meta = _write_snapshots_dataset(run_dir, all_snapshot_rows)
+    if snapshot_meta["enabled"]:
+        summary["snapshots"] = snapshot_meta
+        summary["snapshot_diagnostics"] = _build_snapshot_diagnostics(all_snapshot_rows)
+        expected_rows = (
+            run_config.num_games
+            * len(run_config.snapshots.checkpoints)
+            * len(Player)
+        )
+        summary["snapshots"]["expected_rows_max"] = int(expected_rows)
+
     _write_json(run_dir / "summary.json", summary)
     (run_dir / "summary.md").write_text(
         render_summary_markdown(summary),
@@ -697,4 +979,6 @@ def run_experiment(run_config: RunConfig, *, verbose: bool = False) -> Dict[str,
         "run_id": run_id,
         "run_dir": str(run_dir),
         "summary": summary,
+        "snapshot_rows": len(all_snapshot_rows),
     }
+

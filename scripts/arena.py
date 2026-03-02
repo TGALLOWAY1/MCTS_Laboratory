@@ -28,6 +28,17 @@ def _with_overrides(config: RunConfig, args: argparse.Namespace) -> RunConfig:
         payload["max_turns"] = args.max_turns
     if args.notes is not None:
         payload["notes"] = args.notes
+    snapshots = dict(payload.get("snapshots") or {})
+    if args.snapshots_enabled:
+        snapshots["enabled"] = True
+    if args.snapshots_disabled:
+        snapshots["enabled"] = False
+    if args.snapshot_strategy is not None:
+        snapshots["strategy"] = args.snapshot_strategy
+    if args.snapshot_plys is not None:
+        checkpoints = [int(part.strip()) for part in args.snapshot_plys.split(",") if part.strip()]
+        snapshots["checkpoints"] = checkpoints
+    payload["snapshots"] = snapshots
     return RunConfig.from_dict(payload)
 
 
@@ -79,6 +90,29 @@ def parse_args() -> argparse.Namespace:
         help="Optional notes to store in run metadata and index.csv.",
     )
     parser.add_argument(
+        "--snapshots-enabled",
+        action="store_true",
+        help="Enable snapshot dataset logging (one row per player per checkpoint).",
+    )
+    parser.add_argument(
+        "--snapshots-disabled",
+        action="store_true",
+        help="Disable snapshot dataset logging regardless of config.",
+    )
+    parser.add_argument(
+        "--snapshot-strategy",
+        type=str,
+        choices=["fixed_ply"],
+        default=None,
+        help="Snapshot checkpoint strategy (currently only fixed_ply).",
+    )
+    parser.add_argument(
+        "--snapshot-plys",
+        type=str,
+        default=None,
+        help="Comma-separated ply checkpoints for snapshots, e.g. '8,16,24,32'.",
+    )
+    parser.add_argument(
         "--print-config",
         action="store_true",
         help="Print the resolved run config and exit.",
@@ -113,6 +147,11 @@ def main() -> None:
     )
     print(f"summary_json: {run_dir}/summary.json")
     print(f"summary_md: {run_dir}/summary.md")
+    snapshots = summary.get("snapshots")
+    if snapshots and snapshots.get("enabled"):
+        print(f"snapshots_csv: {run_dir}/snapshots.csv")
+        if snapshots.get("parquet_written"):
+            print(f"snapshots_parquet: {run_dir}/snapshots.parquet")
 
 
 if __name__ == "__main__":
