@@ -100,7 +100,7 @@ def run_single_tournament(
         "num_games": args.num_games,
         "seed": seed,
         "seat_policy": args.seat_policy,
-        "tunings": [t.to_dict() for t in tuning_set.tunings]
+        "tunings": [t.to_dict(args.thinking_time_ms) for t in tuning_set.tunings]
     })
     
     games_jsonl_path = run_dir / "games.jsonl"
@@ -207,7 +207,7 @@ def main() -> None:
             name=tuning.name,
             type=args.agent_backend,
             thinking_time_ms=args.thinking_time_ms,
-            params=tuning.to_dict()["params"]
+            params=tuning.resolve_params(args.thinking_time_ms)
         )
 
     seeds = []
