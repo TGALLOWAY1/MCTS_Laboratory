@@ -12,10 +12,30 @@ class MctsTuning:
     name: str
     params: Dict[str, Any] = field(default_factory=dict)
     
-    def to_dict(self) -> Dict[str, Any]:
+    def resolve_params(self, thinking_time_ms: int) -> Dict[str, Any]:
+        """Resolve dynamic parameters based on the time budget."""
+        resolved = dict(self.params)
+        
+        # Handle adaptive bias
+        if resolved.get("is_adaptive_bias"):
+            del resolved["is_adaptive_bias"]
+            # Apply thresholds based on empirical results
+            if thinking_time_ms <= 75:
+                resolved["progressive_bias_weight"] = 0.5
+            elif thinking_time_ms <= 250:
+                resolved["progressive_bias_weight"] = 0.0
+            else:
+                resolved["progressive_bias_weight"] = 0.25
+            
+            resolved["_resolved_budget"] = thinking_time_ms
+            
+        return resolved
+    
+    def to_dict(self, thinking_time_ms: int = None) -> Dict[str, Any]:
+        p = self.resolve_params(thinking_time_ms) if thinking_time_ms is not None else dict(self.params)
         return {
             "name": self.name,
-            "params": dict(self.params),
+            "params": p,
         }
 
 
@@ -119,6 +139,29 @@ register_tuning_set(TuningSet(
             "progressive_bias_weight": 0.25,
             "potential_shaping_enabled": True,
             "potential_shaping_weight": 1.0
+        }),
+    ]
+))
+
+# 4. Adaptive Bias Benchmark (Benchmarks dynamic policy vs standard fixed winners)
+register_tuning_set(TuningSet(
+    name="adaptive_vs_best_fixed",
+    tunings=[
+        MctsTuning("adaptive_bias", {
+            **_LEAF_EVAL_BASE,
+            "is_adaptive_bias": True,
+        }),
+        MctsTuning("fixed_50ms_best", {
+            **_LEAF_EVAL_BASE,
+            "progressive_bias_weight": 0.5,
+        }),
+        MctsTuning("fixed_200ms_best", {
+            **_LEAF_EVAL_BASE,
+            "progressive_bias_weight": 0.0,
+        }),
+        MctsTuning("fixed_400ms_best", {
+            **_LEAF_EVAL_BASE,
+            "progressive_bias_weight": 0.25,
         }),
     ]
 ))
