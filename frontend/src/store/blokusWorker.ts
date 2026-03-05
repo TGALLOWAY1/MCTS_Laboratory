@@ -3,7 +3,12 @@ import { loadPyodide } from 'pyodide';
 // We need to define the type for this worker if TS doesn't know it's a dedicated worker
 const ctx: Worker = self as any;
 
+// We need to keep a reference to the Pyodide instance and the current game state
 let pyodide: any = null;
+
+// Expose self as our worker to window for debug/step functionality (if we wanted to use window in a normal script, but we are a worker!)
+// Actually wait - Play.tsx tries to access `window._blokusWorkerInstance`
+// Which means gameStore needs to expose the worker it created.
 let bridge: any = null;
 
 async function initPyodide() {
