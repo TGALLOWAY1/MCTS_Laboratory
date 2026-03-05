@@ -34,6 +34,7 @@ export const AnalysisDashboard: React.FC = () => {
     const setCurrentSliderTurn = useGameStore(s => s.setCurrentSliderTurn);
     const [selectedPlayer, setSelectedPlayer] = useState<number>(2); // Default BLUE
     const [xAxisMode, setXAxisMode] = useState<'move' | 'round'>('move');
+    const [activeMap, setActiveMap] = useState<'frontier' | 'deadzone'>('frontier');
 
     const gameHistory = gameState?.game_history || [];
     const totalTurns = gameHistory.length;
@@ -41,6 +42,9 @@ export const AnalysisDashboard: React.FC = () => {
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (!totalTurns) return;
+            // Prevent double-firing if the native range slider has focus
+            if (document.activeElement?.tagName === 'INPUT') return;
+
             if (e.key === 'ArrowLeft') {
                 setCurrentSliderTurn(Math.max(1, (currentSliderTurn || totalTurns) - 1));
             } else if (e.key === 'ArrowRight') {
@@ -138,22 +142,42 @@ export const AnalysisDashboard: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="bg-charcoal-800 border border-charcoal-700 rounded-lg p-2 flex flex-col h-[260px] hover:border-gray-600 transition-colors">
-                            <h3 className="text-[10px] font-bold text-gray-400 uppercase text-center mb-2 tracking-wider">Frontier (Usable Corners)</h3>
-                            <FrontierMap
-                                frontiers={metrics.frontiers}
-                                boardState={currentBoard}
-                                selectedPlayer={selectedPlayer}
-                                frontierMetrics={(activeTurnData?.metrics?.frontier_metrics?.[PLAYER_NAMES[selectedPlayer]])
-                                    || gameState?.frontier_metrics?.[PLAYER_NAMES[selectedPlayer]]}
-                                frontierClusters={(activeTurnData?.metrics?.frontier_clusters?.[PLAYER_NAMES[selectedPlayer]])
-                                    || gameState?.frontier_clusters?.[PLAYER_NAMES[selectedPlayer]]}
-                            />
-                        </div>
+                        <div className="bg-charcoal-800 border border-charcoal-700 rounded-lg flex flex-col hover:border-gray-600 transition-colors shadow-sm overflow-hidden min-h-[350px]">
+                            <div className="flex bg-charcoal-900 border-b border-charcoal-700 shrink-0">
+                                <button
+                                    onClick={() => setActiveMap('frontier')}
+                                    className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors ${activeMap === 'frontier' ? 'bg-charcoal-800 text-neon-blue border-b-2 border-neon-blue shadow-[0_-2px_0_currentColor_inset]' : 'text-slate-500 hover:text-slate-300 hover:bg-charcoal-800'}`}
+                                >
+                                    Frontier (Usable Options)
+                                </button>
+                                <button
+                                    onClick={() => setActiveMap('deadzone')}
+                                    className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors ${activeMap === 'deadzone' ? 'bg-charcoal-800 text-neon-blue border-b-2 border-neon-blue shadow-[0_-2px_0_currentColor_inset]' : 'text-slate-500 hover:text-slate-300 hover:bg-charcoal-800'}`}
+                                >
+                                    Endgame Dead-Zones
+                                </button>
+                            </div>
 
-                        <div className="bg-charcoal-800 border border-charcoal-700 rounded-lg p-2 flex flex-col h-[260px] hover:border-gray-600 transition-colors">
-                            <h3 className="text-[10px] font-bold text-gray-400 uppercase text-center mb-2 tracking-wider">Endgame Dead-Zones</h3>
-                            <DeadZoneMap deadZones={metrics.deadZones} boardState={currentBoard} selectedPlayer={selectedPlayer} />
+                            <div className="p-3 flex-1 flex flex-col items-center justify-center bg-charcoal-900/50">
+                                {activeMap === 'frontier' && (
+                                    <div className="w-full max-w-[320px] mx-auto">
+                                        <FrontierMap
+                                            frontiers={metrics.frontiers}
+                                            boardState={currentBoard}
+                                            selectedPlayer={selectedPlayer}
+                                            frontierMetrics={(activeTurnData?.metrics?.frontier_metrics?.[PLAYER_NAMES[selectedPlayer]])
+                                                || gameState?.frontier_metrics?.[PLAYER_NAMES[selectedPlayer]]}
+                                            frontierClusters={(activeTurnData?.metrics?.frontier_clusters?.[PLAYER_NAMES[selectedPlayer]])
+                                                || gameState?.frontier_clusters?.[PLAYER_NAMES[selectedPlayer]]}
+                                        />
+                                    </div>
+                                )}
+                                {activeMap === 'deadzone' && (
+                                    <div className="w-full max-w-[320px] mx-auto">
+                                        <DeadZoneMap deadZones={metrics.deadZones} boardState={currentBoard} selectedPlayer={selectedPlayer} />
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
 
