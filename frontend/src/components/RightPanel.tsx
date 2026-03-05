@@ -88,6 +88,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({ onNewGame }) => {
             <button
               type="button"
               onClick={() => setActiveTab('telemetry')}
+              className={`flex-1 py-1.5 text-xs rounded ${activeTab === 'telemetry' ? 'bg-charcoal-600 text-white' : 'bg-charcoal-800 text-gray-400 hover:text-gray-200'}`}
             >
               Dashboard
             </button>

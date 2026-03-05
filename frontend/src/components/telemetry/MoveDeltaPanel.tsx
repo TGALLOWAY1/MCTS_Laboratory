@@ -42,9 +42,15 @@ export const MoveDeltaPanel: React.FC = () => {
     const winner: string = (gameState as any).winner ?? '';
 
     const movesWithTelemetry = useMemo(() => {
-        return gameHistory
+        const withTel = gameHistory
             .map((entry: any, index: number) => ({ ...entry, originalIndex: index }))
             .filter((entry: any) => entry.telemetry);
+        // Debug: if history exists but telemetry is always missing, log the first entry
+        if (gameHistory.length > 0 && withTel.length === 0) {
+            const sample = gameHistory[0] as any;
+            console.warn('[MoveDelta] game_history exists but no telemetry found. First entry keys:', Object.keys(sample), 'telemetry value:', sample?.telemetry);
+        }
+        return withTel;
     }, [gameHistory]);
 
     // Flat array of just the telemetry objects for scoring computations
