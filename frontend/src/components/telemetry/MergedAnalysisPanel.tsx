@@ -8,7 +8,7 @@ import { TopMovesLeaderboard } from './charts/TopMovesLeaderboard';
 import { WeightPreset, NormalizationMethod } from '../../utils/moveImpactScore';
 import { MoveTelemetryDelta } from '../../types/telemetry';
 import { OpponentSuppressionMultiples } from './charts/OpponentSuppressionMultiples';
-import { calculateDashboardMetrics, calculateWinProbability } from '../../utils/dashboardMetrics';
+
 import {
     ModuleE_FrontierChart,
     ModuleF_UrgencyChart,
@@ -22,30 +22,12 @@ const PLAYER_COLORS: Record<string, string> = {
     YELLOW: '#eab308',
 };
 
-const PLAYER_COLORS_BY_ID: Record<number, string> = {
-    1: '#ef4444',
-    2: '#3b82f6',
-    3: '#eab308',
-    4: '#22c55e',
-};
-
-const PLAYER_NAMES_BY_ID: Record<number, string> = { 1: 'RED', 2: 'BLUE', 3: 'YELLOW', 4: 'GREEN' };
-
 const PRESETS: { label: string; value: WeightPreset }[] = [
     { label: 'Balanced', value: 'balanced' },
     { label: 'Blocking', value: 'blocking' },
     { label: 'Expansion', value: 'expansion' },
     { label: 'Late-game', value: 'late-game' },
 ];
-
-const getPieceSize = (id: number) => {
-    if (!id) return 0;
-    if (id === 1) return 1;
-    if (id === 2) return 2;
-    if (id <= 4) return 3;
-    if (id <= 9) return 4;
-    return 5;
-};
 
 // --- Collapsible sub-section ---
 const Collapsible: React.FC<{ title: string; defaultOpen?: boolean; children: React.ReactNode; badge?: string }> = ({
@@ -69,54 +51,7 @@ const Collapsible: React.FC<{ title: string; defaultOpen?: boolean; children: Re
     );
 };
 
-// --- Player leaderboard (minimal embedded version) ---
-const MiniLeaderboard: React.FC<{ gameState: any; metrics: any; winProbs: any; remainingPieces?: any }> = ({
-    gameState, metrics, winProbs, remainingPieces,
-}) => {
-    const players = [1, 2, 3, 4];
-    const getScore = (pName: string) => {
-        const used = gameState?.pieces_used?.[pName] || [];
-        return used.reduce((sum: number, id: number) => sum + getPieceSize(id), 0);
-    };
 
-    return (
-        <div className="overflow-x-auto">
-            <table className="w-full text-center border-collapse text-[11px] font-mono">
-                <thead className="bg-charcoal-900 border-b border-charcoal-700">
-                    <tr className="text-gray-400 uppercase tracking-wider text-[9px]">
-                        <th className="py-2 px-3 text-left">Player</th>
-                        <th className="py-2 px-2" title="Score">Score</th>
-                        <th className="py-2 px-2" title="Pieces in Hand">Pieces</th>
-                        <th className="py-2 px-2" title="Frontier Corners">Frontier</th>
-                        <th className="py-2 px-2 text-right" title="Win Probability">Win%</th>
-                    </tr>
-                </thead>
-                <tbody className="bg-charcoal-800">
-                    {players.map((p, i) => {
-                        const pName = PLAYER_NAMES_BY_ID[p];
-                        const score = getScore(pName);
-                        const handSize = remainingPieces && Array.isArray(remainingPieces[pName]) ? remainingPieces[pName].length : 21;
-                        const fSize = metrics?.frontiers?.[p]?.length ?? 0;
-                        const winProb = winProbs ? (winProbs[p] * 100).toFixed(1) + '%' : '-';
-                        const isLeader = winProbs ? winProbs[p] === Math.max(...Object.values(winProbs) as number[]) : false;
-                        return (
-                            <tr key={p} className={`border-b ${i === 3 ? 'border-transparent' : 'border-charcoal-700/50'} hover:bg-white/5 transition-colors ${isLeader ? 'bg-blue-900/10' : ''}`}>
-                                <td className="py-2.5 px-3 text-left font-bold flex items-center gap-1.5" style={{ color: PLAYER_COLORS_BY_ID[p] }}>
-                                    {isLeader && <span className="text-yellow-400">★</span>}
-                                    {pName}
-                                </td>
-                                <td className="py-2.5 px-2 text-white font-bold">{score}</td>
-                                <td className="py-2.5 px-2 text-slate-400">{handSize}</td>
-                                <td className="py-2.5 px-2 text-blue-300">{fSize}</td>
-                                <td className={`py-2.5 px-3 text-right font-bold ${isLeader ? 'text-green-400' : 'text-slate-500'}`}>{winProb}</td>
-                            </tr>
-                        );
-                    })}
-                </tbody>
-            </table>
-        </div>
-    );
-};
 
 // ============================================================
 // Main Component
@@ -156,22 +91,6 @@ export const MergedAnalysisPanel: React.FC = () => {
     // Board state derived from slider
     const activeTurnIdx = Math.max(0, Math.min(totalTurns - 1, (currentSliderTurn || totalTurns) - 1));
     const activeTurnData = totalTurns > 0 ? gameHistory[activeTurnIdx] : null;
-    const currentBoard = activeTurnData?.board_state || gameState?.board;
-
-    const metrics = useMemo(() => {
-        if (!currentBoard) return null;
-        try {
-            return calculateDashboardMetrics(currentBoard);
-        } catch (e) {
-            console.warn('[MergedAnalysisPanel] calculateDashboardMetrics failed:', e);
-            return null;
-        }
-    }, [currentBoard]);
-
-    const winProbs = useMemo(() => {
-        if (!currentBoard || !metrics) return null;
-        return calculateWinProbability(currentBoard, metrics);
-    }, [currentBoard, metrics]);
 
     // Telemetry data
     const movesWithTelemetry = useMemo(() =>
@@ -258,22 +177,6 @@ export const MergedAnalysisPanel: React.FC = () => {
                     <span className="text-[10px] font-mono text-slate-500">{totalTurns}</span>
                 </div>
             </div>
-
-            {/* ─── PLAYER LEADERBOARD ─── */}
-            <Collapsible title="Player Leaderboard" badge="heuristic" defaultOpen={true}>
-                {metrics ? (
-                    <MiniLeaderboard
-                        gameState={gameState}
-                        metrics={metrics}
-                        winProbs={winProbs}
-                        remainingPieces={activeTurnData?.metrics?.remaining_pieces}
-                    />
-                ) : (
-                    <div className="p-4 text-xs text-gray-500 text-center">
-                        Board metrics unavailable — play a move to populate.
-                    </div>
-                )}
-            </Collapsible>
 
             {/* ─── LINE CHARTS ─── */}
             <Collapsible title="Game Trajectory" defaultOpen={true}>
