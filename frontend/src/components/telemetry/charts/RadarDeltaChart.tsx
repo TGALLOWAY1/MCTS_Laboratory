@@ -16,93 +16,144 @@ interface RadarDeltaChartProps {
     showOpponents?: boolean;
 }
 
-const METRIC_LABELS: Record<string, string> = {
-    frontierSize: 'Frontier Size',
-    mobility: 'Mobility',
-    deadSpace: 'Dead Space',
-    centerControl: 'Center Control',
-    pieceLockRisk: 'Piece Lock Risk'
-};
+/** Expansion (attacking) metrics — gauges how much the move grows options */
+const EXPANSION_METRICS: { key: string; label: string }[] = [
+    { key: 'frontierSize', label: 'Frontier' },
+    { key: 'mobility', label: 'Mobility' },
+    { key: 'centerControl', label: 'Center' },
+    { key: 'remainingArea', label: 'Open Area' },
+    { key: 'effectiveFrontier', label: 'Eff. Frontier' },
+];
+
+/** Risk / defensive metrics — gauges exposure and vulnerability */
+const RISK_METRICS: { key: string; label: string }[] = [
+    { key: 'deadSpace', label: 'Dead Space' },
+    { key: 'pieceLockRisk', label: 'Lock Risk' },
+    { key: 'mobilityDropRisk', label: 'Mob. Drop' },
+    { key: 'bottleneckScore', label: 'Bottleneck' },
+    { key: 'lockedArea', label: 'Locked Area' },
+];
 
 const PLAYER_COLORS: Record<string, string> = {
     RED: '#ef4444',
     BLUE: '#3b82f6',
     GREEN: '#22c55e',
-    YELLOW: '#eab308'
+    YELLOW: '#eab308',
 };
 
-export const RadarDeltaChart: React.FC<RadarDeltaChartProps> = ({ telemetry, showOpponents = false }) => {
-    const chartData = useMemo(() => {
-        if (!telemetry || !telemetry.before || !telemetry.after) return [];
+function buildRadarData(
+    metrics: { key: string; label: string }[],
+    moverBefore: any,
+    moverAfter: any,
+    telemetry: MoveTelemetryDelta,
+    showOpponents: boolean,
+) {
+    return metrics.map(({ key, label }) => {
+        const entry: any = {
+            metric: label,
+            Before: moverBefore?.metrics?.[key] ?? 0,
+            After: moverAfter?.metrics?.[key] ?? 0,
+        };
+        if (showOpponents) {
+            let oppBefore = 0;
+            let oppAfter = 0;
+            telemetry.before?.forEach((p: any) => {
+                if (p.playerId !== telemetry.moverId) oppBefore += p.metrics?.[key] ?? 0;
+            });
+            telemetry.after?.forEach((p: any) => {
+                if (p.playerId !== telemetry.moverId) oppAfter += p.metrics?.[key] ?? 0;
+            });
+            entry.OppBefore = oppBefore;
+            entry.OppAfter = oppAfter;
+        }
+        return entry;
+    });
+}
 
-        // Find the mover's snapshots before and after
+const MiniRadar: React.FC<{
+    title: string;
+    data: any[];
+    moverColor: string;
+    moverId: string;
+    showOpponents: boolean;
+}> = ({ title, data, moverColor, moverId, showOpponents }) => (
+    <div className="flex-1 flex flex-col min-w-0">
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center mb-1 shrink-0">
+            {title}
+        </p>
+        <div className="flex-1 min-h-0">
+            <ResponsiveContainer width="100%" height="100%">
+                <RadarChart cx="50%" cy="50%" outerRadius="72%" data={data}>
+                    <PolarGrid stroke="#374151" />
+                    <PolarAngleAxis
+                        dataKey="metric"
+                        tick={{ fill: '#9ca3af', fontSize: 10 }}
+                    />
+                    <PolarRadiusAxis
+                        angle={30}
+                        domain={['auto', 'auto']}
+                        tick={{ fill: '#6b7280', fontSize: 9 }}
+                        tickCount={3}
+                    />
+                    <Tooltip
+                        contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', color: '#f3f4f6', fontSize: 11 }}
+                        itemStyle={{ color: '#e5e7eb' }}
+                    />
+                    {showOpponents && (
+                        <>
+                            <Radar name="Opp (Before)" dataKey="OppBefore" stroke="#6b7280" fill="#6b7280" fillOpacity={0.08} strokeDasharray="3 3" dot={false} />
+                            <Radar name="Opp (After)" dataKey="OppAfter" stroke="#9ca3af" fill="#9ca3af" fillOpacity={0.25} dot={false} />
+                        </>
+                    )}
+                    <Radar name={`${moverId} Before`} dataKey="Before" stroke={moverColor} fill={moverColor} fillOpacity={0.08} strokeDasharray="4 2" dot={false} />
+                    <Radar name={`${moverId} After`} dataKey="After" stroke={moverColor} fill={moverColor} fillOpacity={0.45} dot={false} />
+                    <Legend
+                        wrapperStyle={{ fontSize: 10, color: '#9ca3af', paddingTop: 4 }}
+                        iconSize={8}
+                    />
+                </RadarChart>
+            </ResponsiveContainer>
+        </div>
+    </div>
+);
+
+export const RadarDeltaChart: React.FC<RadarDeltaChartProps> = ({ telemetry, showOpponents = false }) => {
+    const { expansionData, riskData, moverColor } = useMemo(() => {
+        if (!telemetry?.before || !telemetry?.after) {
+            return { expansionData: [], riskData: [], moverColor: '#8884d8' };
+        }
         const moverBefore = telemetry.before.find((p: any) => p.playerId === telemetry.moverId);
         const moverAfter = telemetry.after.find((p: any) => p.playerId === telemetry.moverId);
-
-        if (!moverBefore || !moverAfter) return [];
-
-        const metricsKeys = Object.keys(moverBefore.metrics);
-
-        return metricsKeys.map(metric => {
-            const entry: any = {
-                metric: METRIC_LABELS[metric] || metric,
-                Before: moverBefore.metrics[metric] || 0,
-                After: moverAfter.metrics[metric] || 0,
-            };
-
-            if (showOpponents) {
-                // Aggregate opponents Before
-                let oppBeforeTotal = 0;
-                let oppAfterTotal = 0;
-
-                telemetry.before!.forEach((p: any) => {
-                    if (p.playerId !== telemetry.moverId) oppBeforeTotal += (p.metrics[metric] || 0);
-                });
-
-                telemetry.after!.forEach((p: any) => {
-                    if (p.playerId !== telemetry.moverId) oppAfterTotal += (p.metrics[metric] || 0);
-                });
-
-                entry.OppBefore = oppBeforeTotal;
-                entry.OppAfter = oppAfterTotal;
-            }
-
-            return entry;
-        });
+        return {
+            expansionData: buildRadarData(EXPANSION_METRICS, moverBefore, moverAfter, telemetry, showOpponents),
+            riskData: buildRadarData(RISK_METRICS, moverBefore, moverAfter, telemetry, showOpponents),
+            moverColor: PLAYER_COLORS[telemetry.moverId] || '#8884d8',
+        };
     }, [telemetry, showOpponents]);
 
-    if (!chartData.length) return null;
-
-    const moverColor = PLAYER_COLORS[telemetry.moverId] || '#8884d8';
+    if (!expansionData.length) return null;
 
     return (
-        <div className="w-full h-full min-h-[300px] flex flex-col items-center">
-            <h3 className="text-sm font-semibold text-gray-300 mb-2 truncate w-full text-left">
+        <div className="w-full h-full flex flex-col min-h-0">
+            <h3 className="text-sm font-semibold text-gray-300 mb-2 shrink-0">
                 Move Shape (Before vs After)
             </h3>
-            <div className="flex-1 w-full max-w-[400px]">
-                <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart cx="50%" cy="50%" outerRadius="80%" data={chartData}>
-                        <PolarGrid stroke="#4a5568" />
-                        <PolarAngleAxis dataKey="metric" tick={{ fill: '#9ca3af', fontSize: 11 }} />
-                        <PolarRadiusAxis angle={30} domain={['auto', 'auto']} tick={{ fill: '#6b7280', fontSize: 10 }} />
-                        <Tooltip
-                            contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#f3f4f6' }}
-                            itemStyle={{ color: '#e5e7eb' }}
-                        />
-                        <Legend wrapperStyle={{ fontSize: 12, color: '#9ca3af' }} />
-
-                        {showOpponents && (
-                            <>
-                                <Radar name="Opponents (Before)" dataKey="OppBefore" stroke="#6b7280" fill="#6b7280" fillOpacity={0.1} />
-                                <Radar name="Opponents (After)" dataKey="OppAfter" stroke="#9ca3af" fill="#9ca3af" fillOpacity={0.4} />
-                            </>
-                        )}
-
-                        <Radar name={`${telemetry.moverId} (Before)`} dataKey="Before" stroke={moverColor} fill={moverColor} fillOpacity={0.1} strokeDasharray="3 3" />
-                        <Radar name={`${telemetry.moverId} (After)`} dataKey="After" stroke={moverColor} fill={moverColor} fillOpacity={0.5} />
-                    </RadarChart>
-                </ResponsiveContainer>
+            <div className="flex-1 flex gap-2 min-h-0">
+                <MiniRadar
+                    title="Expansion"
+                    data={expansionData}
+                    moverColor={moverColor}
+                    moverId={telemetry.moverId}
+                    showOpponents={showOpponents}
+                />
+                <div className="w-px bg-charcoal-700 shrink-0" />
+                <MiniRadar
+                    title="Risk"
+                    data={riskData}
+                    moverColor={moverColor}
+                    moverId={telemetry.moverId}
+                    showOpponents={showOpponents}
+                />
             </div>
         </div>
     );
