@@ -17,12 +17,62 @@ const PRESETS: { label: string; value: WeightPreset }[] = [
     { label: 'Late-game', value: 'late-game' },
 ];
 
+const MetricDefinitions: React.FC = () => {
+    const [isOpen, setIsOpen] = useState(false);
+
+    return (
+        <div className="bg-charcoal-800 rounded-lg border border-charcoal-700 overflow-hidden">
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full flex items-center justify-between p-3 text-left hover:bg-charcoal-700 transition-colors"
+            >
+                <span className="text-sm font-semibold text-gray-300">
+                    ℹ️ How are these metrics calculated?
+                </span>
+                <span className="text-gray-400 text-xs">
+                    {isOpen ? 'Collapse ▲' : 'Expand ▼'}
+                </span>
+            </button>
+            {isOpen && (
+                <div className="p-4 pt-0 border-t border-charcoal-700 text-xs text-gray-300 space-y-3 mt-2">
+                    <div>
+                        <strong className="text-blue-400">Frontier Size:</strong> The number of open corners your pieces currently touch.
+                    </div>
+                    <div>
+                        <strong className="text-purple-400">Effective Frontier Adv:</strong> Similar to Frontier Size, but weighted by the amount of open space nearby and penalized if opponents are threatening the corner. Shows how much stronger your frontier is relative to opponents.
+                    </div>
+                    <div>
+                        <strong className="text-blue-400">Mobility:</strong> An estimation of your total legal moves. Higher mobility means you have more options and are harder to block.
+                    </div>
+                    <div>
+                        <strong className="text-purple-400">Stability (P10) Adv:</strong> Simulates possible opponent moves to find the 10th percentile worst-case scenario. High stability means your mobility cannot be easily crushed next turn.
+                    </div>
+                    <div>
+                        <strong className="text-blue-400">Center Control:</strong> A continuous measure of how close your pieces are to the absolute center of the board. Max score is 9 per piece placed.
+                    </div>
+                    <div>
+                        <strong className="text-blue-400">Dead Space:</strong> Unreachable empty squares on the board adjacent to your pieces.
+                    </div>
+                    <div>
+                        <strong className="text-blue-400">Piece Lock Risk:</strong> The number of pieces remaining in your hand that currently have <em>zero legal placements anywhere on the board</em>.
+                    </div>
+                    <div>
+                        <strong className="text-purple-400">Win Proxy Score:</strong> A composite predictive score combining core expansion, material, and stability advantages into a single "win probability proxy."
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
 export const MoveDeltaPanel: React.FC = () => {
     const gameState = useGameStore((s) => s.gameState);
 
-    // UI State
-    const [selectedPly, setSelectedPly] = useState<number>(0);
+    const currentSliderTurn = useGameStore((s) => s.currentSliderTurn);
+    const setCurrentSliderTurn = useGameStore((s) => s.setCurrentSliderTurn);
+
     const [showRaw, setShowRaw] = useState<boolean>(false);
+    const [showAdvantage, setShowAdvantage] = useState<boolean>(true);
     const [perOpponent, setPerOpponent] = useState<boolean>(false);
     const [preset, setPreset] = useState<WeightPreset>('balanced');
     const [normalization] = useState<NormalizationMethod>('z-score');
@@ -68,22 +118,42 @@ export const MoveDeltaPanel: React.FC = () => {
     }
 
     // Default to the latest move
-    const actualPly = selectedPly === 0 && movesWithTelemetry.length > 0
+    const actualPly = currentSliderTurn === null && movesWithTelemetry.length > 0
         ? movesWithTelemetry[movesWithTelemetry.length - 1].telemetry.ply
-        : selectedPly;
+        : currentSliderTurn || 0;
 
     const currentIndex = movesWithTelemetry.findIndex((m: any) => m.telemetry.ply === actualPly);
     const safeIndex = currentIndex >= 0 ? currentIndex : movesWithTelemetry.length - 1;
     const selectedMove = movesWithTelemetry[safeIndex];
 
     const handlePrev = () => {
-        if (safeIndex > 0) setSelectedPly(movesWithTelemetry[safeIndex - 1].telemetry.ply);
+        if (safeIndex > 0) setCurrentSliderTurn(movesWithTelemetry[safeIndex - 1].telemetry.ply);
     };
     const handleNext = () => {
-        if (safeIndex < movesWithTelemetry.length - 1) setSelectedPly(movesWithTelemetry[safeIndex + 1].telemetry.ply);
+        if (safeIndex < movesWithTelemetry.length - 1) setCurrentSliderTurn(movesWithTelemetry[safeIndex + 1].telemetry.ply);
     };
     const handleSlider = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSelectedPly(movesWithTelemetry[parseInt(e.target.value, 10)].telemetry.ply);
+        setCurrentSliderTurn(movesWithTelemetry[parseInt(e.target.value, 10)].telemetry.ply);
+    };
+
+    const handleCopySummary = () => {
+        if (!selectedMove?.telemetry) return;
+        const t = selectedMove.telemetry;
+        let summary = `Ply ${t.ply} - ${t.moverId}'s Move\n`;
+        if (t.impactScore !== undefined) {
+            summary += `Impact Score: ${t.impactScore.toFixed(2)} (${preset} preset)\n`;
+        }
+        summary += `Self Delta:\n`;
+        Object.entries(t.deltaSelf).forEach(([k, v]) => {
+            const val = v as number;
+            if (val !== 0) summary += `  ${k}: ${val > 0 ? '+' : ''}${val}\n`;
+        });
+
+        navigator.clipboard.writeText(summary).then(() => {
+            alert('Copied to clipboard!');
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+        });
     };
 
     // Board overlay: compute cells that changed between before/after board states
@@ -136,17 +206,33 @@ export const MoveDeltaPanel: React.FC = () => {
                         {showRaw ? 'Raw' : 'Normalized'}
                     </button>
                     <button
-                        onClick={() => setPerOpponent(!perOpponent)}
-                        className={`px-3 py-1 text-xs rounded-full transition-colors ${perOpponent ? 'bg-yellow-500 text-charcoal-900 font-bold' : 'bg-charcoal-700 text-gray-300 hover:bg-charcoal-600'}`}
+                        onClick={() => setShowAdvantage(!showAdvantage)}
+                        className={`px-3 py-1 text-xs rounded-full transition-colors ${showAdvantage ? 'bg-purple-500 text-white font-bold' : 'bg-charcoal-700 text-gray-300 hover:bg-charcoal-600'}`}
+                        title="Toggle predictive Advantage Deltas vs. Raw Metric Deltas"
                     >
-                        {perOpponent ? 'Per Opponent' : 'Agg. Opp'}
+                        {showAdvantage ? 'Advantage (V2)' : 'Raw Deltas'}
                     </button>
+                    {!showAdvantage && (
+                        <button
+                            onClick={() => setPerOpponent(!perOpponent)}
+                            className={`px-3 py-1 text-xs rounded-full transition-colors ${perOpponent ? 'bg-yellow-500 text-charcoal-900 font-bold' : 'bg-charcoal-700 text-gray-300 hover:bg-charcoal-600'}`}
+                        >
+                            {perOpponent ? 'Per Opponent' : 'Agg. Opp'}
+                        </button>
+                    )}
                     <button
-                        onClick={() => setShowOverlay(v => !v)}
+                        onClick={() => setShowOverlay(!showOverlay)}
                         className={`px-3 py-1 text-xs rounded-full transition-colors ${showOverlay ? 'bg-emerald-500 text-white font-bold' : 'bg-charcoal-700 text-gray-300 hover:bg-charcoal-600'}`}
                         title="Highlight cells changed by this move on the board"
                     >
                         🗺 Overlay
+                    </button>
+                    <button
+                        onClick={handleCopySummary}
+                        className="px-3 py-1 text-xs rounded-full transition-colors bg-charcoal-700 text-gray-300 hover:bg-charcoal-600"
+                        title="Copy text summary of this move to clipboard"
+                    >
+                        📋 Copy Summary
                     </button>
                 </div>
             </div>
@@ -191,15 +277,19 @@ export const MoveDeltaPanel: React.FC = () => {
             {/* Charts */}
             {selectedMove?.telemetry && (
                 <div className="space-y-4">
-                    <div className="bg-charcoal-800 rounded-lg border border-charcoal-700 p-3 h-[280px]">
+                    <MetricDefinitions />
+
+                    <div className="bg-charcoal-800 rounded-lg border border-charcoal-700 p-3 h-[280px]" title="Shows how this move changed metrics for the mover and opponents">
                         <DivergingBarChart
                             telemetry={selectedMove.telemetry}
                             showRaw={showRaw}
                             perOpponent={perOpponent}
+                            isAdvantageMode={showAdvantage}
+                            advantageKeys={['winProxy', 'mobilityNextP10Adv', 'effectiveFrontierAdv', 'lockedAreaAdv', 'remainingAreaAdv']}
                         />
                     </div>
 
-                    <div className="bg-charcoal-800 rounded-lg border border-charcoal-700 p-3 h-[280px]">
+                    <div className="bg-charcoal-800 rounded-lg border border-charcoal-700 p-3 h-[280px]" title="Breaks down the Move Impact Score into contributions from individual metrics">
                         <MoveImpactWaterfall
                             telemetry={selectedMove.telemetry}
                             preset={preset}
@@ -209,13 +299,13 @@ export const MoveDeltaPanel: React.FC = () => {
                     </div>
 
                     <div className="flex gap-3 h-[280px]">
-                        <div className="flex-1 bg-charcoal-800 rounded-lg border border-charcoal-700 p-3">
+                        <div className="flex-1 bg-charcoal-800 rounded-lg border border-charcoal-700 p-3" title="Visualizes the shape of your position before vs after the move">
                             <RadarDeltaChart
                                 telemetry={selectedMove.telemetry}
                                 showOpponents={!perOpponent}
                             />
                         </div>
-                        <div className="flex-1 bg-charcoal-800 rounded-lg border border-charcoal-700 p-3">
+                        <div className="flex-1 bg-charcoal-800 rounded-lg border border-charcoal-700 p-3" title="Tracks the accumulated impact points over the course of the game">
                             <CumulativeTimelineChart
                                 gameHistory={gameHistory}
                                 currentPly={selectedMove.telemetry.ply}
@@ -223,18 +313,18 @@ export const MoveDeltaPanel: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="bg-charcoal-800 rounded-lg border border-charcoal-700 p-3">
+                    <div className="bg-charcoal-800 rounded-lg border border-charcoal-700 p-3" title="Ranks all moves in the game by their Impact Score">
                         <TopMovesLeaderboard
                             allMoves={allTelemetry}
                             preset={preset}
                             normalization={normalization}
                             winnerId={winner}
                             selectedPly={selectedMove.telemetry.ply}
-                            onSelectPly={setSelectedPly}
+                            onSelectPly={setCurrentSliderTurn}
                         />
                     </div>
 
-                    <div className="bg-charcoal-800 rounded-lg border border-charcoal-700 p-3">
+                    <div className="bg-charcoal-800 rounded-lg border border-charcoal-700 p-3" title="Shows what metrics contributed most to this player's overall score across the game">
                         {/* Strategy Mix — player selector */}
                         <div className="flex items-center gap-2 mb-3">
                             <span className="text-xs text-gray-400 shrink-0">Strategy for:</span>
@@ -256,11 +346,11 @@ export const MoveDeltaPanel: React.FC = () => {
                             playerId={strategyPlayer || winner || selectedMove.telemetry.moverId}
                             preset={preset}
                             normalization={normalization}
-                            onSelectPly={setSelectedPly}
+                            onSelectPly={setCurrentSliderTurn}
                         />
                     </div>
 
-                    <div className="bg-charcoal-800 rounded-lg border border-charcoal-700 p-3">
+                    <div className="bg-charcoal-800 rounded-lg border border-charcoal-700 p-3" title="Highlights how drastically opponents were suppressed by the selected player's moves">
                         <OpponentSuppressionMultiples
                             allMoves={allTelemetry}
                             currentPly={selectedMove.telemetry.ply}

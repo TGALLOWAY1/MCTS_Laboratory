@@ -25,6 +25,8 @@ export interface MoveTelemetryDelta {
     deltaSelf: Record<MetricKey, number>;
     deltaOppTotal: Record<MetricKey, number>;
     deltaOppByPlayer: Record<string, Record<MetricKey, number>>;
+    deltaAdvantage?: Record<string, number>;
+    winProxyDelta?: number;
     impactScore?: number;
     // Raw snapshots, stored alongside deltas by the engine for radar-chart use
     before?: PlayerMetricSnapshot[];
@@ -79,6 +81,10 @@ export function isMoveTelemetryDelta(obj: unknown): obj is MoveTelemetryDelta {
     for (const key in o.deltaOppByPlayer) {
         if (!isRecordOfNumbers(o.deltaOppByPlayer[key])) return false;
     }
+
+    // Optional predictive fields
+    if (o.deltaAdvantage !== undefined && !isRecordOfNumbers(o.deltaAdvantage)) return false;
+    if (o.winProxyDelta !== undefined && typeof o.winProxyDelta !== 'number') return false;
 
     // impactScore is optional
     if (o.impactScore !== undefined && typeof o.impactScore !== 'number') return false;

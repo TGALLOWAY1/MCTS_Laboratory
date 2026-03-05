@@ -15,7 +15,8 @@ interface DivergingBarChartProps {
     telemetry: MoveTelemetryDelta;
     showRaw: boolean;
     perOpponent: boolean;
-    normalizationOptions?: any; // To be added later
+    isAdvantageMode?: boolean;
+    advantageKeys?: string[];
 }
 
 const PLAYER_COLORS: Record<string, string> = {
@@ -30,15 +31,44 @@ const METRIC_LABELS: Record<string, string> = {
     mobility: 'Mobility',
     deadSpace: 'Dead Space',
     centerControl: 'Center Control',
-    pieceLockRisk: 'Piece Lock Risk'
+    pieceLockRisk: 'Piece Lock Risk',
+
+    // V2 labels
+    winProxy: 'Win Proxy Score',
+    mobilityNextP10Adv: 'Stability (P10) Adv',
+    effectiveFrontierAdv: 'Effective Frontier Adv',
+    lockedAreaAdv: 'Locked Area Adv',
+    remainingAreaAdv: 'Remaining Area Adv',
+    centerControlWeightedAdv: 'Center Control Adv',
+    bottleneckScoreAdv: 'Bottleneck Score Adv',
 };
 
-export const DivergingBarChart: React.FC<DivergingBarChartProps> = ({ telemetry, perOpponent }) => {
+export const DivergingBarChart: React.FC<DivergingBarChartProps> = ({ telemetry, perOpponent, isAdvantageMode, advantageKeys }) => {
     const chartData = useMemo(() => {
         if (!telemetry) return [];
 
-        // Convert the delta structures into an array for Recharts
-        const metrics = Object.keys(telemetry.deltaSelf);
+        if (isAdvantageMode) {
+            // Read from deltaAdvantage instead 
+            const source = telemetry.deltaAdvantage || {};
+            let metrics = Object.keys(source);
+
+            if (advantageKeys && advantageKeys.length > 0) {
+                metrics = advantageKeys.filter(k => k in source);
+            }
+
+            return metrics.map(metric => ({
+                metric: METRIC_LABELS[metric] || metric,
+                [telemetry.moverId]: source[metric] || 0,
+            }));
+        }
+
+        // Classic Self vs Opponent diverging logic
+        const source = telemetry.deltaSelf || {};
+        let metrics = Object.keys(source);
+
+        // Filter out the overly complicated raw V2 metrics by default if showing components
+        const coreKeys = ['frontierSize', 'effectiveFrontier', 'mobility', 'deadSpace', 'centerControl'];
+        metrics = metrics.filter(m => coreKeys.includes(m));
 
         return metrics.map(metric => {
             const selfVal = telemetry.deltaSelf[metric] || 0;
@@ -48,18 +78,16 @@ export const DivergingBarChart: React.FC<DivergingBarChartProps> = ({ telemetry,
             };
 
             if (perOpponent && telemetry.deltaOppByPlayer) {
-                // Stacked bar approach for each opponent
                 Object.keys(telemetry.deltaOppByPlayer).forEach(opp => {
                     entry[`${opp}_Opp`] = telemetry.deltaOppByPlayer![opp][metric] || 0;
                 });
             } else if (telemetry.deltaOppTotal) {
-                // Aggregate opponent approach
                 entry.OpponentAggregate = telemetry.deltaOppTotal[metric] || 0;
             }
 
             return entry;
         });
-    }, [telemetry, perOpponent]);
+    }, [telemetry, perOpponent, isAdvantageMode, advantageKeys]);
 
     if (!chartData.length) return null;
 
@@ -70,7 +98,7 @@ export const DivergingBarChart: React.FC<DivergingBarChartProps> = ({ telemetry,
     return (
         <div className="w-full h-full min-h-[300px] flex flex-col">
             <h3 className="text-sm font-semibold text-gray-300 mb-2 truncate">
-                Metric Deltas (Self vs Opponents)
+                {isAdvantageMode ? "Predictive Advantage Deltas (Higher is Better)" : "Metric Deltas (Self vs Opponents)"}
             </h3>
             <div className="flex-1">
                 <ResponsiveContainer width="100%" height="100%">
@@ -81,12 +109,12 @@ export const DivergingBarChart: React.FC<DivergingBarChartProps> = ({ telemetry,
                         stackOffset="sign"
                     >
                         <CartesianGrid strokeDasharray="3 3" stroke="#4a5568" horizontal={false} />
-                        <XAxis type="number" stroke="#9ca3af" fontSize={12} tickFormatter={(val) => val > 0 ? `+${val}` : val} />
-                        <YAxis dataKey="metric" type="category" stroke="#9ca3af" fontSize={11} width={100} />
+                        <XAxis type="number" stroke="#9ca3af" fontSize={12} tickFormatter={(val) => val > 0 ? `+${val.toFixed(1)}` : val.toFixed(1)} />
+                        <YAxis dataKey="metric" type="category" stroke="#9ca3af" fontSize={11} width={130} />
                         <Tooltip
                             contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#f3f4f6' }}
                             itemStyle={{ color: '#e5e7eb' }}
-                            formatter={(value: any, name: string | undefined) => [value > 0 ? `+${value}` : value, (name || '').replace('_Opp', '')]}
+                            formatter={(value: any, name: string | undefined) => [value > 0 ? `+${Number(value).toFixed(2)}` : Number(value).toFixed(2), (name || '').replace('_Opp', '')]}
                         />
                         <ReferenceLine x={0} stroke="#9ca3af" />
 
@@ -96,27 +124,32 @@ export const DivergingBarChart: React.FC<DivergingBarChartProps> = ({ telemetry,
                             fill={PLAYER_COLORS[telemetry.moverId] || '#8884d8'}
                             stackId="stack"
                             name={`${telemetry.moverId} (Self)`}
+                            minPointSize={2}
                         />
 
                         {/* Opponent Bars (Stacked or Aggregate) */}
-                        {perOpponent ? (
-                            opponentKeys.map(opp => (
+                        {!isAdvantageMode && (
+                            perOpponent ? (
+                                opponentKeys.map(opp => (
+                                    <Bar
+                                        key={opp}
+                                        dataKey={`${opp}_Opp`}
+                                        fill={PLAYER_COLORS[opp] || '#82ca9d'}
+                                        stackId="stack"
+                                        name={`${opp} (Opp)`}
+                                        opacity={0.8}
+                                        minPointSize={2}
+                                    />
+                                ))
+                            ) : (
                                 <Bar
-                                    key={opp}
-                                    dataKey={`${opp}_Opp`}
-                                    fill={PLAYER_COLORS[opp] || '#82ca9d'}
+                                    dataKey="OpponentAggregate"
+                                    fill="#9ca3af"
                                     stackId="stack"
-                                    name={`${opp} (Opp)`}
-                                    opacity={0.8}
+                                    name="Opponents (Total)"
+                                    minPointSize={2}
                                 />
-                            ))
-                        ) : (
-                            <Bar
-                                dataKey="OpponentAggregate"
-                                fill="#9ca3af"
-                                stackId="stack"
-                                name="Opponents (Total)"
-                            />
+                            )
                         )}
                     </BarChart>
                 </ResponsiveContainer>
