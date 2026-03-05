@@ -173,7 +173,7 @@ interface GameStore {
   isPaused: boolean;
   error: string | null;
   logs: LogEntry[];
-  activeRightTab: 'main' | 'telemetry';
+  activeRightTab: 'main' | 'telemetry' | 'explanation';
 
   connect: (gameId: string) => Promise<void>;
   disconnect: () => void;
@@ -189,7 +189,7 @@ interface GameStore {
   setGameState: (gameState: GameState | null) => void;
   addLog: (message: string, level?: 'INFO' | 'WARN' | 'ERROR') => void;
   clearLogs: () => void;
-  setActiveRightTab: (tab: 'main' | 'telemetry') => void;
+  setActiveRightTab: (tab: 'main' | 'telemetry' | 'explanation') => void;
   saveGame: () => void;
   loadGame: (history: GameHistoryEntry[]) => Promise<void>;
 }
@@ -202,6 +202,9 @@ let isWorkerReady = false;
 function setupWorker() {
   if (workerInstance) return workerInstance;
   workerInstance = new BlokusWorker();
+
+  // Expose it so Play.tsx step button can access it directly to force manual advance
+  (window as any)._blokusWorkerInstance = workerInstance;
 
   workerInstance.onmessage = (e) => {
     const data = e.data;
@@ -389,7 +392,7 @@ export const useGameStore = create<GameStore>()(
     },
 
     clearLogs: () => { set({ logs: [] }); },
-    setActiveRightTab: (tab: 'main' | 'telemetry') => { set({ activeRightTab: tab }); },
+    setActiveRightTab: (tab: 'main' | 'telemetry' | 'explanation') => { set({ activeRightTab: tab }); },
 
     saveGame: () => {
       const state = get().gameState;

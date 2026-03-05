@@ -28,11 +28,11 @@ export const Home: React.FC = () => {
       console.log('📋 Creating game with config:', gameConfig);
       const gameId = await createGame(gameConfig);
       console.log('🎯 Game created with ID:', gameId);
-      
+
       console.log('Connecting to WebSocket...');
       await connect(gameId);
       console.log('WebSocket connected, navigating to play page');
-      
+
       // Check store state before navigation
       const storeState = useGameStore.getState();
       console.log('Store state after connection:', {
@@ -40,7 +40,7 @@ export const Home: React.FC = () => {
         connectionStatus: storeState.connectionStatus,
         error: storeState.error
       });
-      
+
       // If no game state, try to fetch it via REST API as fallback
       if (!storeState.gameState) {
         console.log('No game state from WebSocket, fetching via REST API...');
@@ -55,7 +55,7 @@ export const Home: React.FC = () => {
           console.error('Failed to fetch game state via REST API:', err);
         }
       }
-      
+
       navigate('/play');
     } catch (err) {
       console.error('Error creating game:', err);
@@ -68,7 +68,7 @@ export const Home: React.FC = () => {
   const updatePlayer = (index: number, field: string, value: string) => {
     setGameConfig(prev => ({
       ...prev,
-      players: prev.players.map((player, i) => 
+      players: prev.players.map((player, i) =>
         i === index ? { ...player, [field]: value } : player
       )
     }));
@@ -105,10 +105,40 @@ export const Home: React.FC = () => {
             <p className="text-gray-600 mb-6">
               Play against AI agents in this strategic board game
             </p>
-            
+
             {/* Game Description */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
-              <h2 className="text-xl font-semibold text-blue-800 mb-4">🎯 How to Play Blokus</h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-blue-800">🎯 How to Play Blokus</h2>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => {
+                      setGameConfig({
+                        players: [
+                          { player: 'RED', agent_type: 'mcts', agent_config: { difficulty: 'easy', time_budget_ms: 200 } },
+                          { player: 'BLUE', agent_type: 'mcts', agent_config: { difficulty: 'medium', time_budget_ms: 200 } },
+                          { player: 'GREEN', agent_type: 'mcts', agent_config: { difficulty: 'hard', time_budget_ms: 200 } },
+                          { player: 'YELLOW', agent_type: 'mcts', agent_config: { difficulty: 'hard', time_budget_ms: 200 } }
+                        ],
+                        auto_start: true,
+                        demo_mode: true
+                      } as any);
+                      // Slight delay to allow state to settle before launching
+                      setTimeout(() => {
+                        const btn = document.getElementById('btn-start-game');
+                        if (btn) btn.click();
+                      }, 100);
+                    }}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors flex items-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Run Demo Game
+                  </button>
+                </div>
+              </div>
               <div className="text-sm text-blue-700 space-y-3">
                 <div>
                   <strong>Objective:</strong> Place all your pieces on the board to score the most points.
@@ -131,9 +161,16 @@ export const Home: React.FC = () => {
             <div className="flex justify-center space-x-4">
               <button
                 onClick={() => navigate('/train')}
-                className="text-blue-600 hover:text-blue-800 text-sm"
+                className="text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors"
               >
                 📊 Training & Evaluation
+              </button>
+              <span className="text-blue-300">|</span>
+              <button
+                onClick={() => navigate('/benchmark')}
+                className="text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors"
+              >
+                🏆 AI Scoreboard
               </button>
             </div>
           </div>
@@ -150,7 +187,7 @@ export const Home: React.FC = () => {
               <h2 className="text-xl font-semibold text-gray-800 mb-4">
                 Game Configuration
               </h2>
-              
+
               <div className="space-y-4">
                 {/* Players */}
                 <div>
@@ -195,7 +232,7 @@ export const Home: React.FC = () => {
                       </div>
                     ))}
                   </div>
-                  
+
                   {gameConfig.players.length < 4 && (
                     <button
                       onClick={addPlayer}
@@ -227,12 +264,13 @@ export const Home: React.FC = () => {
 
             {/* Create Game Button */}
             <button
+              id="btn-start-game"
               onClick={handleCreateGame}
               disabled={isCreating}
               className={`
                 w-full py-3 px-6 rounded-lg font-medium text-white transition-colors duration-200
-                ${isCreating 
-                  ? 'bg-gray-400 cursor-not-allowed' 
+                ${isCreating
+                  ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700'
                 }
               `}
@@ -263,7 +301,7 @@ export const Home: React.FC = () => {
                   <div className="text-sm font-medium text-gray-800">4 Players</div>
                   <div className="text-xs text-gray-600 mt-1">Human vs All Agents</div>
                 </button>
-                
+
                 <button
                   onClick={() => {
                     setGameConfig({
@@ -279,7 +317,7 @@ export const Home: React.FC = () => {
                   <div className="text-sm font-medium text-gray-800">vs Random</div>
                   <div className="text-xs text-gray-600 mt-1">Easy opponent</div>
                 </button>
-                
+
                 <button
                   onClick={() => {
                     setGameConfig({
@@ -295,7 +333,7 @@ export const Home: React.FC = () => {
                   <div className="text-sm font-medium text-gray-800">vs Heuristic</div>
                   <div className="text-xs text-gray-600 mt-1">Medium opponent</div>
                 </button>
-                
+
                 <button
                   onClick={() => {
                     setGameConfig({
