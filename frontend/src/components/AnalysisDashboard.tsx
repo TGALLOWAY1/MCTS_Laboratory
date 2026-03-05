@@ -232,7 +232,7 @@ const FrontierMap: React.FC<{
     return (
         <div className="flex-1 flex flex-col min-h-0 relative">
             {/* Mode toggle buttons */}
-            <div className="absolute top-[-26px] right-0 flex gap-1 z-10">
+            <div className="flex shrink-0 justify-center gap-1 mb-2">
                 {(['Default', 'Flexibility', 'Urgency', 'Cluster'] as const).map(mode => (
                     <button
                         key={mode}
