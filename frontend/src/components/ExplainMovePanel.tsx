@@ -36,14 +36,14 @@ export const ExplainMovePanel: React.FC = () => {
 
             <div className="flex-1 overflow-auto flex flex-col">
                 <div className="px-4 py-3 bg-charcoal-800/50 border-b border-charcoal-700 text-[11px] text-gray-300">
+                    <p className="mb-2"><strong className="text-neon-blue">Visits:</strong> The number of times the Monte Carlo Tree Search algorithm simulated this specific move branching path. Higher visits mean the AI spent more time exploring this option because it looked promising.</p>
+                    <p className="mb-3"><strong className="text-neon-blue">Q-Value:</strong> The expected utility or score if this move is chosen. Since this is a fast agent, this is a heuristic score based on piece size (larger pieces score higher) and center proximity, rather than a pure 0.0 to 1.0 win rate. A higher Q-value means the AI evaluates the position more favorably.</p>
                     <details className="cursor-pointer group">
                         <summary className="font-semibold text-gray-200 hover:text-neon-blue transition-colors outline-none select-none">
-                            What is Monte Carlo Tree Search?
+                            View MCTS Diagram
                         </summary>
-                        <div className="mt-3 text-gray-300 space-y-3 cursor-default">
+                        <div className="mt-2 text-gray-300 cursor-default">
                             <img src="/images/mcts_diagram.png" alt="MCTS Phases Diagram" className="w-full h-auto rounded border border-charcoal-600 shadow-md" />
-                            <p><strong className="text-neon-blue">Visits:</strong> The number of times the Monte Carlo Tree Search algorithm simulated this specific move branching path. Higher visits mean the AI spent more time exploring this option because it looked promising.</p>
-                            <p><strong className="text-neon-blue">Q-Value:</strong> The expected utility or score if this move is chosen. Since this is a fast agent, this is a heuristic score based on piece size (larger pieces score higher) and center proximity, rather than a pure 0.0 to 1.0 win rate. A higher Q-value means the AI evaluates the position more favorably.</p>
                         </div>
                     </details>
                 </div>
