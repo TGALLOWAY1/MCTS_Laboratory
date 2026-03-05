@@ -51,23 +51,15 @@ export const LegalMovesBarChart: React.FC<{
 
   if (!data.length) {
     return (
-      <div className="px-3 py-3 border-t border-charcoal-700">
-        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-          Legal moves by piece
-        </h3>
-        <div className="text-xs text-gray-500 h-24 flex items-center justify-center bg-charcoal-800/50 rounded">
-          No available pieces or no legal moves
-        </div>
+      <div className="text-xs text-gray-500 h-24 flex items-center justify-center bg-charcoal-800/50 rounded">
+        No available pieces or no legal moves
       </div>
     );
   }
 
   return (
-    <div className="px-3 py-3 border-t border-charcoal-700 relative">
-      <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-        Legal moves by piece
-      </h3>
-      <svg width={width} height={height} className="overflow-visible">
+    <div className="relative w-full">
+      <svg viewBox={`0 0 ${width} ${height}`} width="100%" height={height} className="overflow-visible">
         {/* Y-axis label */}
         <text
           x={16}

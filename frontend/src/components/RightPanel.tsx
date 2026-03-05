@@ -59,7 +59,7 @@ const HintModal: React.FC<{ onClose: () => void }> = ({ onClose }) => (
           </svg>
         </button>
       </div>
-      <div className="p-4 space-y-4">
+      <div className="p-4 space-y-5">
         <section>
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
             Legal Moves by Piece
