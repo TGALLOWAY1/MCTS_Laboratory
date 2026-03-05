@@ -8,7 +8,6 @@ import {
     Tooltip,
     ResponsiveContainer,
     ReferenceLine,
-    Legend,
 } from 'recharts';
 import { MoveTelemetryDelta } from '../../../types/telemetry';
 

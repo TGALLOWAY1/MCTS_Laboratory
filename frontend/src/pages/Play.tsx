@@ -3,6 +3,7 @@ import { useGameStore } from '../store/gameStore';
 import { Board } from '../components/Board';
 import { RightPanel, HintModal } from '../components/RightPanel';
 import { PieceTray } from '../components/PieceTray';
+import { TrayLeaderboard } from '../components/TrayLeaderboard';
 import { LogConsole } from '../components/LogConsole';
 import { GameConfigModal } from '../components/GameConfigModal';
 import { useNavigate } from 'react-router-dom';
@@ -266,16 +267,19 @@ export const Play: React.FC = () => {
     <div className="fixed h-screen w-screen bg-charcoal-900 flex overflow-hidden pr-4">
       {/* Left Column - PieceTray (collapsible) */}
       {showPieceTray && (
-        <aside className="w-80 border-r border-charcoal-700 bg-charcoal-900 flex flex-col overflow-y-auto">
-          <PieceTray
-            onPieceSelect={selectPiece}
-            selectedPiece={selectedPiece}
-            pieceOrientation={pieceOrientation}
-            setPieceOrientation={setPieceOrientation}
-            gameState={gameState}
-            viewingPlayer={viewingPlayer}
-            onViewingPlayerChange={setViewingPlayer}
-          />
+        <aside className="w-80 border-r border-charcoal-700 bg-charcoal-900 flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto">
+            <PieceTray
+              onPieceSelect={selectPiece}
+              selectedPiece={selectedPiece}
+              pieceOrientation={pieceOrientation}
+              setPieceOrientation={setPieceOrientation}
+              gameState={gameState}
+              viewingPlayer={viewingPlayer}
+              onViewingPlayerChange={setViewingPlayer}
+            />
+          </div>
+          <TrayLeaderboard />
         </aside>
       )}
 
