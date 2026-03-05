@@ -193,7 +193,7 @@ export const AnalysisDashboard: React.FC = () => {
                 </div>
 
                 {/* BOTTOM ROW: Tabbed Charts */}
-                <div className="shrink-0 h-[300px] mb-4">
+                <div className="shrink-0 h-[450px] mb-4">
                     <TabbedCharts gameHistory={gameHistory} currentSliderTurn={currentSliderTurn || totalTurns} xAxisMode={xAxisMode} />
                 </div>
             </div>
@@ -559,19 +559,19 @@ const TabbedCharts: React.FC<{
             <div className="flex bg-charcoal-900 border-b border-charcoal-700 shrink-0">
                 <button
                     onClick={() => setActiveChart('mobility')}
-                    className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors ${activeChart === 'mobility' ? 'bg-charcoal-800 text-neon-blue border-b-2 border-neon-blue shadow-[0_-2px_0_currentColor_inset]' : 'text-slate-500 hover:text-slate-300 hover:bg-charcoal-800'}`}
+                    className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors ${activeChart === 'mobility' ? 'bg-charcoal-800 text-neon-blue border-b-2 border-neon-blue shadow-[0_-2px_0_currentColor_inset]' : 'text-slate-500 hover:text-slate-300 hover:bg-charcoal-800'}`}
                 >
                     Corner Differential (Mobility)
                 </button>
                 <button
                     onClick={() => setActiveChart('deadzone')}
-                    className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors ${activeChart === 'deadzone' ? 'bg-charcoal-800 text-neon-blue border-b-2 border-neon-blue shadow-[0_-2px_0_currentColor_inset]' : 'text-slate-500 hover:text-slate-300 hover:bg-charcoal-800'}`}
+                    className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors ${activeChart === 'deadzone' ? 'bg-charcoal-800 text-neon-blue border-b-2 border-neon-blue shadow-[0_-2px_0_currentColor_inset]' : 'text-slate-500 hover:text-slate-300 hover:bg-charcoal-800'}`}
                 >
                     Mobility (Frontier)
                 </button>
                 <button
                     onClick={() => setActiveChart('urgency')}
-                    className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors ${activeChart === 'urgency' ? 'bg-charcoal-800 text-neon-blue border-b-2 border-neon-blue shadow-[0_-2px_0_currentColor_inset]' : 'text-slate-500 hover:text-slate-300 hover:bg-charcoal-800'}`}
+                    className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors ${activeChart === 'urgency' ? 'bg-charcoal-800 text-neon-blue border-b-2 border-neon-blue shadow-[0_-2px_0_currentColor_inset]' : 'text-slate-500 hover:text-slate-300 hover:bg-charcoal-800'}`}
                 >
                     Frontier Urgency & Threat
                 </button>
@@ -653,16 +653,16 @@ export const ModuleC_CornerChart: React.FC<{ gameHistory: any[]; currentTurn: nu
 
     return (
         <div className="flex flex-col h-full w-full min-w-0">
-            <h3 className="text-[10px] font-bold mb-2 text-slate-400 uppercase text-center shrink-0">
+            <h3 className="text-xs font-bold mb-2 text-slate-400 uppercase text-center shrink-0">
                 Corner Differential (Mobility) vs {mode === 'move' ? 'Move' : 'Round'}
             </h3>
             <div className="flex-1 w-full min-h-0">
                 <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+                    <LineChart data={chartData} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                        <XAxis dataKey={xKey} stroke="#64748B" fontSize={8} tickMargin={5} minTickGap={10} />
-                        <YAxis stroke="#64748B" fontSize={8} tickCount={5} />
-                        <Tooltip contentStyle={{ backgroundColor: '#0F172A', borderColor: '#334155', borderRadius: '4px', fontSize: '10px' }} itemStyle={{ fontSize: '10px', padding: '2px 0' }} labelStyle={{ color: '#94A3B8', marginBottom: '4px' }} />
+                        <XAxis dataKey={xKey} stroke="#64748B" fontSize={11} tickMargin={5} minTickGap={10} />
+                        <YAxis stroke="#64748B" fontSize={11} tickCount={5} />
+                        <Tooltip contentStyle={{ backgroundColor: '#0F172A', borderColor: '#334155', borderRadius: '4px', fontSize: '13px' }} itemStyle={{ fontSize: '13px', padding: '2px 0' }} labelStyle={{ color: '#94A3B8', marginBottom: '4px' }} />
                         <ReferenceLine x={xRef} stroke="#94A3B8" strokeWidth={1} strokeDasharray="3 3" />
                         <Line type="monotone" dataKey="RED" stroke="#EF4444" strokeWidth={1.5} dot={false} isAnimationActive={false} />
                         <Line type="monotone" dataKey="BLUE" stroke="#3B82F6" strokeWidth={1.5} dot={false} isAnimationActive={false} />
@@ -703,16 +703,16 @@ export const ModuleE_FrontierChart: React.FC<{ gameHistory: any[]; currentTurn: 
 
     return (
         <div className="flex flex-col h-full w-full min-w-0">
-            <h3 className="text-[10px] font-bold mb-2 text-slate-400 uppercase text-center shrink-0">
+            <h3 className="text-xs font-bold mb-2 text-slate-400 uppercase text-center shrink-0">
                 Mobility (Frontier) vs {mode === 'move' ? 'Move' : 'Round'}
             </h3>
             <div className="flex-1 w-full min-h-0">
                 <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+                    <LineChart data={chartData} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                        <XAxis dataKey={xKey} stroke="#64748B" fontSize={8} tickMargin={5} minTickGap={10} />
-                        <YAxis stroke="#64748B" fontSize={8} tickCount={5} />
-                        <Tooltip contentStyle={{ backgroundColor: '#0F172A', borderColor: '#334155', borderRadius: '4px', fontSize: '10px' }} itemStyle={{ fontSize: '10px', padding: '2px 0' }} labelStyle={{ color: '#94A3B8', marginBottom: '4px' }} />
+                        <XAxis dataKey={xKey} stroke="#64748B" fontSize={11} tickMargin={5} minTickGap={10} />
+                        <YAxis stroke="#64748B" fontSize={11} tickCount={5} />
+                        <Tooltip contentStyle={{ backgroundColor: '#0F172A', borderColor: '#334155', borderRadius: '4px', fontSize: '13px' }} itemStyle={{ fontSize: '13px', padding: '2px 0' }} labelStyle={{ color: '#94A3B8', marginBottom: '4px' }} />
                         <ReferenceLine x={xRef} stroke="#94A3B8" strokeWidth={1} strokeDasharray="3 3" />
                         <Line type="monotone" dataKey="RED" stroke="#EF4444" strokeWidth={1.5} dot={false} isAnimationActive={false} />
                         <Line type="monotone" dataKey="BLUE" stroke="#3B82F6" strokeWidth={1.5} dot={false} isAnimationActive={false} />
@@ -763,16 +763,16 @@ export const ModuleF_UrgencyChart: React.FC<{ gameHistory: any[]; currentTurn: n
 
     return (
         <div className="flex flex-col h-full w-full min-w-0">
-            <h3 className="text-[10px] font-bold mb-2 text-slate-400 uppercase text-center shrink-0">
+            <h3 className="text-xs font-bold mb-2 text-slate-400 uppercase text-center shrink-0">
                 Frontier Urgency vs {mode === 'move' ? 'Move' : 'Round'}
             </h3>
             <div className="flex-1 w-full min-h-0">
                 <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+                    <LineChart data={chartData} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                        <XAxis dataKey={xKey} stroke="#64748B" fontSize={8} tickMargin={5} minTickGap={10} />
-                        <YAxis stroke="#64748B" fontSize={8} tickCount={5} />
-                        <Tooltip contentStyle={{ backgroundColor: '#0F172A', borderColor: '#334155', borderRadius: '4px', fontSize: '10px' }} itemStyle={{ fontSize: '10px', padding: '2px 0' }} labelStyle={{ color: '#94A3B8', marginBottom: '4px' }} />
+                        <XAxis dataKey={xKey} stroke="#64748B" fontSize={11} tickMargin={5} minTickGap={10} />
+                        <YAxis stroke="#64748B" fontSize={11} tickCount={5} />
+                        <Tooltip contentStyle={{ backgroundColor: '#0F172A', borderColor: '#334155', borderRadius: '4px', fontSize: '13px' }} itemStyle={{ fontSize: '13px', padding: '2px 0' }} labelStyle={{ color: '#94A3B8', marginBottom: '4px' }} />
                         <ReferenceLine x={xRef} stroke="#94A3B8" strokeWidth={1} strokeDasharray="3 3" />
                         <Line type="monotone" dataKey="RED" stroke="#EF4444" strokeWidth={1.5} dot={false} isAnimationActive={false} />
                         <Line type="monotone" dataKey="BLUE" stroke="#3B82F6" strokeWidth={1.5} dot={false} isAnimationActive={false} />
