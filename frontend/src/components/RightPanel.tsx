@@ -12,6 +12,7 @@ import {
   ModuleE_FrontierChart,
 } from './AnalysisDashboard';
 import { ExplainMovePanel } from './ExplainMovePanel';
+import { MoveDeltaPanel } from './telemetry/MoveDeltaPanel';
 import { IS_DEPLOY_PROFILE, ENABLE_DEBUG_UI } from '../constants/gameConstants';
 import { useGameStore } from '../store/gameStore';
 
@@ -87,9 +88,15 @@ export const RightPanel: React.FC<RightPanelProps> = ({ onNewGame }) => {
             <button
               type="button"
               onClick={() => setActiveTab('telemetry')}
-              className={`flex-1 py-1.5 text-xs rounded ${activeTab === 'telemetry' ? 'bg-charcoal-600 text-white' : 'bg-charcoal-800 text-gray-400 hover:text-gray-200'}`}
             >
               Dashboard
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('moveDelta')}
+              className={`flex-1 py-1.5 text-xs rounded ${activeTab === 'moveDelta' ? 'bg-charcoal-600 text-white' : 'bg-charcoal-800 text-gray-400 hover:text-gray-200'}`}
+            >
+              Move Impact
             </button>
           </div>
         </div>
@@ -98,6 +105,8 @@ export const RightPanel: React.FC<RightPanelProps> = ({ onNewGame }) => {
             <ExplainMovePanel />
           ) : activeTab === 'telemetry' ? (
             <TelemetryPanel />
+          ) : activeTab === 'moveDelta' ? (
+            <MoveDeltaPanel />
           ) : (
             <div className="h-full overflow-y-auto">
               <section className="p-3 border-b border-charcoal-700">
@@ -188,10 +197,18 @@ export const RightPanel: React.FC<RightPanelProps> = ({ onNewGame }) => {
           >
             Dashboard
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('moveDelta')}
+            className={`flex-1 py-1.5 text-xs rounded ${activeTab === 'moveDelta' ? 'bg-charcoal-600 text-white' : 'bg-charcoal-800 text-gray-400 hover:text-gray-200'}`}
+          >
+            Move Impact
+          </button>
         </div>
       )}
       <div className="flex-1 overflow-hidden">
-        {ENABLE_DEBUG_UI && activeTab === 'telemetry' ? <TelemetryPanel /> : researchMainContent}
+        {ENABLE_DEBUG_UI && activeTab === 'telemetry' ? <TelemetryPanel /> :
+          ENABLE_DEBUG_UI && activeTab === 'moveDelta' ? <MoveDeltaPanel /> : researchMainContent}
       </div>
     </div>
   );
