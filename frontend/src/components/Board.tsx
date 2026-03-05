@@ -115,12 +115,27 @@ export const Board: React.FC<BoardProps> = ({
 
   // Memoize cell color calculation to avoid recomputation
   const cellColors = useMemo(() => {
-    if (!gameState?.board) return null;
+    let boardToRender = gameState?.board;
+
+    // If we're previewing a move from the MCTS table (which represents candidates for the last played move),
+    // we should render the board state *before* that move was actually played, so the preview
+    // doesn't overlap with the chosen move.
+    if (previewMove && gameState?.game_history && gameState.game_history.length > 0) {
+      // The state before the last move is either the penultimate history entry, or an empty board
+      if (gameState.game_history.length > 1) {
+        boardToRender = gameState.game_history[gameState.game_history.length - 2].board_state;
+      } else {
+        // Turn 1's before-state is an empty board
+        boardToRender = Array(BOARD_SIZE).fill(0).map(() => Array(BOARD_SIZE).fill(0));
+      }
+    }
+
+    if (!boardToRender) return null;
     const colors: (string | null)[][] = [];
     for (let row = 0; row < BOARD_SIZE; row++) {
       colors[row] = [];
       for (let col = 0; col < BOARD_SIZE; col++) {
-        const cell = gameState.board[row]?.[col];
+        const cell = boardToRender[row]?.[col];
         if (!cell || cell === 0) {
           colors[row][col] = PLAYER_COLORS.empty;
         } else {
@@ -136,7 +151,7 @@ export const Board: React.FC<BoardProps> = ({
       }
     }
     return colors;
-  }, [gameState?.board]);
+  }, [gameState?.board, gameState?.game_history, previewMove]);
 
   const getCellColor = useCallback((row: number, col: number) => {
     if (!cellColors) return PLAYER_COLORS.empty;

@@ -34,7 +34,12 @@ export const ExplainMovePanel: React.FC = () => {
                 </p>
             </div>
 
-            <div className="flex-1 overflow-auto">
+            <div className="flex-1 overflow-auto flex flex-col">
+                <div className="px-4 py-3 bg-charcoal-800/50 border-b border-charcoal-700 text-[11px] text-gray-300">
+                    <p className="mb-2"><strong className="text-neon-blue">Visits:</strong> The number of times the Monte Carlo Tree Search algorithm simulated this specific move branching path. Higher visits mean the AI spent more time exploring this option because it looked promising.</p>
+                    <p><strong className="text-neon-blue">Q-Value:</strong> The expected win rate (0.0 to 1.0) if this move is chosen, based on the outcomes of the simulations. A Q-value of 0.85 means the AI expects to win 85% of the time after this move.</p>
+                </div>
+
                 <MctsTopMovesTable />
             </div>
         </div>
