@@ -161,7 +161,12 @@ export const MergedAnalysisPanel: React.FC = () => {
 
     const metrics = useMemo(() => {
         if (!currentBoard) return null;
-        return calculateDashboardMetrics(currentBoard);
+        try {
+            return calculateDashboardMetrics(currentBoard);
+        } catch (e) {
+            console.warn('[MergedAnalysisPanel] calculateDashboardMetrics failed:', e);
+            return null;
+        }
     }, [currentBoard]);
 
     const winProbs = useMemo(() => {
@@ -256,19 +261,23 @@ export const MergedAnalysisPanel: React.FC = () => {
             </div>
 
             {/* ─── PLAYER LEADERBOARD ─── */}
-            {metrics && (
-                <Collapsible title="Player Leaderboard" badge="heuristic">
+            <Collapsible title="Player Leaderboard" badge="heuristic" defaultOpen={true}>
+                {metrics ? (
                     <MiniLeaderboard
                         gameState={gameState}
                         metrics={metrics}
                         winProbs={winProbs}
                         remainingPieces={activeTurnData?.metrics?.remaining_pieces}
                     />
-                </Collapsible>
-            )}
+                ) : (
+                    <div className="p-4 text-xs text-gray-500 text-center">
+                        Board metrics unavailable — play a move to populate.
+                    </div>
+                )}
+            </Collapsible>
 
             {/* ─── LINE CHARTS ─── */}
-            <Collapsible title="Game Trajectory" defaultOpen={false}>
+            <Collapsible title="Game Trajectory" defaultOpen={true}>
                 <div className="p-3 space-y-3">
                     <div className="h-[180px]">
                         <ModuleE_FrontierChart gameHistory={gameHistory} currentTurn={currentSliderTurn || totalTurns} mode={xAxisMode} />
