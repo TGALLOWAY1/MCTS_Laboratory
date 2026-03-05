@@ -99,7 +99,7 @@ export const PieceTray: React.FC<PieceTrayProps> = ({
 
       {/* Player selector row */}
       {onViewingPlayerChange && (
-        <div className="px-3 py-1.5 border-b border-charcoal-700 flex items-center gap-1.5 flex-wrap">
+        <div className="px-3 py-1.5 border-b border-charcoal-700 flex items-center justify-center gap-1.5 flex-wrap">
           {ALL_PLAYERS.map(p => {
             const isActive = displayPlayer === p;
             return (
@@ -187,7 +187,7 @@ export const PieceTray: React.FC<PieceTrayProps> = ({
                             y={rowIndex * PIECE_SIZE}
                             width={PIECE_SIZE}
                             height={PIECE_SIZE}
-                            fill={isSelected ? '#00F0FF' : isPieceUsed ? '#64748B' : '#94A3B8'}
+                            fill={isSelected ? '#00F0FF' : isPieceUsed ? '#64748B' : (PLAYER_COLORS[displayPlayer || ''] || '#94A3B8')}
                             rx="1"
                             className="transition-colors duration-200"
                           />
