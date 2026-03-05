@@ -391,6 +391,7 @@ class GameManager:
                     "isHuman": False,
                     "move": last_move,
                     "stats": stats,
+                    "telemetry": game.game_history[-1].get("telemetry") if game.game_history else None,
                 })
                 game_data['last_turn_started_at'] = time.perf_counter()
                 game_data['last_turn_player'] = game.get_current_player()
@@ -752,6 +753,7 @@ class GameManager:
                     "stats": {
                         "userMoveTimeMs": max(user_move_time_ms, 0),
                     },
+                    "telemetry": game.game_history[-1].get("telemetry") if game.game_history else None,
                 })
                 game_data['last_turn_started_at'] = time.perf_counter()
                 game_data['last_turn_player'] = game.get_current_player()

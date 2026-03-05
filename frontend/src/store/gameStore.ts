@@ -128,6 +128,7 @@ export interface LogEntry {
 
 import { type PlayerMobilityMetrics } from '../utils/mobilityMetrics';
 import { useDebugLogStore } from './debugLogStore';
+import { type MoveTelemetryDelta } from '../types/telemetry';
 
 export interface GameHistoryEntry {
   turn_number: number;
@@ -158,6 +159,7 @@ export interface GameHistoryEntry {
     piece_lock_risk?: Record<string, number>;
     self_block_risk?: any;
   };
+  telemetry?: MoveTelemetryDelta;
 }
 
 // Store interface
