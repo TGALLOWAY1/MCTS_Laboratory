@@ -11,6 +11,7 @@ import {
   ModuleC_CornerChart,
   ModuleE_FrontierChart,
 } from './AnalysisDashboard';
+import { ExplainMovePanel } from './ExplainMovePanel';
 import { IS_DEPLOY_PROFILE, ENABLE_DEBUG_UI } from '../constants/gameConstants';
 import { useGameStore } from '../store/gameStore';
 
@@ -54,8 +55,10 @@ export const RightPanel: React.FC<RightPanelProps> = ({ onNewGame }) => {
   const gameHistory = gameState?.game_history || [];
   const liveTurn = gameHistory.length;
 
+  const isDemoMode = (gameState?.players as any)?.demo_mode || window.location.search.includes('demo=1') || gameState?.players?.length === 4;
+
   // Deploy: New Game + Legal Moves chart + Legal Positions grid
-  if (IS_DEPLOY_PROFILE) {
+  if (IS_DEPLOY_PROFILE || isDemoMode) {
     return (
       <div className="h-full flex flex-col overflow-hidden">
         <div className="p-4 border-b border-charcoal-700 shrink-0 flex flex-col gap-2">
@@ -65,31 +68,29 @@ export const RightPanel: React.FC<RightPanelProps> = ({ onNewGame }) => {
           >
             New Game
           </button>
-          {ENABLE_DEBUG_UI && (
-            <div className="flex gap-1">
-              <button
-                type="button"
-                onClick={() => setActiveTab('main')}
-                className={`flex-1 py-1.5 text-xs rounded ${activeTab === 'main' ? 'bg-charcoal-600 text-white' : 'bg-charcoal-800 text-gray-400 hover:text-gray-200'}`}
-              >
-                Game
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('telemetry')}
-                className={`flex-1 py-1.5 text-xs rounded ${activeTab === 'telemetry' ? 'bg-charcoal-600 text-white' : 'bg-charcoal-800 text-gray-400 hover:text-gray-200'}`}
-              >
-                Dashboard
-              </button>
-            </div>
-          )}
+
+          <div className="flex gap-1">
+            <button
+              type="button"
+              onClick={() => setActiveTab('main')}
+              className={`flex-1 py-1.5 text-xs rounded ${activeTab === 'main' ? 'bg-charcoal-600 text-white' : 'bg-charcoal-800 text-gray-400 hover:text-gray-200'}`}
+            >
+              Explanation
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('telemetry')}
+              className={`flex-1 py-1.5 text-xs rounded ${activeTab === 'telemetry' ? 'bg-charcoal-600 text-white' : 'bg-charcoal-800 text-gray-400 hover:text-gray-200'}`}
+            >
+              Dashboard
+            </button>
+          </div>
         </div>
         <div className="flex-1 overflow-hidden">
-          {activeTab === 'telemetry' ? (
-            <TelemetryPanel />
+          {activeTab === 'main' ? (
+            <ExplainMovePanel />
           ) : (
             <div className="h-full overflow-y-auto">
-              {/* Restored Live Charts for the Main Tab */}
               <section className="p-3 border-b border-charcoal-700">
                 <LegalMovesBarChart />
               </section>
