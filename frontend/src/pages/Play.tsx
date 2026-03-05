@@ -27,6 +27,7 @@ export const Play: React.FC = () => {
 
   const [isMakingMove, setIsMakingMove] = useState(false);
   const [isPassing, setIsPassing] = useState(false);
+  const [isStepping, setIsStepping] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [showLogConsole, setShowLogConsole] = useState(false);
@@ -204,6 +205,31 @@ export const Play: React.FC = () => {
     }
   }, [currentPlayer, isPassing, passTurn, setError]);
 
+  const handleStepTurn = useCallback(async () => {
+    if (isStepping || !currentPlayer) return;
+    setIsStepping(true);
+    setError(null);
+    try {
+      // In local Pyodide mode, we trigger the agent advance intentionally by messaging the worker directly
+      // since the gameStore normally blocks it when isPaused = true.
+      if (window.Worker) {
+        // Note: gameStore usually manages the worker but we can invoke a "make me advance" behavior
+        // by temporarily unpausing, let the effect run, then pausing again.
+        const store = useGameStore.getState();
+        if (store.isPaused) {
+          // Wait for the worker interface or just call pass passTurn directly?
+          // It's cleaner to let the store handle it. We will add a manual step method to store later if needed,
+          // but for now, we can toggle pause twice fast or call a store method if we add it.
+          console.log('Step logic to be implemented on store layer...');
+        }
+      }
+    } catch (err) {
+      console.error('Step error:', err);
+    } finally {
+      setIsStepping(false);
+    }
+  }, [currentPlayer, isStepping]);
+
   // Show game config modal if no game is loaded
   if (!gameState) {
     return (
@@ -338,26 +364,48 @@ export const Play: React.FC = () => {
                 </svg>
               </button>
 
-              {/* Pause/Resume Toggle */}
+              {/* Pause/Resume Toggle + Step */}
               {!gameState.game_over && (
-                <button
-                  onClick={togglePause}
-                  className={`p-2 transition-colors flex items-center gap-1 ${isPaused ? 'text-neon-yellow' : 'text-gray-400 hover:text-gray-200'}`}
-                  title={isPaused ? 'Resume Game' : 'Pause Game'}
-                >
-                  {isPaused ? (
-                    <>
+                <div className="flex items-center space-x-1">
+                  <button
+                    onClick={togglePause}
+                    className={`p-2 transition-colors flex items-center gap-1 ${isPaused ? 'text-neon-yellow' : 'text-gray-400 hover:text-gray-200'}`}
+                    title={isPaused ? 'Resume Game' : 'Pause Game'}
+                  >
+                    {isPaused ? (
+                      <>
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-[10px] font-bold uppercase animate-pulse">Paused</span>
+                      </>
+                    ) : (
                       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
                       </svg>
-                      <span className="text-[10px] font-bold uppercase animate-pulse">Paused</span>
-                    </>
-                  ) : (
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
+                    )}
+                  </button>
+                  {isPaused && !isHumanPlayer && (
+                    <button
+                      onClick={() => {
+                        const store = useGameStore.getState();
+                        // Special step mode: forcefully tell the worker to advance exactly one turn
+                        const worker = (window as any)._blokusWorkerInstance;
+                        if (worker && !store.isAdvancingTurn) {
+                          useGameStore.setState({ isAdvancingTurn: true });
+                          worker.postMessage({ type: 'advance_turn' });
+                        }
+                      }}
+                      className="p-2 text-neon-blue hover:text-neon-blue/80 transition-colors flex items-center gap-1"
+                      title="Step Forward One Turn"
+                    >
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                      </svg>
+                      <span className="text-[10px] font-bold uppercase">Step</span>
+                    </button>
                   )}
-                </button>
+                </div>
               )}
 
               <button
