@@ -161,9 +161,16 @@ export const Home: React.FC = () => {
             <div className="flex justify-center space-x-4">
               <button
                 onClick={() => navigate('/train')}
-                className="text-blue-600 hover:text-blue-800 text-sm"
+                className="text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors"
               >
                 📊 Training & Evaluation
+              </button>
+              <span className="text-blue-300">|</span>
+              <button
+                onClick={() => navigate('/benchmark')}
+                className="text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors"
+              >
+                🏆 AI Scoreboard
               </button>
             </div>
           </div>
