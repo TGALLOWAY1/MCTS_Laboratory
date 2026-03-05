@@ -128,6 +128,7 @@ export interface LogEntry {
 
 import { type PlayerMobilityMetrics } from '../utils/mobilityMetrics';
 import { useDebugLogStore } from './debugLogStore';
+import { type MoveTelemetryDelta } from '../types/telemetry';
 
 export interface GameHistoryEntry {
   turn_number: number;
@@ -158,6 +159,7 @@ export interface GameHistoryEntry {
     piece_lock_risk?: Record<string, number>;
     self_block_risk?: any;
   };
+  telemetry?: MoveTelemetryDelta;
 }
 
 // Store interface
@@ -173,7 +175,8 @@ interface GameStore {
   isPaused: boolean;
   error: string | null;
   logs: LogEntry[];
-  activeRightTab: 'main' | 'telemetry' | 'explanation';
+  activeRightTab: 'main' | 'telemetry' | 'explanation' | 'moveDelta' | 'analysis';
+  boardOverlay: Record<string, { color: string; opacity?: number }> | null;
 
   connect: (gameId: string) => Promise<void>;
   disconnect: () => void;
@@ -189,7 +192,8 @@ interface GameStore {
   setGameState: (gameState: GameState | null) => void;
   addLog: (message: string, level?: 'INFO' | 'WARN' | 'ERROR') => void;
   clearLogs: () => void;
-  setActiveRightTab: (tab: 'main' | 'telemetry' | 'explanation') => void;
+  setActiveRightTab: (tab: 'main' | 'telemetry' | 'explanation' | 'moveDelta' | 'analysis') => void;
+  setBoardOverlay: (overlay: Record<string, { color: string; opacity?: number }> | null) => void;
   saveGame: () => void;
   loadGame: (history: GameHistoryEntry[]) => Promise<void>;
 }
@@ -263,7 +267,8 @@ export const useGameStore = create<GameStore>()(
     isPaused: false,
     error: null,
     logs: [],
-    activeRightTab: 'main',
+    activeRightTab: 'main' as const,
+    boardOverlay: null,
 
     connect: async (gameId: string): Promise<void> => {
       // With Pyodide, state is local. If we reload the page, state is gone.
@@ -392,7 +397,8 @@ export const useGameStore = create<GameStore>()(
     },
 
     clearLogs: () => { set({ logs: [] }); },
-    setActiveRightTab: (tab: 'main' | 'telemetry' | 'explanation') => { set({ activeRightTab: tab }); },
+    setActiveRightTab: (tab: 'main' | 'telemetry' | 'explanation' | 'moveDelta' | 'analysis') => { set({ activeRightTab: tab }); },
+    setBoardOverlay: (overlay) => { set({ boardOverlay: overlay }); },
 
     saveGame: () => {
       const state = get().gameState;

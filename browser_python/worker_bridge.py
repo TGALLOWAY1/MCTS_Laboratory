@@ -321,6 +321,7 @@ class WebWorkerGameBridge:
                 action_copy = dict(action)
                 action_copy["orientation"] = self._get_frontend_ori(action_copy["piece_id"], action_copy["orientation"])
                 entry_copy["action"] = action_copy
+                
             history_out.append(entry_copy)
 
         return {

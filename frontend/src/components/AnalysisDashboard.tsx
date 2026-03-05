@@ -211,7 +211,7 @@ const FRONTIER_MODE_INFO = {
     Cluster: { label: 'Cluster', title: 'Color by redundancy cluster — corners sharing similar move-sets are grouped by color.' },
 };
 
-const FrontierMap: React.FC<{
+export const FrontierMap: React.FC<{
     frontiers: Record<number, { r: number, c: number }[]>,
     boardState: number[][],
     selectedPlayer: number,
@@ -323,7 +323,7 @@ const FrontierMap: React.FC<{
 };
 
 
-const DeadZoneMap: React.FC<{ deadZones: Record<number, boolean[][]>, boardState: number[][], selectedPlayer: number }> = ({ deadZones, boardState, selectedPlayer }) => {
+export const DeadZoneMap: React.FC<{ deadZones: Record<number, boolean[][]>, boardState: number[][], selectedPlayer: number }> = ({ deadZones, boardState, selectedPlayer }) => {
     const size = boardState.length;
     const dz = deadZones[selectedPlayer];
 
@@ -629,7 +629,16 @@ export const ModuleC_CornerChart: React.FC<{ gameHistory: any[]; currentTurn: nu
     const chartData = useMemo(() => {
         if (!gameHistory || gameHistory.length === 0) return [];
 
-        const extractor = (entry: any) => entry.metrics?.corner_count || {};
+        // Use remaining_pieces count as the distinct metric (hand size decreases as pieces are played)
+        // This is genuinely different from frontier_size and tracks piece economy over the game.
+        const extractor = (entry: any) => {
+            const rp = entry.metrics?.remaining_pieces || {};
+            const result: Record<string, number> = {};
+            for (const p of ['RED', 'BLUE', 'YELLOW', 'GREEN']) {
+                result[p] = Array.isArray(rp[p]) ? rp[p].length : 0;
+            }
+            return result;
+        };
 
         if (mode === 'round') {
             return transformToRounds(gameHistory, extractor);
@@ -654,7 +663,7 @@ export const ModuleC_CornerChart: React.FC<{ gameHistory: any[]; currentTurn: nu
     return (
         <div className="flex flex-col h-full w-full min-w-0">
             <h3 className="text-xs font-bold mb-2 text-slate-400 uppercase text-center shrink-0">
-                Corner Differential (Mobility) vs {mode === 'move' ? 'Move' : 'Round'}
+                Pieces Remaining vs {mode === 'move' ? 'Move' : 'Round'}
             </h3>
             <div className="flex-1 w-full min-h-0">
                 <ResponsiveContainer width="100%" height="100%">
