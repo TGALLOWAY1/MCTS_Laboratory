@@ -211,7 +211,7 @@ const FRONTIER_MODE_INFO = {
     Cluster: { label: 'Cluster', title: 'Color by redundancy cluster — corners sharing similar move-sets are grouped by color.' },
 };
 
-const FrontierMap: React.FC<{
+export const FrontierMap: React.FC<{
     frontiers: Record<number, { r: number, c: number }[]>,
     boardState: number[][],
     selectedPlayer: number,
@@ -323,7 +323,7 @@ const FrontierMap: React.FC<{
 };
 
 
-const DeadZoneMap: React.FC<{ deadZones: Record<number, boolean[][]>, boardState: number[][], selectedPlayer: number }> = ({ deadZones, boardState, selectedPlayer }) => {
+export const DeadZoneMap: React.FC<{ deadZones: Record<number, boolean[][]>, boardState: number[][], selectedPlayer: number }> = ({ deadZones, boardState, selectedPlayer }) => {
     const size = boardState.length;
     const dz = deadZones[selectedPlayer];
 

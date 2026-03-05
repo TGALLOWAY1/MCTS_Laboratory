@@ -12,7 +12,10 @@ import { OpponentSuppressionMultiples } from './charts/OpponentSuppressionMultip
 import {
     ModuleE_FrontierChart,
     ModuleF_UrgencyChart,
+    FrontierMap,
+    DeadZoneMap,
 } from '../AnalysisDashboard';
+import { calculateDashboardMetrics } from '../../utils/dashboardMetrics';
 
 // --- Constants ---
 const PLAYER_COLORS: Record<string, string> = {
@@ -76,6 +79,10 @@ export const MergedAnalysisPanel: React.FC = () => {
     // Chart x-axis mode
     const [xAxisMode, setXAxisMode] = useState<'move' | 'round'>('move');
 
+    // Spatial analysis
+    const [selectedSpatialPlayer, setSelectedSpatialPlayer] = useState<number>(1);
+    const [spatialActiveMap, setSpatialActiveMap] = useState<'frontier' | 'deadzone'>('frontier');
+
     if (!gameState) {
         return (
             <div className="h-full flex items-center justify-center p-6 text-center text-gray-500">
@@ -91,6 +98,14 @@ export const MergedAnalysisPanel: React.FC = () => {
     // Board state derived from slider
     const activeTurnIdx = Math.max(0, Math.min(totalTurns - 1, (currentSliderTurn || totalTurns) - 1));
     const activeTurnData = totalTurns > 0 ? gameHistory[activeTurnIdx] : null;
+    const currentBoard: number[][] | null = activeTurnData?.board_state || gameState?.board || null;
+
+    // Metrics used by spatial analysis (gracefully degrades if board unavailable)
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const metrics = useMemo(() => {
+        if (!currentBoard) return null;
+        try { return calculateDashboardMetrics(currentBoard); } catch { return null; }
+    }, [currentBoard]);
 
     // Telemetry data
     const movesWithTelemetry = useMemo(() =>
@@ -186,6 +201,71 @@ export const MergedAnalysisPanel: React.FC = () => {
                     <span className="text-[10px] font-mono text-slate-500">{totalTurns}</span>
                 </div>
             </div>
+
+            {/* ─── SPATIAL ANALYSIS ─── */}
+            {metrics && currentBoard && (
+                <Collapsible title="Spatial Analysis" defaultOpen={true}>
+                    <div className="p-3 space-y-2">
+                        {/* Player selector */}
+                        <div className="flex items-center justify-center gap-1.5">
+                            {([1, 2, 3, 4] as const).map(p => {
+                                const pName = ({ 1: 'RED', 2: 'BLUE', 3: 'YELLOW', 4: 'GREEN' } as any)[p];
+                                const col = ({ 1: '#ef4444', 2: '#3b82f6', 3: '#eab308', 4: '#22c55e' } as any)[p];
+                                const isActive = selectedSpatialPlayer === p;
+                                return (
+                                    <button
+                                        key={p}
+                                        onClick={() => setSelectedSpatialPlayer(p)}
+                                        className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold transition-all ${isActive ? 'ring-2 ring-white scale-110' : 'opacity-50 hover:opacity-90'}`}
+                                        style={{ backgroundColor: col + '33', color: col, border: `1px solid ${col}` }}
+                                    >
+                                        {pName[0]}
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        {/* Frontier / Dead-zone tab */}
+                        <div className="flex bg-charcoal-900 border border-charcoal-700 rounded overflow-hidden">
+                            <button
+                                onClick={() => setSpatialActiveMap('frontier')}
+                                className={`flex-1 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors ${spatialActiveMap === 'frontier' ? 'bg-charcoal-800 text-blue-400 border-b-2 border-blue-500' : 'text-slate-500 hover:text-slate-300'}`}
+                            >Frontier (Usable Options)</button>
+                            <button
+                                onClick={() => setSpatialActiveMap('deadzone')}
+                                className={`flex-1 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-colors ${spatialActiveMap === 'deadzone' ? 'bg-charcoal-800 text-blue-400 border-b-2 border-blue-500' : 'text-slate-500 hover:text-slate-300'}`}
+                            >Endgame Dead-Zones</button>
+                        </div>
+
+                        {/* Map */}
+                        <div className="flex items-center justify-center bg-charcoal-900/50 rounded-lg p-2">
+                            <div className="w-full max-w-[320px]">
+                                {spatialActiveMap === 'frontier' ? (
+                                    <FrontierMap
+                                        frontiers={metrics.frontiers}
+                                        boardState={currentBoard}
+                                        selectedPlayer={selectedSpatialPlayer}
+                                        frontierMetrics={
+                                            activeTurnData?.metrics?.frontier_metrics?.[({ 1: 'RED', 2: 'BLUE', 3: 'YELLOW', 4: 'GREEN' } as any)[selectedSpatialPlayer]]
+                                            || gameState.frontier_metrics?.[({ 1: 'RED', 2: 'BLUE', 3: 'YELLOW', 4: 'GREEN' } as any)[selectedSpatialPlayer]]
+                                        }
+                                        frontierClusters={
+                                            activeTurnData?.metrics?.frontier_clusters?.[({ 1: 'RED', 2: 'BLUE', 3: 'YELLOW', 4: 'GREEN' } as any)[selectedSpatialPlayer]]
+                                            || gameState.frontier_clusters?.[({ 1: 'RED', 2: 'BLUE', 3: 'YELLOW', 4: 'GREEN' } as any)[selectedSpatialPlayer]]
+                                        }
+                                    />
+                                ) : (
+                                    <DeadZoneMap
+                                        deadZones={metrics.deadZones}
+                                        boardState={currentBoard}
+                                        selectedPlayer={selectedSpatialPlayer}
+                                    />
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </Collapsible>
+            )}
 
             {/* ─── LINE CHARTS ─── */}
             <Collapsible title="Game Trajectory" defaultOpen={true}>

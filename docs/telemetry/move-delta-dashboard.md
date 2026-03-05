@@ -57,6 +57,8 @@ Tracks each player's cumulative impact over the full game (ply on X-axis). The y
 ### 5. Top Moves Leaderboard
 Ranks the winner's (or selected player's) top 10 moves by Impact Score. **Click any row** to jump the move selector to that ply.
 
+![Top Moves Leaderboard Mockup](https://via.placeholder.com/800x400?text=Top+Moves+Leaderboard+Screenshot)
+
 ### 6. Strategy Mix
 Shows what fraction of the selected player's total impact came from each metric category (frontier, mobility, dead space, etc.). Use the **phase tabs** (Opening / Mid-game / End-game) to see how the strategy evolved throughout the game.
 
@@ -83,6 +85,9 @@ One small area-chart per opponent, showing their Frontier Size, Mobility, and De
 - Frontier-dominant player → expansion strategy.
 - Dead-space dominant → aggressive blocker.
 - Mobility-dominant late-game → optimizing for end-score.
+
+**Exporting Insights:**
+- Use the **📋 Copy Summary** button in the header to instantly copy a plain-text breakdown of the current move's exact metric deltas and Impact Score. This is ideal for pasting into GitHub PRs, issue reports, or sharing with collaborators!
 
 ---
 

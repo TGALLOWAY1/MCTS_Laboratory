@@ -106,9 +106,8 @@ const MiniRadar: React.FC<{
     title: string;
     data: any[];
     moverColor: string;
-    moverId: string;
     showOpponents: boolean;
-}> = ({ title, data, moverColor, moverId, showOpponents }) => (
+}> = ({ title, data, moverColor, showOpponents }) => (
     <div className="flex-1 flex flex-col min-w-0 min-h-0">
         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center mb-1 shrink-0">
             {title}

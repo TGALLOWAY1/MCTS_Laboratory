@@ -18,6 +18,9 @@ class PlayerMobilityMetrics:
     totalOrientationNormalized: float
     totalCellWeighted: float
     buckets: Dict[int, float]
+    mobilityEntropy: float
+    pieceTop1Share: float
+    anchorTop1Share: float
 
 
 def _get_orientation_counts() -> Dict[int, int]:
@@ -63,6 +66,16 @@ def compute_player_mobility_metrics(
     total_cell_weighted = 0.0
     buckets: Dict[int, float] = {1: 0.0, 2: 0.0, 3: 0.0, 4: 0.0, 5: 0.0}
 
+    # For Piece Concentration
+    max_piece_placements = 0
+
+    # For Anchor Concentration
+    # A move's "anchor" is its (anchor_row, anchor_col) coordinate
+    anchor_counts: Dict[tuple, int] = {}
+    for move in legal_moves:
+        anchor = (move.anchor_row, move.anchor_col)
+        anchor_counts[anchor] = anchor_counts.get(anchor, 0) + 1
+
     for piece_id in range(1, 22):
         if piece_id in pieces_used_set:
             continue
@@ -72,6 +85,9 @@ def compute_player_mobility_metrics(
         if Si < 1 or Si > 5:
             continue
 
+        if Pi > max_piece_placements:
+            max_piece_placements = Pi
+
         PNi = Pi / Oi if Oi > 0 else 0.0
         MWi = PNi * Si
 
@@ -80,11 +96,40 @@ def compute_player_mobility_metrics(
         total_cell_weighted += MWi
         buckets[Si] = buckets.get(Si, 0) + MWi
 
+    # Compute Entropy
+    import math
+    mobility_entropy = 0.0
+    if total_placements > 0:
+        entropy_sum = 0.0
+        for piece_id, Pi in P.items():
+            if piece_id not in pieces_used_set and Pi > 0:
+                q_p = Pi / total_placements
+                entropy_sum -= q_p * math.log(q_p)
+        
+        # Normalize by log(num_available_pieces) to get [0, 1]
+        num_avail = 21 - len(pieces_used_set)
+        if num_avail > 1:
+            mobility_entropy = entropy_sum / math.log(num_avail)
+        else:
+            mobility_entropy = 0.0
+
+    piece_top1_share = 0.0
+    if total_placements > 0:
+        piece_top1_share = max_piece_placements / total_placements
+
+    anchor_top1_share = 0.0
+    if total_placements > 0 and anchor_counts:
+        max_anchor_placements = max(anchor_counts.values())
+        anchor_top1_share = max_anchor_placements / total_placements
+
     return PlayerMobilityMetrics(
         totalPlacements=total_placements,
         totalOrientationNormalized=total_orientation_normalized,
         totalCellWeighted=total_cell_weighted,
         buckets=buckets,
+        mobilityEntropy=mobility_entropy,
+        pieceTop1Share=piece_top1_share,
+        anchorTop1Share=anchor_top1_share,
     )
 
 

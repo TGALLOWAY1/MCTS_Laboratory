@@ -10,6 +10,13 @@ from typing import Dict, List, Optional
 from .board import Board, Player, Position
 from .move_generator import LegalMoveGenerator, Move
 from .pieces import PieceGenerator
+try:
+    from .telemetry import collect_all_player_metrics, compute_move_telemetry_delta as _compute_delta
+    _TELEMETRY_AVAILABLE = True
+except Exception as _tel_err:
+    _TELEMETRY_AVAILABLE = False
+    import logging as _log
+    _log.getLogger(__name__).warning(f'Telemetry not available: {_tel_err}')
 
 logger = logging.getLogger(__name__)
 
@@ -36,12 +43,14 @@ class BlokusGame:
     Manages game state, scoring, and game flow.
     """
     
-    def __init__(self):
+    def __init__(self, enable_telemetry: bool = True, telemetry_fast_mode: bool = True):
         self.board = Board()
         self.move_generator = LegalMoveGenerator()
         self.piece_generator = PieceGenerator()
         self.game_history = []
         self.winner = None
+        self.enable_telemetry = enable_telemetry
+        self.telemetry_fast_mode = telemetry_fast_mode
     
     def make_move(self, move: Move, player: Optional[Player] = None) -> bool:
         """
@@ -59,6 +68,14 @@ class BlokusGame:
         start = time.perf_counter()
         if player is None:
             player = self.board.current_player
+            
+        # Collect BEFORE metrics if telemetry enabled
+        before_metrics = {}
+        if self.enable_telemetry and _TELEMETRY_AVAILABLE:
+            try:
+                before_metrics = collect_all_player_metrics(self.board, self.move_generator, self.telemetry_fast_mode)
+            except Exception as e:
+                logger.warning(f'Telemetry before-metrics failed: {e}')
         
         # Quick validation - only check if move is obviously invalid
         # (Full validation happens in place_piece, but we can skip some redundant checks)
@@ -104,7 +121,29 @@ class BlokusGame:
                 remaining_pieces[p.name] = [pid for pid in range(1, 22) if pid not in used_pieces]
 
             move_index = len(self.game_history)
-            self.game_history.append({
+            
+            # Compute AFTER metrics and deltas
+            telemetry_payload = None
+            if self.enable_telemetry and _TELEMETRY_AVAILABLE and before_metrics:
+                try:
+                    after_metrics = collect_all_player_metrics(self.board, self.move_generator, self.telemetry_fast_mode)
+                    move_id_str = f"{move.piece_id}-{move.orientation}-{move.anchor_row}-{move.anchor_col}"
+                    telemetry_payload = _compute_delta(
+                        ply=move_index + 1,
+                        mover_id=player.name,
+                        move_id=move_id_str,
+                        before=before_metrics,
+                        after=after_metrics
+                    )
+                    if telemetry_payload:
+                        # Store full snapshot as well for frontend use
+                        telemetry_payload["before"] = [{"playerId": pid, "metrics": m} for pid, m in before_metrics.items()]
+                        telemetry_payload["after"] = [{"playerId": pid, "metrics": m} for pid, m in after_metrics.items()]
+                except Exception as e:
+                    logger.warning(f'Telemetry after-metrics/delta failed: {e}')
+                    telemetry_payload = None
+
+            history_entry = {
                 'turn_number': move_index + 1,
                 'move_index': move_index,
                 'round_index': move_index // 4,
@@ -125,7 +164,11 @@ class BlokusGame:
                     'remaining_pieces': remaining_pieces,
                     'influence_map': None
                 }
-            })
+            }
+            if telemetry_payload:
+                history_entry['telemetry'] = telemetry_payload
+                
+            self.game_history.append(history_entry)
             
             # Check if game is over
             self._check_game_over()

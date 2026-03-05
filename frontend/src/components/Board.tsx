@@ -54,7 +54,7 @@ export const Board: React.FC<BoardProps> = ({
   pieceOrientation,
   overlayMap,
 }) => {
-  const { gameState, previewMove, setPreviewMove } = useGameStore();
+  const { gameState, previewMove, setPreviewMove, currentSliderTurn } = useGameStore();
   const [hoveredCell, setHoveredCell] = useState<{ row: number, col: number } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -124,14 +124,20 @@ export const Board: React.FC<BoardProps> = ({
   // Memoize cell color calculation to avoid recomputation
   const cellColors = useMemo(() => {
     let boardToRender = gameState?.board;
+    const historyDepth = gameState?.game_history?.length || 0;
 
+    // If user is reviewing history via the slider, show that historic board state
+    if (currentSliderTurn !== null && historyDepth > 0 && currentSliderTurn !== historyDepth) {
+      const historyIdx = Math.max(0, Math.min(historyDepth - 1, currentSliderTurn - 1));
+      boardToRender = gameState!.game_history![historyIdx].board_state;
+    }
     // If we're previewing a move from the MCTS table (which represents candidates for the last played move),
     // we should render the board state *before* that move was actually played, so the preview
     // doesn't overlap with the chosen move.
-    if (previewMove && gameState?.game_history && gameState.game_history.length > 0) {
+    else if (previewMove && historyDepth > 0) {
       // The state before the last move is either the penultimate history entry, or an empty board
-      if (gameState.game_history.length > 1) {
-        boardToRender = gameState.game_history[gameState.game_history.length - 2].board_state;
+      if (historyDepth > 1) {
+        boardToRender = gameState!.game_history![historyDepth - 2].board_state;
       } else {
         // Turn 1's before-state is an empty board
         boardToRender = Array(BOARD_SIZE).fill(0).map(() => Array(BOARD_SIZE).fill(0));
@@ -159,7 +165,7 @@ export const Board: React.FC<BoardProps> = ({
       }
     }
     return colors;
-  }, [gameState?.board, gameState?.game_history, previewMove]);
+  }, [gameState?.board, gameState?.game_history, previewMove, currentSliderTurn]);
 
   const getCellColor = useCallback((row: number, col: number) => {
     if (!cellColors) return PLAYER_COLORS.empty;

@@ -379,3 +379,26 @@ INFO:     127.0.0.1:50241 - "GET /api/tasks HTTP/1.1" 404 Not Found
 INFO:     127.0.0.1:50242 - "GET /api/routines HTTP/1.1" 404 Not Found
 INFO:     127.0.0.1:50252 - "GET /api/progress/overview?timeZone=America%2FNew_York HTTP/1.1" 404 Not Found
 INFO:     127.0.0.1:50254 - "GET /api/routineLogs HTTP/1.1" 404 Not Found
+WARNING:  WatchFiles detected changes in 'app.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+[00:23:16] INFO: Shutting down Blokus RL Web API...
+[00:23:16] INFO: Closing MongoDB connection...
+[00:23:16] INFO: MongoDB connection closed
+/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/contextlib.py:182: RuntimeWarning: coroutine 'get_database' was never awaited
+  await self.gen.__anext__()
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+INFO:     Application shutdown complete.
+INFO:     Finished server process [21807]
+INFO:     Started server process [6995]
+INFO:     Waiting for application startup.
+[00:23:16] INFO: Starting Blokus RL Web API...
+[00:23:16] INFO: Connecting to MongoDB: mongodb://localhost:27017
+[00:23:16] INFO: Using database: blokusdb
+[00:23:16] INFO: ✅ MongoDB connection successful
+[00:23:16] INFO: Successfully connected to MongoDB database: blokusdb
+[00:23:16] INFO: MongoDB connection established
+[00:23:16] ERROR: ❌ MongoDB connection validation failed: 'coroutine' object has no attribute 'command'
+[00:23:16] ERROR: Failed to connect to MongoDB during startup: 'coroutine' object has no attribute 'command'
+[00:23:16] WARNING: Server will start without MongoDB connection. Some features may be unavailable.
+INFO:     Application startup complete.
