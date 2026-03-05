@@ -1,8 +1,9 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { Board } from '../components/Board';
-import { RightPanel } from '../components/RightPanel';
+import { RightPanel, HintModal } from '../components/RightPanel';
 import { PieceTray } from '../components/PieceTray';
+import { TrayLeaderboard } from '../components/TrayLeaderboard';
 import { LogConsole } from '../components/LogConsole';
 import { GameConfigModal } from '../components/GameConfigModal';
 import { useNavigate } from 'react-router-dom';
@@ -30,7 +31,12 @@ export const Play: React.FC = () => {
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [showLogConsole, setShowLogConsole] = useState(false);
+  const [showHintModal, setShowHintModal] = useState(false);
+  const [showPieceTray, setShowPieceTray] = useState(true);
+  // Which player's pieces the tray displays — locked to human player by default, never auto-follows
+  const [viewingPlayer, setViewingPlayer] = useState<string | null>(null);
   const isTelemetryOpen = useGameStore(s => s.activeRightTab === 'telemetry');
+  const boardOverlay = useGameStore(s => s.boardOverlay);
 
   // Resizable Right Panel logic
   const [rightPanelWidth, setRightPanelWidth] = useState(800);
@@ -81,6 +87,14 @@ export const Play: React.FC = () => {
   const playerConfig = gameState?.players?.find((p: any) => p.player === currentPlayer);
   const isHumanPlayer = playerConfig?.agent_type === 'human' || !gameState?.players; // Default to human if no player config
   const legalMovesCount = gameState?.legal_moves?.length || 0;
+
+  // Set viewingPlayer once when the game first loads (to human player's color)
+  const humanPlayerColor = gameState?.players?.find((p: any) => p.agent_type === 'human')?.player ?? null;
+  React.useEffect(() => {
+    if (humanPlayerColor && viewingPlayer === null) {
+      setViewingPlayer(humanPlayerColor);
+    }
+  }, [humanPlayerColor, viewingPlayer]);
 
   const handleCellClick = useCallback(async (row: number, col: number) => {
     if (!selectedPiece) {
@@ -251,16 +265,35 @@ export const Play: React.FC = () => {
 
   return (
     <div className="fixed h-screen w-screen bg-charcoal-900 flex overflow-hidden pr-4">
-      {/* Left Column - PieceTray */}
-      <aside className="w-80 border-r border-charcoal-700 bg-charcoal-900 flex flex-col overflow-y-auto">
-        <PieceTray
-          onPieceSelect={selectPiece}
-          selectedPiece={selectedPiece}
-          pieceOrientation={pieceOrientation}
-          setPieceOrientation={setPieceOrientation}
-          gameState={gameState}
-        />
-      </aside>
+      {/* Left Column - PieceTray (collapsible) */}
+      {showPieceTray && (
+        <aside className="w-80 border-r border-charcoal-700 bg-charcoal-900 flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto">
+            <PieceTray
+              onPieceSelect={selectPiece}
+              selectedPiece={selectedPiece}
+              pieceOrientation={pieceOrientation}
+              setPieceOrientation={setPieceOrientation}
+              gameState={gameState}
+              viewingPlayer={viewingPlayer}
+              onViewingPlayerChange={setViewingPlayer}
+            />
+          </div>
+          <TrayLeaderboard />
+        </aside>
+      )}
+
+      {/* Tray toggle tab */}
+      <button
+        onClick={() => setShowPieceTray(v => !v)}
+        className="self-center z-10 flex-none bg-charcoal-800 border border-charcoal-700 hover:border-neon-blue text-gray-400 hover:text-neon-blue rounded-r-lg px-0.5 py-3 transition-colors"
+        title={showPieceTray ? 'Hide piece tray' : 'Show piece tray'}
+      >
+        <svg className="w-3 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+            d={showPieceTray ? 'M15 19l-7-7 7-7' : 'M9 5l7 7-7 7'} />
+        </svg>
+      </button>
 
       {/* Center Column - Board and Log Console */}
       <main className="flex-1 flex flex-col overflow-hidden">
@@ -391,6 +424,17 @@ export const Play: React.FC = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </button>
+              {isHumanPlayer && !gameState?.game_over && (
+                <button
+                  onClick={() => setShowHintModal(true)}
+                  className="p-2 text-gray-400 hover:text-yellow-300 transition-colors"
+                  title="Move Hints — legal moves by piece and legal positions"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                </button>
+              )}
               <button
                 onClick={() => setShowInfoModal(true)}
                 className="p-2 text-gray-400 hover:text-gray-200 transition-colors"
@@ -458,6 +502,7 @@ export const Play: React.FC = () => {
             onCellHover={handleCellHover}
             selectedPiece={selectedPiece}
             pieceOrientation={pieceOrientation}
+            overlayMap={boardOverlay ?? undefined}
           />
         </div>
       </main>
@@ -475,6 +520,9 @@ export const Play: React.FC = () => {
       >
         <RightPanel onNewGame={() => setShowConfigModal(true)} />
       </aside>
+
+      {/* Hint Modal */}
+      {showHintModal && <HintModal onClose={() => setShowHintModal(false)} />}
 
       {/* Game Config Modal */}
       <GameConfigModal

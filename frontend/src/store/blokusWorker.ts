@@ -22,8 +22,9 @@ async function initPyodide() {
     await pyodide.loadPackage("numpy");
 
     console.log("[Worker] Pyodide initialized. Fetching blokus_core.zip...");
-    // Fetch the python source
-    const response = await fetch('/blokus_core.zip');
+    // Fetch the python source with a cache buster to ensure latest engine is used
+    const cacheBuster = Date.now();
+    const response = await fetch(`/blokus_core.zip?t=${cacheBuster}`);
     if (!response.ok) {
         throw new Error(`Failed to load blokus_core.zip: ${response.status}`);
     }
