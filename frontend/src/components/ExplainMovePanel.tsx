@@ -43,7 +43,7 @@ export const ExplainMovePanel: React.FC = () => {
                         <div className="mt-3 text-gray-300 space-y-3 cursor-default">
                             <img src="/images/mcts_diagram.png" alt="MCTS Phases Diagram" className="w-full h-auto rounded border border-charcoal-600 shadow-md" />
                             <p><strong className="text-neon-blue">Visits:</strong> The number of times the Monte Carlo Tree Search algorithm simulated this specific move branching path. Higher visits mean the AI spent more time exploring this option because it looked promising.</p>
-                            <p><strong className="text-neon-blue">Q-Value:</strong> The expected win rate (0.0 to 1.0) if this move is chosen, based on the outcomes of the simulations. A Q-value of 0.85 means the AI expects to win 85% of the time after this move.</p>
+                            <p><strong className="text-neon-blue">Q-Value:</strong> The expected utility or score if this move is chosen. Since this is a fast agent, this is a heuristic score based on piece size (larger pieces score higher) and center proximity, rather than a pure 0.0 to 1.0 win rate. A higher Q-value means the AI evaluates the position more favorably.</p>
                         </div>
                     </details>
                 </div>
