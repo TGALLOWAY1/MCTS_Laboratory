@@ -4,6 +4,7 @@ import { TrainEval } from './pages/TrainEval';
 import { TrainingHistory } from './pages/TrainingHistory';
 import { TrainingRunDetail } from './pages/TrainingRunDetail';
 import { Analysis } from './pages/Analysis';
+import { Benchmark } from './pages/Benchmark';
 import { History } from './pages/History';
 import { IS_DEPLOY_PROFILE } from './constants/gameConstants';
 import './App.css';
@@ -21,6 +22,7 @@ function App() {
               <Route path="/training" element={<TrainingHistory />} />
               <Route path="/training/:runId" element={<TrainingRunDetail />} />
               <Route path="/analysis/:gameId" element={<Analysis />} />
+              <Route path="/benchmark" element={<Benchmark />} />
               <Route path="/history" element={<History />} />
             </>
           )}
