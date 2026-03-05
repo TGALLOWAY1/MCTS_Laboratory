@@ -203,6 +203,9 @@ function setupWorker() {
   if (workerInstance) return workerInstance;
   workerInstance = new BlokusWorker();
 
+  // Expose it so Play.tsx step button can access it directly to force manual advance
+  (window as any)._blokusWorkerInstance = workerInstance;
+
   workerInstance.onmessage = (e) => {
     const data = e.data;
     if (data.type === 'ready') {

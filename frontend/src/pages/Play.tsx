@@ -27,7 +27,6 @@ export const Play: React.FC = () => {
 
   const [isMakingMove, setIsMakingMove] = useState(false);
   const [isPassing, setIsPassing] = useState(false);
-  const [isStepping, setIsStepping] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [showLogConsole, setShowLogConsole] = useState(false);
@@ -204,31 +203,6 @@ export const Play: React.FC = () => {
       setIsPassing(false);
     }
   }, [currentPlayer, isPassing, passTurn, setError]);
-
-  const handleStepTurn = useCallback(async () => {
-    if (isStepping || !currentPlayer) return;
-    setIsStepping(true);
-    setError(null);
-    try {
-      // In local Pyodide mode, we trigger the agent advance intentionally by messaging the worker directly
-      // since the gameStore normally blocks it when isPaused = true.
-      if (window.Worker) {
-        // Note: gameStore usually manages the worker but we can invoke a "make me advance" behavior
-        // by temporarily unpausing, let the effect run, then pausing again.
-        const store = useGameStore.getState();
-        if (store.isPaused) {
-          // Wait for the worker interface or just call pass passTurn directly?
-          // It's cleaner to let the store handle it. We will add a manual step method to store later if needed,
-          // but for now, we can toggle pause twice fast or call a store method if we add it.
-          console.log('Step logic to be implemented on store layer...');
-        }
-      }
-    } catch (err) {
-      console.error('Step error:', err);
-    } finally {
-      setIsStepping(false);
-    }
-  }, [currentPlayer, isStepping]);
 
   // Show game config modal if no game is loaded
   if (!gameState) {
