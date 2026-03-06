@@ -11,6 +11,7 @@ import { ExplainMovePanel } from './ExplainMovePanel';
 import { IS_DEPLOY_PROFILE, ENABLE_DEBUG_UI } from '../constants/gameConstants';
 import { useGameStore } from '../store/gameStore';
 import { MergedAnalysisPanel } from './telemetry/MergedAnalysisPanel';
+import { MctsAnalysisPanel } from './analysis/MctsAnalysisPanel';
 
 interface CollapsibleSectionProps {
   title: string;
@@ -139,7 +140,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({ onNewGame }) => {
           {activeTab === 'explanation' ? (
             <ExplainMovePanel />
           ) : activeTab === 'mcts_analysis' ? (
-            <div className="p-4 text-gray-400">Analysis Panel Under Construction</div> // Will be replaced by MctsAnalysisPanel
+            <MctsAnalysisPanel />
           ) : activeTab === 'analysis' ? (
             <MergedAnalysisPanel />
           ) : activeTab === 'telemetry' ? (
@@ -202,7 +203,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({ onNewGame }) => {
         </div>
       )}
       <div className="flex-1 overflow-hidden">
-        {ENABLE_DEBUG_UI && activeTab === 'mcts_analysis' ? <div className="p-4 text-gray-400">Analysis Panel Under Construction</div> :
+        {ENABLE_DEBUG_UI && activeTab === 'mcts_analysis' ? <MctsAnalysisPanel /> :
           ENABLE_DEBUG_UI && activeTab === 'analysis' ? <MergedAnalysisPanel /> :
             ENABLE_DEBUG_UI && activeTab === 'telemetry' ? <TelemetryPanel /> : researchMainContent}
       </div>
