@@ -58,6 +58,7 @@ export interface GameState {
     nodesEvaluated: number;
     maxDepthReached: number;
   };
+  mcts_diagnostics?: MctsDiagnosticsV1;
   influence_map?: number[][];
   dead_zones?: boolean[][];
   advanced_metrics?: {
@@ -129,6 +130,7 @@ export interface LogEntry {
 import { type PlayerMobilityMetrics } from '../utils/mobilityMetrics';
 import { useDebugLogStore } from './debugLogStore';
 import { type MoveTelemetryDelta } from '../types/telemetry';
+import { type MctsDiagnosticsV1 } from '../types/mcts';
 
 export interface GameHistoryEntry {
   turn_number: number;
@@ -160,6 +162,7 @@ export interface GameHistoryEntry {
     self_block_risk?: any;
   };
   telemetry?: MoveTelemetryDelta;
+  mcts_diagnostics?: MctsDiagnosticsV1;
 }
 
 // Store interface
