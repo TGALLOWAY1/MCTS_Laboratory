@@ -94,6 +94,9 @@ export const RightPanel: React.FC<RightPanelProps> = ({ onNewGame }) => {
 
   // Deploy / Demo mode: simplified nav
   if (IS_DEPLOY_PROFILE || isDemoMode) {
+    const analysisModeEnabled = useGameStore(s => s.analysisModeEnabled);
+    const setAnalysisModeEnabled = useGameStore(s => s.setAnalysisModeEnabled);
+
     return (
       <div className="h-full flex flex-col overflow-hidden">
         <div className="p-4 border-b border-charcoal-700 shrink-0 flex flex-col gap-2">
@@ -103,6 +106,16 @@ export const RightPanel: React.FC<RightPanelProps> = ({ onNewGame }) => {
           >
             New Game
           </button>
+
+          <label className="flex items-center space-x-2 my-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={analysisModeEnabled}
+              onChange={(e) => setAnalysisModeEnabled(e.target.checked)}
+              className="w-4 h-4 text-neon-blue border-charcoal-600 rounded focus:ring-neon-blue focus:ring-offset-charcoal-900 bg-charcoal-800 cursor-pointer"
+            />
+            <span className="text-sm text-gray-300">Enable MCTS Diagnostics</span>
+          </label>
 
           <div className="flex gap-1">
             <button
@@ -114,10 +127,10 @@ export const RightPanel: React.FC<RightPanelProps> = ({ onNewGame }) => {
             </button>
             <button
               type="button"
-              onClick={() => setActiveTab('analysis')}
-              className={`flex-1 py-1.5 text-xs rounded ${activeTab === 'analysis' ? 'bg-charcoal-600 text-white' : 'bg-charcoal-800 text-gray-400 hover:text-gray-200'}`}
+              onClick={() => setActiveTab('mcts_analysis')}
+              className={`flex-1 py-1.5 text-xs rounded ${activeTab === 'mcts_analysis' ? 'bg-charcoal-600 text-white' : 'bg-charcoal-800 text-gray-400 hover:text-gray-200'}`}
             >
-              Analysis
+              MCTS Diagnostics
             </button>
           </div>
         </div>
@@ -125,6 +138,8 @@ export const RightPanel: React.FC<RightPanelProps> = ({ onNewGame }) => {
         <div className="flex-1 overflow-hidden">
           {activeTab === 'explanation' ? (
             <ExplainMovePanel />
+          ) : activeTab === 'mcts_analysis' ? (
+            <div className="p-4 text-gray-400">Analysis Panel Under Construction</div> // Will be replaced by MctsAnalysisPanel
           ) : activeTab === 'analysis' ? (
             <MergedAnalysisPanel />
           ) : activeTab === 'telemetry' ? (
@@ -152,29 +167,44 @@ export const RightPanel: React.FC<RightPanelProps> = ({ onNewGame }) => {
     </div>
   );
 
+  const analysisModeEnabled = useGameStore(s => s.analysisModeEnabled);
+  const setAnalysisModeEnabled = useGameStore(s => s.setAnalysisModeEnabled);
+
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {ENABLE_DEBUG_UI && (
-        <div className="flex gap-1 p-2 border-b border-charcoal-700 shrink-0">
-          <button
-            type="button"
-            onClick={() => setActiveTab('main')}
-            className={`flex-1 py-1.5 text-xs rounded ${activeTab === 'main' ? 'bg-charcoal-600 text-white' : 'bg-charcoal-800 text-gray-400 hover:text-gray-200'}`}
-          >
-            Game
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('analysis')}
-            className={`flex-1 py-1.5 text-xs rounded ${activeTab === 'analysis' ? 'bg-charcoal-600 text-white' : 'bg-charcoal-800 text-gray-400 hover:text-gray-200'}`}
-          >
-            Analysis
-          </button>
+        <div className="flex flex-col gap-2 p-2 border-b border-charcoal-700 shrink-0">
+          <label className="flex items-center space-x-2 my-1 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={analysisModeEnabled}
+              onChange={(e) => setAnalysisModeEnabled(e.target.checked)}
+              className="w-4 h-4 text-neon-blue border-charcoal-600 rounded focus:ring-neon-blue focus:ring-offset-charcoal-900 bg-charcoal-800 cursor-pointer"
+            />
+            <span className="text-sm text-gray-300">Enable MCTS Diagnostics</span>
+          </label>
+          <div className="flex gap-1">
+            <button
+              type="button"
+              onClick={() => setActiveTab('main')}
+              className={`flex-1 py-1.5 text-xs rounded ${activeTab === 'main' ? 'bg-charcoal-600 text-white' : 'bg-charcoal-800 text-gray-400 hover:text-gray-200'}`}
+            >
+              Game
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('mcts_analysis')}
+              className={`flex-1 py-1.5 text-xs rounded ${activeTab === 'mcts_analysis' ? 'bg-charcoal-600 text-white' : 'bg-charcoal-800 text-gray-400 hover:text-gray-200'}`}
+            >
+              MCTS Diagnostics
+            </button>
+          </div>
         </div>
       )}
       <div className="flex-1 overflow-hidden">
-        {ENABLE_DEBUG_UI && activeTab === 'analysis' ? <MergedAnalysisPanel /> :
-          ENABLE_DEBUG_UI && activeTab === 'telemetry' ? <TelemetryPanel /> : researchMainContent}
+        {ENABLE_DEBUG_UI && activeTab === 'mcts_analysis' ? <div className="p-4 text-gray-400">Analysis Panel Under Construction</div> :
+          ENABLE_DEBUG_UI && activeTab === 'analysis' ? <MergedAnalysisPanel /> :
+            ENABLE_DEBUG_UI && activeTab === 'telemetry' ? <TelemetryPanel /> : researchMainContent}
       </div>
 
       {showHint && <HintModal onClose={() => setShowHint(false)} />}
