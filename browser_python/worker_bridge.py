@@ -27,6 +27,7 @@ class WebWorkerGameBridge:
         self.players_config = []
         self.mcts_top_moves = []
         self.mcts_stats = {}
+        self.mcts_diagnostics = None
         self.game_id = "local-webworker"
 
         self.frontend_to_backend = {}
@@ -337,6 +338,7 @@ class WebWorkerGameBridge:
             "legal_moves": legal_moves_out, "created_at": "", "updated_at": "", "players": self.players_config,
             "heatmap": heatmap, "mobility_metrics": mobility_metrics,
             "mcts_top_moves": self.mcts_top_moves, "mcts_stats": self.mcts_stats,
+            "mcts_diagnostics": self.mcts_diagnostics,
             "influence_map": influence_map, "dead_zones": dead_zones, "advanced_metrics": advanced_metrics_out,
             "frontier_metrics": all_frontier_metrics, "frontier_clusters": all_frontier_clusters,
             "piece_lock_risk": piece_lock_risk, "self_block_risk": self_block_risk,
@@ -402,6 +404,10 @@ class WebWorkerGameBridge:
                     tm_copy["orientation"] = self._get_frontend_ori(tm_copy["piece_id"], tm_copy["orientation"])
                     translated_top_moves.append(tm_copy)
                 self.mcts_top_moves = translated_top_moves
+            if "diagnostics" in result["stats"]:
+                self.mcts_diagnostics = result["stats"]["diagnostics"]
+            else:
+                self.mcts_diagnostics = None
         if move:
             success = self.game.make_move(move, current_player)
             return {"success": success, "message": "Agent moved", "game_state": self.get_state()}
