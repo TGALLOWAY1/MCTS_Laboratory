@@ -34,6 +34,7 @@ htmlcov/
 .tox/
 .nox/
 .venv
+.venv_new
 venv/
 ENV/
 env/

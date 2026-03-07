@@ -92,6 +92,27 @@ export const MctsAnalysisPanel: React.FC = () => {
         }));
     }, [movesWithMcts]);
 
+    // Data for Agent Comparison
+    const comparisonData = useMemo(() => {
+        const stats: Record<string, { sims: number; entropy: number; count: number; simsPerSec: number }> = {};
+        movesWithMcts.forEach((m: any) => {
+            const p = m.player_to_move;
+            const d = m.mcts_diagnostics;
+            if (!stats[p]) stats[p] = { sims: 0, entropy: 0, count: 0, simsPerSec: 0 };
+            stats[p].sims += d.simulations || 0;
+            stats[p].entropy += d.policyEntropy || 0;
+            stats[p].simsPerSec += d.simsPerSec || 0;
+            stats[p].count += 1;
+        });
+
+        return Object.entries(stats).map(([player, s]) => ({
+            player,
+            avgSims: Math.round(s.sims / s.count),
+            avgEntropy: parseFloat((s.entropy / s.count).toFixed(3)),
+            avgSimsPerSec: Math.round(s.simsPerSec / s.count),
+        }));
+    }, [movesWithMcts]);
+
     if (movesWithMcts.length === 0) {
         return (
             <div className="h-full flex items-center justify-center p-6 text-center text-gray-500">
@@ -163,9 +184,19 @@ export const MctsAnalysisPanel: React.FC = () => {
                 </div>
             </div>
 
+            <Collapsible title="ℹ️ Metrics Explained" defaultOpen={false}>
+                <div className="p-4 text-xs text-gray-300 space-y-3 bg-charcoal-700/30">
+                    <p><strong>Simulations & Speed:</strong> How many times the agent traversed its decision tree and evaluated an outcome. `FastMCTSAgent` does ultra-fast 1-ply rollouts in the browser to maintain 60 FPS, while full MCTS simulates deeper.</p>
+                    <p><strong>Entropy:</strong> Measures uncertainty. High entropy means the AI is unsure between many viable moves. Low entropy means it is highly confident in one specific line.</p>
+                    <p><strong>Root Policy & Q-Values:</strong> The Visits bar shows how many times a move was explored. The Q-Mean line shows the estimated win-rate [0, 1] of that move.</p>
+                    <p><strong>Search Tree Depth:</strong> Shows how deep the agent looked ahead. <em>Note: The browser `FastMCTSAgent` optimizes for speed by evaluating immediate children without full deep cloning, so maximum depth is typically 1 or 2.</em></p>
+                    <p><strong>Convergence Trace:</strong> Shows how the AI's opinion of the best move (Q-Mean) and its overall uncertainty (Entropy) evolved over the course of thinking about this single turn.</p>
+                </div>
+            </Collapsible>
+
             {diag && (
                 <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-charcoal-800 border border-charcoal-700 rounded-lg p-3 col-span-2 shadow flex gap-4 text-center justify-around items-center">
+                    <div className="bg-charcoal-800 border border-charcoal-700 rounded-lg p-3 col-span-2 shadow flex gap-4 text-center justify-around items-center mt-2">
                         <div>
                             <div className="text-gray-400 text-[10px] uppercase font-bold">Simulations</div>
                             <div className="text-gray-200 font-mono">{diag.simulations}</div>
@@ -263,6 +294,34 @@ export const MctsAnalysisPanel: React.FC = () => {
                             <Line type="monotone" dataKey="entropy" name="Policy Entropy" stroke="#a855f7" strokeWidth={2} dot={{ r: 3, fill: '#charcoal-900', strokeWidth: 2 }} />
                         </LineChart>
                     </ResponsiveContainer>
+                </div>
+            </Collapsible>
+
+            {/* ─── AGENT COMPARISON ─── */}
+            <Collapsible title="Agent Performance Comparison" defaultOpen={false}>
+                <div className="p-3">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-[10px] text-left">
+                            <thead className="text-gray-500 uppercase">
+                                <tr className="border-b border-charcoal-700">
+                                    <th className="py-2">Player</th>
+                                    <th className="py-2 text-right">Avg Sims</th>
+                                    <th className="py-2 text-right">Avg Sims/s</th>
+                                    <th className="py-2 text-right">Avg Entropy</th>
+                                </tr>
+                            </thead>
+                            <tbody className="text-gray-300">
+                                {comparisonData.map((row) => (
+                                    <tr key={row.player} className="border-b border-charcoal-700/50">
+                                        <td className="py-2 font-bold" style={{ color: PLAYER_COLORS[row.player] }}>{row.player}</td>
+                                        <td className="py-2 text-right font-mono">{row.avgSims}</td>
+                                        <td className="py-2 text-right font-mono">{row.avgSimsPerSec}</td>
+                                        <td className="py-2 text-right font-mono text-neon-purple">{row.avgEntropy}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </Collapsible>
         </div>
