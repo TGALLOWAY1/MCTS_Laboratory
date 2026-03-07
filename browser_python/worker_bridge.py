@@ -27,6 +27,7 @@ class WebWorkerGameBridge:
         self.players_config = []
         self.mcts_top_moves = []
         self.mcts_stats = {}
+        self.mcts_diagnostics = None
         self.game_id = "local-webworker"
 
         self.frontend_to_backend = {}
@@ -337,6 +338,7 @@ class WebWorkerGameBridge:
             "legal_moves": legal_moves_out, "created_at": "", "updated_at": "", "players": self.players_config,
             "heatmap": heatmap, "mobility_metrics": mobility_metrics,
             "mcts_top_moves": self.mcts_top_moves, "mcts_stats": self.mcts_stats,
+            "mcts_diagnostics": self.mcts_diagnostics,
             "influence_map": influence_map, "dead_zones": dead_zones, "advanced_metrics": advanced_metrics_out,
             "frontier_metrics": all_frontier_metrics, "frontier_clusters": all_frontier_clusters,
             "piece_lock_risk": piece_lock_risk, "self_block_risk": self_block_risk,
@@ -369,7 +371,7 @@ class WebWorkerGameBridge:
         self.game._check_game_over()
         return {"success": True, "message": "Turn passed", "game_state": self.get_state()}
 
-    def advance_turn(self) -> Dict[str, Any]:
+    def advance_turn(self, enable_diagnostics: bool = False) -> Dict[str, Any]:
         if self.game.is_game_over(): return {"success": False, "message": "Game over", "game_state": self.get_state()}
         current_player = self.game.get_current_player()
         agent = self.agents.get(current_player)
@@ -385,6 +387,11 @@ class WebWorkerGameBridge:
                 ac = pc.get("agent_config", {})
                 budget_ms = int(ac.get("time_budget_ms", 1000))
                 break
+                
+        # Toggle diagnostics based on request
+        if hasattr(agent, 'enable_diagnostics'):
+            agent.enable_diagnostics = enable_diagnostics
+            
         result = agent.think(self.game.board, current_player, legal_moves, budget_ms)
         move = result.get("move")
         if move is None: move = agent.select_action(self.game.board, current_player, legal_moves)
@@ -397,8 +404,14 @@ class WebWorkerGameBridge:
                     tm_copy["orientation"] = self._get_frontend_ori(tm_copy["piece_id"], tm_copy["orientation"])
                     translated_top_moves.append(tm_copy)
                 self.mcts_top_moves = translated_top_moves
+            if "diagnostics" in result["stats"]:
+                self.mcts_diagnostics = result["stats"]["diagnostics"]
+            else:
+                self.mcts_diagnostics = None
         if move:
             success = self.game.make_move(move, current_player)
+            if success and self.mcts_diagnostics and len(self.game.game_history) > 0:
+                self.game.game_history[-1]["mcts_diagnostics"] = self.mcts_diagnostics
             return {"success": success, "message": "Agent moved", "game_state": self.get_state()}
         else:
             self.game.board._update_current_player()

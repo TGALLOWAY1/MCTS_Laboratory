@@ -696,6 +696,11 @@ class LegalMoveGenerator:
         Returns:
             True if placement is legal
         """
+        # 0. Check bounds
+        for r, c in placement_coords:
+            if r < 0 or r >= board.SIZE or c < 0 or c >= board.SIZE:
+                return False
+
         # 1. Build shape mask from coords
         shape_mask = coords_to_mask(placement_coords)
 

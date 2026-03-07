@@ -58,6 +58,7 @@ export interface GameState {
     nodesEvaluated: number;
     maxDepthReached: number;
   };
+  mcts_diagnostics?: MctsDiagnosticsV1;
   influence_map?: number[][];
   dead_zones?: boolean[][];
   advanced_metrics?: {
@@ -129,6 +130,7 @@ export interface LogEntry {
 import { type PlayerMobilityMetrics } from '../utils/mobilityMetrics';
 import { useDebugLogStore } from './debugLogStore';
 import { type MoveTelemetryDelta } from '../types/telemetry';
+import { type MctsDiagnosticsV1 } from '../types/mcts';
 
 export interface GameHistoryEntry {
   turn_number: number;
@@ -160,6 +162,7 @@ export interface GameHistoryEntry {
     self_block_risk?: any;
   };
   telemetry?: MoveTelemetryDelta;
+  mcts_diagnostics?: MctsDiagnosticsV1;
 }
 
 // Store interface
@@ -175,12 +178,14 @@ interface GameStore {
   isPaused: boolean;
   error: string | null;
   logs: LogEntry[];
-  activeRightTab: 'main' | 'telemetry' | 'explanation' | 'moveDelta' | 'analysis';
+  activeRightTab: 'main' | 'telemetry' | 'explanation' | 'moveDelta' | 'analysis' | 'mcts_analysis';
   boardOverlay: Record<string, { color: string; opacity?: number }> | null;
+  analysisModeEnabled: boolean;
 
   connect: (gameId: string) => Promise<void>;
   disconnect: () => void;
   togglePause: () => void;
+  setAnalysisModeEnabled: (enabled: boolean) => void;
   setCurrentSliderTurn: (turn: number | null) => void;
   selectPiece: (pieceId: number | null) => void;
   setPieceOrientation: (orientation: number) => void;
@@ -192,7 +197,7 @@ interface GameStore {
   setGameState: (gameState: GameState | null) => void;
   addLog: (message: string, level?: 'INFO' | 'WARN' | 'ERROR') => void;
   clearLogs: () => void;
-  setActiveRightTab: (tab: 'main' | 'telemetry' | 'explanation' | 'moveDelta' | 'analysis') => void;
+  setActiveRightTab: (tab: 'main' | 'telemetry' | 'explanation' | 'moveDelta' | 'analysis' | 'mcts_analysis') => void;
   setBoardOverlay: (overlay: Record<string, { color: string; opacity?: number }> | null) => void;
   saveGame: () => void;
   loadGame: (history: GameHistoryEntry[]) => Promise<void>;
@@ -250,7 +255,8 @@ function triggerAgentTurnIfNeeded() {
 
   if (pConf && pConf.agent_type !== 'human' && !state.isAdvancingTurn) {
     useGameStore.setState({ isAdvancingTurn: true });
-    workerInstance?.postMessage({ type: 'advance_turn' });
+    const enableDiagnostics = state.analysisModeEnabled || false;
+    workerInstance?.postMessage({ type: 'advance_turn', enableDiagnostics });
   }
 }
 
@@ -269,6 +275,11 @@ export const useGameStore = create<GameStore>()(
     logs: [],
     activeRightTab: 'main' as const,
     boardOverlay: null,
+    analysisModeEnabled: false,
+
+    setAnalysisModeEnabled: (enabled: boolean) => {
+      set({ analysisModeEnabled: enabled });
+    },
 
     connect: async (gameId: string): Promise<void> => {
       // With Pyodide, state is local. If we reload the page, state is gone.
@@ -397,7 +408,7 @@ export const useGameStore = create<GameStore>()(
     },
 
     clearLogs: () => { set({ logs: [] }); },
-    setActiveRightTab: (tab: 'main' | 'telemetry' | 'explanation' | 'moveDelta' | 'analysis') => { set({ activeRightTab: tab }); },
+    setActiveRightTab: (tab: 'main' | 'telemetry' | 'explanation' | 'moveDelta' | 'analysis' | 'mcts_analysis') => { set({ activeRightTab: tab }); },
     setBoardOverlay: (overlay) => { set({ boardOverlay: overlay }); },
 
     saveGame: () => {
