@@ -893,15 +893,97 @@ class LegalMoveGenerator:
     def has_legal_moves(self, board: Board, player: Player) -> bool:
         """
         Check if a player has any legal moves.
-        
+
+        Uses an early-exit search that returns True as soon as the first legal
+        move is found, avoiding full move enumeration.
+
         Args:
             board: Current board state
             player: Player to check
-        
+
         Returns:
             True if player has legal moves
         """
-        return self.get_move_count(board, player) > 0
+        return self._has_any_legal_move_frontier(board, player)
+
+    def _has_any_legal_move_frontier(self, board: Board, player: Player) -> bool:
+        """
+        Early-exit check: returns True as soon as any legal move is found.
+
+        Mirrors the logic of _get_legal_moves_frontier() but short-circuits
+        instead of collecting all moves. This avoids full enumeration when
+        called from _check_game_over().
+        """
+        available_pieces = [piece for piece in self.all_pieces
+                            if piece.id not in board.player_pieces_used[player]]
+        if not available_pieces:
+            return False
+
+        frontier_cells = board.get_frontier(player)
+        if not frontier_cells:
+            return False
+
+        grid = board.grid
+        player_value = player.value
+        is_first_move = board.player_first_move[player]
+        start_corner = board.player_start_corners[player] if is_first_move else None
+        board_size = board.SIZE
+
+        for piece in available_pieces:
+            orientations = self.piece_orientations_cache[piece.id]
+            cached_positions = self.piece_position_cache[piece.id]
+            num_orientations = len(orientations)
+
+            for orientation_idx in range(num_orientations):
+                orientation = orientations[orientation_idx]
+                relative_positions = cached_positions[orientation_idx]
+
+                for frontier_row, frontier_col in frontier_cells:
+                    # Try all offsets as anchors (exact mode)
+                    for anchor_piece_idx in range(len(relative_positions)):
+                        rel_r, rel_c = relative_positions[anchor_piece_idx]
+                        anchor_row = frontier_row - rel_r
+                        anchor_col = frontier_col - rel_c
+
+                        if anchor_row < 0 or anchor_row >= board_size or anchor_col < 0 or anchor_col >= board_size:
+                            continue
+
+                        if not PiecePlacement.can_place_piece_at(
+                            (board_size, board_size), orientation, anchor_row, anchor_col
+                        ):
+                            continue
+
+                        # Fast bounds and overlap check
+                        has_overlap = False
+                        covers_start_corner = False
+
+                        for check_rel_r, check_rel_c in relative_positions:
+                            r = anchor_row + check_rel_r
+                            c = anchor_col + check_rel_c
+
+                            if r < 0 or r >= board_size or c < 0 or c >= board_size:
+                                has_overlap = True
+                                break
+                            if grid[r, c] != 0:
+                                has_overlap = True
+                                break
+                            if is_first_move and start_corner and r == start_corner.row and c == start_corner.col:
+                                covers_start_corner = True
+
+                        if has_overlap:
+                            continue
+                        if is_first_move and not covers_start_corner:
+                            continue
+
+                        # Check adjacency rules
+                        if self._check_adjacency_fast_inline(
+                            relative_positions, anchor_row, anchor_col,
+                            player_value, grid, board_size,
+                            is_first_move, start_corner
+                        ):
+                            return True
+
+        return False
 
     def get_game_state_summary(self, board: Board) -> dict:
         """
