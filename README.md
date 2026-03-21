@@ -1,6 +1,6 @@
-# Reinforcement Learning Environment for Blokus
+# Blokus MCTS
 
-A comprehensive reinforcement learning research environment for the Blokus board game, featuring a complete game engine, multiple AI agents, web interface,.
+A full-stack Blokus board game platform featuring a high-performance game engine, Monte Carlo Tree Search AI agents, and an interactive web interface.
 
 <img width="1795" height="865" alt="image" src="https://github.com/user-attachments/assets/751e771f-ce00-45b8-8289-6086f760cd7d" />
 
@@ -23,7 +23,7 @@ This project provides a full-stack implementation of Blokus with:
 
 ## 👋 For Recruiters & Hiring Managers
 
-**Welcome!** This project demonstrates a production-ready stack for Reinforcement Learning and full-stack web development. 
+**Welcome!** This project demonstrates a production-ready full-stack application combining game AI research with modern web development.
 
 ### ⏱️ 60-Second Architecture Summary
 - **Game Engine (Python)**: High-performance bitboard and frontier-based move generation, capable of thousands of simulations per second.
@@ -271,17 +271,12 @@ blokus_rl/
 │   ├── game.py          # Game logic and scoring
 │   ├── pieces.py        # Piece definitions and generation
 │   └── move_generator.py # Legal move generation
-├── envs/                # RL environments
-│   ├── blokus_env.py
-│   └── blokus_v0.py     # PettingZoo AEC environment
 ├── frontend/            # React / Vite frontend
-├── logs/                # TensorBoard logs and run metrics
+├── logs/                # Run metrics
 ├── mcts/                # MCTS implementation
-├── rl/                  # Multi-stage PettingZoo self-play training
 ├── schemas/             # Pydantic definitions
 ├── scripts/             # Utility and evaluation scripts
 ├── tests/               # Test suite
-├── training/            # SB3 training code and legacy trainers
 ├── webapi/              # FastAPI backend
 ├── pyproject.toml       # Python package configuration
 └── requirements.txt     # Python dependencies
@@ -307,16 +302,6 @@ def select_action(board: Board, player: Player, legal_moves: List[Move]) -> Move
 - **HeuristicAgent**: Evaluates moves using configurable heuristics
 - **MCTSAgent**: Full Monte Carlo Tree Search
 - **FastMCTSAgent**: Optimized MCTS for real-time play
-
-### RL Environment (`envs/blokus_v0.py`)
-
-- **Action Space**: Discrete actions mapped to (piece_id, orientation, row, col)
-- **Observation Space**: Multi-channel tensor with:
-  - Board state (5 channels: empty + 4 players)
-  - Remaining pieces (21 channels)
-  - Last move info (4 channels)
-- **Rewards**: Score-based rewards with win/tie bonuses
-- **Action Masking**: Info dict includes legal action mask
 
 ### Web API (`webapi/app.py`)
 
@@ -454,7 +439,7 @@ Blokus is a strategy board game where players take turns placing pieces on a 20x
 
 ## 📝 License
 
-This project is part of a reinforcement learning research environment.
+This project is part of a game AI research environment.
 
 ## 🔗 Additional Resources
 
