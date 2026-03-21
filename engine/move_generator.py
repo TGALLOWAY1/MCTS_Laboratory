@@ -163,7 +163,9 @@ class LegalMoveGenerator:
         Returns:
             List of legal moves
         """
-        start = time.perf_counter()
+        _debug_timing = MOVEGEN_DEBUG or logger.isEnabledFor(logging.DEBUG)
+        if _debug_timing:
+            start = time.perf_counter()
         legal_moves = []
 
         # Get pieces that haven't been used yet
@@ -176,9 +178,10 @@ class LegalMoveGenerator:
         is_first_move = board.player_first_move[player]
         start_corner = board.player_start_corners[player] if is_first_move else None
 
-        piece_timings = {}
+        piece_timings = {} if _debug_timing else None
         for piece in available_pieces:
-            piece_start = time.perf_counter()
+            if _debug_timing:
+                piece_start = time.perf_counter()
             orientations = self.piece_orientations_cache[piece.id]
             cached_positions = self.piece_position_cache[piece.id]
 
@@ -227,26 +230,28 @@ class LegalMoveGenerator:
                         move = Move(piece.id, orientation_idx, anchor_row, anchor_col)
                         legal_moves.append(move)
 
-            piece_end = time.perf_counter()
-            piece_timings[piece.id] = piece_end - piece_start
+            if _debug_timing:
+                piece_end = time.perf_counter()
+                piece_timings[piece.id] = piece_end - piece_start
 
-        end = time.perf_counter()
-        total_time = end - start
-        elapsed_ms = total_time * 1000.0
+        if _debug_timing:
+            end = time.perf_counter()
+            total_time = end - start
+            elapsed_ms = total_time * 1000.0
 
-        # Debug timing hook (only logs when BLOKUS_MOVEGEN_DEBUG is set)
-        if MOVEGEN_DEBUG:
-            logger.info(f"MoveGen[naive]: player={player.name}, legal_moves={len(legal_moves)}, elapsed_ms={elapsed_ms:.2f}")
+            # Debug timing hook (only logs when BLOKUS_MOVEGEN_DEBUG is set)
+            if MOVEGEN_DEBUG:
+                logger.info(f"MoveGen[naive]: player={player.name}, legal_moves={len(legal_moves)}, elapsed_ms={elapsed_ms:.2f}")
+                if piece_timings and len(piece_timings) > 0:
+                    max_piece_time = max(piece_timings.values())
+                    max_piece_id = max(piece_timings, key=piece_timings.get)
+                    logger.info(f"MoveGen[naive]: slowest piece={max_piece_id}, piece_time_ms={max_piece_time * 1000.0:.2f}")
+
+            # Existing debug logging (always at DEBUG level)
+            logger.debug(f"Legal move generation [naive]: {len(legal_moves)} moves in {total_time:.4f}s for player={player.name}, pieces_checked={len(available_pieces)}")
             if piece_timings and len(piece_timings) > 0:
                 max_piece_time = max(piece_timings.values())
                 max_piece_id = max(piece_timings, key=piece_timings.get)
-                logger.info(f"MoveGen[naive]: slowest piece={max_piece_id}, piece_time_ms={max_piece_time * 1000.0:.2f}")
-
-        # Existing debug logging (always at DEBUG level)
-        logger.debug(f"Legal move generation [naive]: {len(legal_moves)} moves in {total_time:.4f}s for player={player.name}, pieces_checked={len(available_pieces)}")
-        if piece_timings and len(piece_timings) > 0:
-            max_piece_time = max(piece_timings.values())
-            max_piece_id = max(piece_timings, key=piece_timings.get)
             logger.debug(f"Legal move generation [naive]: slowest piece={max_piece_id} took {max_piece_time:.4f}s")
 
         return legal_moves
@@ -270,7 +275,9 @@ class LegalMoveGenerator:
         Returns:
             List of legal moves
         """
-        start = time.perf_counter()
+        _debug_timing = MOVEGEN_DEBUG or logger.isEnabledFor(logging.DEBUG)
+        if _debug_timing:
+            start = time.perf_counter()
         legal_moves = []
 
         # Per-call cache to avoid redundant anchor tests
@@ -293,9 +300,10 @@ class LegalMoveGenerator:
         is_first_move = board.player_first_move[player]
         start_corner = board.player_start_corners[player] if is_first_move else None
 
-        piece_timings = {}
+        piece_timings = {} if _debug_timing else None
         for piece in available_pieces:
-            piece_start = time.perf_counter()
+            if _debug_timing:
+                piece_start = time.perf_counter()
 
             # Hoist orientation lookup outside inner loops
             if USE_BITBOARD_LEGALITY:
@@ -529,27 +537,29 @@ class LegalMoveGenerator:
                                         legal_moves.append(move)
                                         any_legal_for_orientation = True
 
-            piece_end = time.perf_counter()
-            piece_timings[piece.id] = piece_end - piece_start
+            if _debug_timing:
+                piece_end = time.perf_counter()
+                piece_timings[piece.id] = piece_end - piece_start
 
-        end = time.perf_counter()
-        total_time = end - start
-        elapsed_ms = total_time * 1000.0
+        if _debug_timing:
+            end = time.perf_counter()
+            total_time = end - start
+            elapsed_ms = total_time * 1000.0
 
-        # Debug timing hook (only logs when BLOKUS_MOVEGEN_DEBUG is set)
-        if MOVEGEN_DEBUG:
-            logger.info(f"MoveGen[frontier]: player={player.name}, legal_moves={len(legal_moves)}, elapsed_ms={elapsed_ms:.2f}, frontier_size={len(frontier_cells)}")
+            # Debug timing hook (only logs when BLOKUS_MOVEGEN_DEBUG is set)
+            if MOVEGEN_DEBUG:
+                logger.info(f"MoveGen[frontier]: player={player.name}, legal_moves={len(legal_moves)}, elapsed_ms={elapsed_ms:.2f}, frontier_size={len(frontier_cells)}")
+                if piece_timings and len(piece_timings) > 0:
+                    max_piece_time = max(piece_timings.values())
+                    max_piece_id = max(piece_timings, key=piece_timings.get)
+                    logger.info(f"MoveGen[frontier]: slowest piece={max_piece_id}, piece_time_ms={max_piece_time * 1000.0:.2f}")
+
+            # Existing debug logging (always at DEBUG level)
+            logger.debug(f"Legal move generation [frontier]: {len(legal_moves)} moves in {total_time:.4f}s for player={player.name}, frontier_size={len(frontier_cells)}, pieces_checked={len(available_pieces)}")
             if piece_timings and len(piece_timings) > 0:
                 max_piece_time = max(piece_timings.values())
                 max_piece_id = max(piece_timings, key=piece_timings.get)
-                logger.info(f"MoveGen[frontier]: slowest piece={max_piece_id}, piece_time_ms={max_piece_time * 1000.0:.2f}")
-
-        # Existing debug logging (always at DEBUG level)
-        logger.debug(f"Legal move generation [frontier]: {len(legal_moves)} moves in {total_time:.4f}s for player={player.name}, frontier_size={len(frontier_cells)}, pieces_checked={len(available_pieces)}")
-        if piece_timings and len(piece_timings) > 0:
-            max_piece_time = max(piece_timings.values())
-            max_piece_id = max(piece_timings, key=piece_timings.get)
-            logger.debug(f"Legal move generation [frontier]: slowest piece={max_piece_id} took {max_piece_time:.4f}s")
+                logger.debug(f"Legal move generation [frontier]: slowest piece={max_piece_id} took {max_piece_time:.4f}s")
 
         return legal_moves
 
