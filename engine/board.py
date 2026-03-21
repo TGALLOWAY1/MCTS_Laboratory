@@ -641,17 +641,20 @@ class Board:
                         )
 
     def copy(self) -> 'Board':
-        """Create a deep copy of the board."""
-        new_board = Board()
+        """Create a deep copy of the board.
+
+        Uses object.__new__ to skip __init__ (which creates and then discards
+        a fresh grid, frontiers, etc.).
+        """
+        new_board = object.__new__(Board)
         new_board.grid = self.grid.copy()
         new_board.player_pieces_used = {k: v.copy() for k, v in self.player_pieces_used.items()}
         new_board.player_first_move = self.player_first_move.copy()
         new_board.game_over = self.game_over
         new_board.current_player = self.current_player
         new_board.move_count = self.move_count
-        # Copy frontiers
+        new_board.player_start_corners = self.player_start_corners
         new_board.player_frontiers = {k: v.copy() for k, v in self.player_frontiers.items()}
-        # Copy bitboard state
         new_board.occupied_bits = self.occupied_bits
         new_board.player_bits = self.player_bits.copy()
         return new_board
