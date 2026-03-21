@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 
 from engine.board import Board, Player, Position
-from engine.move_generator import LegalMoveGenerator, Move
+from engine.move_generator import LegalMoveGenerator, Move, get_shared_generator
 from engine.pieces import PieceGenerator
 
 
@@ -27,7 +27,7 @@ class HeuristicAgent:
             seed: Random seed for reproducible behavior
         """
         self.rng = np.random.RandomState(seed)
-        self.move_generator = LegalMoveGenerator()
+        self.move_generator = get_shared_generator()
         self.piece_generator = PieceGenerator()
 
         # Heuristic weights

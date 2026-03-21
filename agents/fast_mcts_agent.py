@@ -8,7 +8,7 @@ import time
 from typing import Any, Dict, List, Optional
 
 from engine.board import Board, Player
-from engine.move_generator import LegalMoveGenerator, Move
+from engine.move_generator import LegalMoveGenerator, Move, get_shared_generator
 
 
 
@@ -97,7 +97,7 @@ class FastMCTSAgent:
         self.time_limit = time_limit
         self.exploration_constant = exploration_constant
         self.rng = random.Random(seed)
-        self.move_generator = LegalMoveGenerator()
+        self.move_generator = get_shared_generator()
         self.enable_diagnostics = enable_diagnostics
         self.diagnostics_sample_interval = diagnostics_sample_interval
 

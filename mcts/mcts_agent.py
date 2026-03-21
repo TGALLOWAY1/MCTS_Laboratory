@@ -8,8 +8,8 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 
 from agents.heuristic_agent import HeuristicAgent
-from engine.board import Board, Player, Position
-from engine.move_generator import LegalMoveGenerator, Move
+from engine.board import Board, Player, Position, _PLAYERS
+from engine.move_generator import LegalMoveGenerator, Move, get_shared_generator
 from engine.pieces import PieceGenerator
 
 from .learned_evaluator import LearnedWinProbabilityEvaluator
@@ -54,7 +54,7 @@ class MCTSNode:
 
     def _initialize_untried_moves(self):
         """Initialize list of untried moves."""
-        move_generator = LegalMoveGenerator()
+        move_generator = get_shared_generator()
         self.untried_moves = move_generator.get_legal_moves(self.board, self.player)
 
     def is_fully_expanded(self) -> bool:
@@ -128,7 +128,8 @@ class MCTSNode:
         success = new_board.place_piece(
             self._get_move_positions(move),
             self.player,
-            move.piece_id
+            move.piece_id,
+            validate=False
         )
 
         if not success:
@@ -145,7 +146,7 @@ class MCTSNode:
 
     def _get_move_positions(self, move: Move) -> List[Position]:
         """Get positions that a move would occupy."""
-        move_generator = LegalMoveGenerator()
+        move_generator = get_shared_generator()
         orientations = move_generator.piece_orientations_cache[move.piece_id]
         orientation = orientations[move.orientation]
 
@@ -162,10 +163,9 @@ class MCTSNode:
 
     def _get_next_player(self) -> Player:
         """Get next player in turn order."""
-        players = list(Player)
-        current_idx = players.index(self.player)
-        next_idx = (current_idx + 1) % len(players)
-        return players[next_idx]
+        current_idx = _PLAYERS.index(self.player)
+        next_idx = (current_idx + 1) % len(_PLAYERS)
+        return _PLAYERS[next_idx]
 
     def update(self, reward: float):
         """
@@ -268,7 +268,7 @@ class MCTSAgent:
             )
 
         # Initialize components
-        self.move_generator = LegalMoveGenerator()
+        self.move_generator = get_shared_generator()
         self.piece_generator = PieceGenerator()
         self.zobrist_hash = ZobristHash(seed=seed)
 
@@ -510,15 +510,14 @@ class MCTSAgent:
 
             # Make move
             move_positions = self._get_move_positions(move)
-            success = sim_board.place_piece(move_positions, current_player, move.piece_id)
+            success = sim_board.place_piece(move_positions, current_player, move.piece_id, validate=False)
 
             if not success:
                 break
 
             # Move to next player
-            players = list(Player)
-            current_idx = players.index(current_player)
-            current_player = players[(current_idx + 1) % len(players)]
+            current_idx = _PLAYERS.index(current_player)
+            current_player = _PLAYERS[(current_idx + 1) % len(_PLAYERS)]
             moves_made += 1
 
         # Calculate reward

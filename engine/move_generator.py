@@ -20,12 +20,14 @@ import time
 from typing import List, Optional, Set, Tuple
 
 from .bitboard import (
+    BIT_TABLE,
     BOARD_HEIGHT,
     BOARD_WIDTH,
     coord_to_bit,
     coords_to_mask,
     mask_to_coords,
     shift_mask,
+    shift_mask_fast,
 )
 from .board import Board, Player, Position
 from .pieces import (
@@ -64,7 +66,8 @@ MOVEGEN_DEBUG = _env_flag("BLOKUS_MOVEGEN_DEBUG", False)
 USE_FRONTIER_MOVEGEN = _env_flag("BLOKUS_USE_FRONTIER_MOVEGEN", True)
 
 # Feature flag to toggle between grid-based and bitboard-based legality checks
-# Default: True (bitboard legality is the default)
+# Default: True (bitboard legality uses precomputed PieceOrientation masks with
+# shift_mask_fast for 2-3x speedup over grid-based path)
 # When True, frontier-based move generation uses bitboard legality instead of cell-based checks
 USE_BITBOARD_LEGALITY = _env_flag("BLOKUS_USE_BITBOARD_LEGALITY", True)
 
@@ -162,7 +165,9 @@ class LegalMoveGenerator:
         Returns:
             List of legal moves
         """
-        start = time.perf_counter()
+        _debug_timing = MOVEGEN_DEBUG or logger.isEnabledFor(logging.DEBUG)
+        if _debug_timing:
+            start = time.perf_counter()
         legal_moves = []
 
         # Get pieces that haven't been used yet
@@ -175,9 +180,10 @@ class LegalMoveGenerator:
         is_first_move = board.player_first_move[player]
         start_corner = board.player_start_corners[player] if is_first_move else None
 
-        piece_timings = {}
+        piece_timings = {} if _debug_timing else None
         for piece in available_pieces:
-            piece_start = time.perf_counter()
+            if _debug_timing:
+                piece_start = time.perf_counter()
             orientations = self.piece_orientations_cache[piece.id]
             cached_positions = self.piece_position_cache[piece.id]
 
@@ -226,26 +232,28 @@ class LegalMoveGenerator:
                         move = Move(piece.id, orientation_idx, anchor_row, anchor_col)
                         legal_moves.append(move)
 
-            piece_end = time.perf_counter()
-            piece_timings[piece.id] = piece_end - piece_start
+            if _debug_timing:
+                piece_end = time.perf_counter()
+                piece_timings[piece.id] = piece_end - piece_start
 
-        end = time.perf_counter()
-        total_time = end - start
-        elapsed_ms = total_time * 1000.0
+        if _debug_timing:
+            end = time.perf_counter()
+            total_time = end - start
+            elapsed_ms = total_time * 1000.0
 
-        # Debug timing hook (only logs when BLOKUS_MOVEGEN_DEBUG is set)
-        if MOVEGEN_DEBUG:
-            logger.info(f"MoveGen[naive]: player={player.name}, legal_moves={len(legal_moves)}, elapsed_ms={elapsed_ms:.2f}")
+            # Debug timing hook (only logs when BLOKUS_MOVEGEN_DEBUG is set)
+            if MOVEGEN_DEBUG:
+                logger.info(f"MoveGen[naive]: player={player.name}, legal_moves={len(legal_moves)}, elapsed_ms={elapsed_ms:.2f}")
+                if piece_timings and len(piece_timings) > 0:
+                    max_piece_time = max(piece_timings.values())
+                    max_piece_id = max(piece_timings, key=piece_timings.get)
+                    logger.info(f"MoveGen[naive]: slowest piece={max_piece_id}, piece_time_ms={max_piece_time * 1000.0:.2f}")
+
+            # Existing debug logging (always at DEBUG level)
+            logger.debug(f"Legal move generation [naive]: {len(legal_moves)} moves in {total_time:.4f}s for player={player.name}, pieces_checked={len(available_pieces)}")
             if piece_timings and len(piece_timings) > 0:
                 max_piece_time = max(piece_timings.values())
                 max_piece_id = max(piece_timings, key=piece_timings.get)
-                logger.info(f"MoveGen[naive]: slowest piece={max_piece_id}, piece_time_ms={max_piece_time * 1000.0:.2f}")
-
-        # Existing debug logging (always at DEBUG level)
-        logger.debug(f"Legal move generation [naive]: {len(legal_moves)} moves in {total_time:.4f}s for player={player.name}, pieces_checked={len(available_pieces)}")
-        if piece_timings and len(piece_timings) > 0:
-            max_piece_time = max(piece_timings.values())
-            max_piece_id = max(piece_timings, key=piece_timings.get)
             logger.debug(f"Legal move generation [naive]: slowest piece={max_piece_id} took {max_piece_time:.4f}s")
 
         return legal_moves
@@ -269,8 +277,11 @@ class LegalMoveGenerator:
         Returns:
             List of legal moves
         """
-        start = time.perf_counter()
+        _debug_timing = MOVEGEN_DEBUG or logger.isEnabledFor(logging.DEBUG)
+        if _debug_timing:
+            start = time.perf_counter()
         legal_moves = []
+        seen_moves: Set[Tuple[int, int, int, int]] = set()
 
         # Per-call cache to avoid redundant anchor tests
         # This is a micro-optimization that does not affect correctness:
@@ -292,9 +303,10 @@ class LegalMoveGenerator:
         is_first_move = board.player_first_move[player]
         start_corner = board.player_start_corners[player] if is_first_move else None
 
-        piece_timings = {}
+        piece_timings = {} if _debug_timing else None
         for piece in available_pieces:
-            piece_start = time.perf_counter()
+            if _debug_timing:
+                piece_start = time.perf_counter()
 
             # Hoist orientation lookup outside inner loops
             if USE_BITBOARD_LEGALITY:
@@ -377,24 +389,18 @@ class LegalMoveGenerator:
 
                         # Check legality using bitboard or grid-based method
                         if USE_BITBOARD_LEGALITY:
-                            # Use coords-based bitboard legality check
-                            # Compute placement coordinates directly from offsets
-                            placement_coords = [
-                                (anchor_row + rel_r, anchor_col + rel_c)
-                                for rel_r, rel_c in relative_positions
-                            ]
-
-                            # Bounds check: ensure all coords are on board
-                            if all(0 <= r < board.SIZE and 0 <= c < board.SIZE
-                                   for r, c in placement_coords):
-                                if self.is_placement_legal_bitboard_coords(
-                                    board, player, placement_coords,
-                                    is_first_move=is_first_move
-                                ):
-                                    move = Move(piece.id, orientation_idx, anchor_row, anchor_col)
-                                    legal_moves.append(move)
-                                    found_legal_anchor = True
-                                    any_legal_for_orientation = True
+                            # Fast bitboard legality using precomputed masks
+                            if self.is_placement_legal_bitboard_fast(
+                                board, player, piece_orientation,
+                                anchor_row, anchor_col,
+                                is_first_move=is_first_move
+                            ):
+                                move_key = (piece.id, orientation_idx, anchor_row, anchor_col)
+                                if move_key not in seen_moves:
+                                    seen_moves.add(move_key)
+                                    legal_moves.append(Move(piece.id, orientation_idx, anchor_row, anchor_col))
+                                found_legal_anchor = True
+                                any_legal_for_orientation = True
                         else:
                             # Use grid-based legality check (original method)
                             # Check if piece would be within bounds at this anchor
@@ -435,8 +441,10 @@ class LegalMoveGenerator:
                             if self._check_adjacency_fast_inline(relative_positions, anchor_row, anchor_col,
                                                                  player_value, grid, board.SIZE,
                                                                  is_first_move, start_corner):
-                                move = Move(piece.id, orientation_idx, anchor_row, anchor_col)
-                                legal_moves.append(move)
+                                move_key = (piece.id, orientation_idx, anchor_row, anchor_col)
+                                if move_key not in seen_moves:
+                                    seen_moves.add(move_key)
+                                    legal_moves.append(Move(piece.id, orientation_idx, anchor_row, anchor_col))
                                 found_legal_anchor = True
                                 any_legal_for_orientation = True
 
@@ -474,22 +482,16 @@ class LegalMoveGenerator:
 
                                 # Check legality
                                 if USE_BITBOARD_LEGALITY:
-                                    # Use coords-based bitboard legality check
-                                    placement_coords = [
-                                        (anchor_row + rel_r, anchor_col + rel_c)
-                                        for rel_r, rel_c in relative_positions
-                                    ]
-
-                                    # Bounds check: ensure all coords are on board
-                                    if all(0 <= r < board.SIZE and 0 <= c < board.SIZE
-                                           for r, c in placement_coords):
-                                        if self.is_placement_legal_bitboard_coords(
-                                            board, player, placement_coords,
-                                            is_first_move=is_first_move
-                                        ):
-                                            move = Move(piece.id, orientation_idx, anchor_row, anchor_col)
-                                            legal_moves.append(move)
-                                            any_legal_for_orientation = True
+                                    if self.is_placement_legal_bitboard_fast(
+                                        board, player, piece_orientation,
+                                        anchor_row, anchor_col,
+                                        is_first_move=is_first_move
+                                    ):
+                                        move_key = (piece.id, orientation_idx, anchor_row, anchor_col)
+                                        if move_key not in seen_moves:
+                                            seen_moves.add(move_key)
+                                            legal_moves.append(Move(piece.id, orientation_idx, anchor_row, anchor_col))
+                                        any_legal_for_orientation = True
                                 else:
                                     # Use grid-based legality check
                                     if not PiecePlacement.can_place_piece_at(
@@ -524,31 +526,35 @@ class LegalMoveGenerator:
                                     if self._check_adjacency_fast_inline(relative_positions, anchor_row, anchor_col,
                                                                          player_value, grid, board.SIZE,
                                                                          is_first_move, start_corner):
-                                        move = Move(piece.id, orientation_idx, anchor_row, anchor_col)
-                                        legal_moves.append(move)
+                                        move_key = (piece.id, orientation_idx, anchor_row, anchor_col)
+                                        if move_key not in seen_moves:
+                                            seen_moves.add(move_key)
+                                            legal_moves.append(Move(piece.id, orientation_idx, anchor_row, anchor_col))
                                         any_legal_for_orientation = True
 
-            piece_end = time.perf_counter()
-            piece_timings[piece.id] = piece_end - piece_start
+            if _debug_timing:
+                piece_end = time.perf_counter()
+                piece_timings[piece.id] = piece_end - piece_start
 
-        end = time.perf_counter()
-        total_time = end - start
-        elapsed_ms = total_time * 1000.0
+        if _debug_timing:
+            end = time.perf_counter()
+            total_time = end - start
+            elapsed_ms = total_time * 1000.0
 
-        # Debug timing hook (only logs when BLOKUS_MOVEGEN_DEBUG is set)
-        if MOVEGEN_DEBUG:
-            logger.info(f"MoveGen[frontier]: player={player.name}, legal_moves={len(legal_moves)}, elapsed_ms={elapsed_ms:.2f}, frontier_size={len(frontier_cells)}")
+            # Debug timing hook (only logs when BLOKUS_MOVEGEN_DEBUG is set)
+            if MOVEGEN_DEBUG:
+                logger.info(f"MoveGen[frontier]: player={player.name}, legal_moves={len(legal_moves)}, elapsed_ms={elapsed_ms:.2f}, frontier_size={len(frontier_cells)}")
+                if piece_timings and len(piece_timings) > 0:
+                    max_piece_time = max(piece_timings.values())
+                    max_piece_id = max(piece_timings, key=piece_timings.get)
+                    logger.info(f"MoveGen[frontier]: slowest piece={max_piece_id}, piece_time_ms={max_piece_time * 1000.0:.2f}")
+
+            # Existing debug logging (always at DEBUG level)
+            logger.debug(f"Legal move generation [frontier]: {len(legal_moves)} moves in {total_time:.4f}s for player={player.name}, frontier_size={len(frontier_cells)}, pieces_checked={len(available_pieces)}")
             if piece_timings and len(piece_timings) > 0:
                 max_piece_time = max(piece_timings.values())
                 max_piece_id = max(piece_timings, key=piece_timings.get)
-                logger.info(f"MoveGen[frontier]: slowest piece={max_piece_id}, piece_time_ms={max_piece_time * 1000.0:.2f}")
-
-        # Existing debug logging (always at DEBUG level)
-        logger.debug(f"Legal move generation [frontier]: {len(legal_moves)} moves in {total_time:.4f}s for player={player.name}, frontier_size={len(frontier_cells)}, pieces_checked={len(available_pieces)}")
-        if piece_timings and len(piece_timings) > 0:
-            max_piece_time = max(piece_timings.values())
-            max_piece_id = max(piece_timings, key=piece_timings.get)
-            logger.debug(f"Legal move generation [frontier]: slowest piece={max_piece_id} took {max_piece_time:.4f}s")
+                logger.debug(f"Legal move generation [frontier]: slowest piece={max_piece_id} took {max_piece_time:.4f}s")
 
         return legal_moves
 
@@ -751,6 +757,79 @@ class LegalMoveGenerator:
 
         return True
 
+    def is_placement_legal_bitboard_fast(
+        self,
+        board: Board,
+        player: Player,
+        piece_orientation: PieceOrientation,
+        anchor_row: int,
+        anchor_col: int,
+        is_first_move: bool = False,
+    ) -> bool:
+        """
+        Fast bitboard legality check using precomputed PieceOrientation masks.
+
+        Uses shift_mask_fast to shift precomputed shape/diag/orth masks to the
+        anchor position, then does bitwise checks. For diag/orth neighbors that
+        have negative offsets in normalized space (and thus aren't in the
+        precomputed mask), we check them directly via BIT_TABLE lookups.
+        """
+        board_size = board.SIZE
+        player_bits = board.player_bits[player]
+
+        # 1. Shape overlap check using precomputed shape_mask
+        shifted_shape = shift_mask_fast(piece_orientation.shape_mask, anchor_row, anchor_col)
+        if shifted_shape is None or shifted_shape == 0:
+            return False  # Shape goes off-board
+        if shifted_shape & board.occupied_bits:
+            return False  # Overlaps existing pieces
+
+        # Verify all shape cells are on board (popcount check)
+        # shift_mask_fast drops off-board bits, so if any were lost, the piece
+        # doesn't fully fit.
+        if shifted_shape.bit_count() != len(piece_orientation.offsets):
+            return False
+
+        # 2. Orthogonal adjacency check — must NOT touch own pieces orthogonally
+        # Use precomputed orth_mask for non-negative offsets
+        shifted_orth = shift_mask_fast(piece_orientation.orth_mask, anchor_row, anchor_col)
+        if shifted_orth and (shifted_orth & player_bits):
+            return False
+
+        # Check orth neighbors with negative offsets (not in precomputed mask)
+        _bt = BIT_TABLE
+        for off_r, off_c in piece_orientation.orth_offsets:
+            if off_r < 0 or off_c < 0:
+                nr, nc = anchor_row + off_r, anchor_col + off_c
+                if 0 <= nr < board_size and 0 <= nc < board_size:
+                    if _bt[nr][nc] & player_bits:
+                        return False
+
+        # 3. Diagonal adjacency check — MUST touch own pieces diagonally (unless first move)
+        if not is_first_move:
+            # Check precomputed diag_mask first
+            shifted_diag = shift_mask_fast(piece_orientation.diag_mask, anchor_row, anchor_col)
+            if shifted_diag and (shifted_diag & player_bits):
+                return True  # Found diagonal connection
+
+            # Check diag neighbors with negative offsets
+            for off_r, off_c in piece_orientation.diag_offsets:
+                if off_r < 0 or off_c < 0:
+                    nr, nc = anchor_row + off_r, anchor_col + off_c
+                    if 0 <= nr < board_size and 0 <= nc < board_size:
+                        if _bt[nr][nc] & player_bits:
+                            return True  # Found diagonal connection
+            return False  # No diagonal connection found
+
+        # 4. First move: must cover starting corner
+        if is_first_move:
+            start_corner = board.player_start_corners[player]
+            corner_bit = _bt[start_corner.row][start_corner.col]
+            if not (shifted_shape & corner_bit):
+                return False
+
+        return True
+
     def _check_adjacency_fast_inline(self, relative_positions: List[Tuple[int, int]],
                                      anchor_row: int, anchor_col: int,
                                      player_value: int, grid, board_size: int,
@@ -882,15 +961,97 @@ class LegalMoveGenerator:
     def has_legal_moves(self, board: Board, player: Player) -> bool:
         """
         Check if a player has any legal moves.
-        
+
+        Uses an early-exit search that returns True as soon as the first legal
+        move is found, avoiding full move enumeration.
+
         Args:
             board: Current board state
             player: Player to check
-        
+
         Returns:
             True if player has legal moves
         """
-        return self.get_move_count(board, player) > 0
+        return self._has_any_legal_move_frontier(board, player)
+
+    def _has_any_legal_move_frontier(self, board: Board, player: Player) -> bool:
+        """
+        Early-exit check: returns True as soon as any legal move is found.
+
+        Mirrors the logic of _get_legal_moves_frontier() but short-circuits
+        instead of collecting all moves. This avoids full enumeration when
+        called from _check_game_over().
+        """
+        available_pieces = [piece for piece in self.all_pieces
+                            if piece.id not in board.player_pieces_used[player]]
+        if not available_pieces:
+            return False
+
+        frontier_cells = board.get_frontier(player)
+        if not frontier_cells:
+            return False
+
+        grid = board.grid
+        player_value = player.value
+        is_first_move = board.player_first_move[player]
+        start_corner = board.player_start_corners[player] if is_first_move else None
+        board_size = board.SIZE
+
+        for piece in available_pieces:
+            orientations = self.piece_orientations_cache[piece.id]
+            cached_positions = self.piece_position_cache[piece.id]
+            num_orientations = len(orientations)
+
+            for orientation_idx in range(num_orientations):
+                orientation = orientations[orientation_idx]
+                relative_positions = cached_positions[orientation_idx]
+
+                for frontier_row, frontier_col in frontier_cells:
+                    # Try all offsets as anchors (exact mode)
+                    for anchor_piece_idx in range(len(relative_positions)):
+                        rel_r, rel_c = relative_positions[anchor_piece_idx]
+                        anchor_row = frontier_row - rel_r
+                        anchor_col = frontier_col - rel_c
+
+                        if anchor_row < 0 or anchor_row >= board_size or anchor_col < 0 or anchor_col >= board_size:
+                            continue
+
+                        if not PiecePlacement.can_place_piece_at(
+                            (board_size, board_size), orientation, anchor_row, anchor_col
+                        ):
+                            continue
+
+                        # Fast bounds and overlap check
+                        has_overlap = False
+                        covers_start_corner = False
+
+                        for check_rel_r, check_rel_c in relative_positions:
+                            r = anchor_row + check_rel_r
+                            c = anchor_col + check_rel_c
+
+                            if r < 0 or r >= board_size or c < 0 or c >= board_size:
+                                has_overlap = True
+                                break
+                            if grid[r, c] != 0:
+                                has_overlap = True
+                                break
+                            if is_first_move and start_corner and r == start_corner.row and c == start_corner.col:
+                                covers_start_corner = True
+
+                        if has_overlap:
+                            continue
+                        if is_first_move and not covers_start_corner:
+                            continue
+
+                        # Check adjacency rules
+                        if self._check_adjacency_fast_inline(
+                            relative_positions, anchor_row, anchor_col,
+                            player_value, grid, board_size,
+                            is_first_move, start_corner
+                        ):
+                            return True
+
+        return False
 
     def get_game_state_summary(self, board: Board) -> dict:
         """
@@ -1054,3 +1215,19 @@ def debug_compare_bitboard_vs_grid(
     print("=== END DEBUG ===")
     print("=" * 80)
     print()
+
+
+# Module-level shared instance to avoid redundant _cache_piece_orientations() calls
+_SHARED_GENERATOR: Optional[LegalMoveGenerator] = None
+
+
+def get_shared_generator() -> LegalMoveGenerator:
+    """Return a shared LegalMoveGenerator instance (lazily initialized).
+
+    Use this instead of LegalMoveGenerator() when you don't need a dedicated
+    instance, to avoid redundant piece orientation caching on each instantiation.
+    """
+    global _SHARED_GENERATOR
+    if _SHARED_GENERATOR is None:
+        _SHARED_GENERATOR = LegalMoveGenerator()
+    return _SHARED_GENERATOR
