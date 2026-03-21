@@ -279,6 +279,7 @@ class LegalMoveGenerator:
         if _debug_timing:
             start = time.perf_counter()
         legal_moves = []
+        seen_moves: Set[Tuple[int, int, int, int]] = set()
 
         # Per-call cache to avoid redundant anchor tests
         # This is a micro-optimization that does not affect correctness:
@@ -400,8 +401,10 @@ class LegalMoveGenerator:
                                     board, player, placement_coords,
                                     is_first_move=is_first_move
                                 ):
-                                    move = Move(piece.id, orientation_idx, anchor_row, anchor_col)
-                                    legal_moves.append(move)
+                                    move_key = (piece.id, orientation_idx, anchor_row, anchor_col)
+                                    if move_key not in seen_moves:
+                                        seen_moves.add(move_key)
+                                        legal_moves.append(Move(piece.id, orientation_idx, anchor_row, anchor_col))
                                     found_legal_anchor = True
                                     any_legal_for_orientation = True
                         else:
@@ -444,8 +447,10 @@ class LegalMoveGenerator:
                             if self._check_adjacency_fast_inline(relative_positions, anchor_row, anchor_col,
                                                                  player_value, grid, board.SIZE,
                                                                  is_first_move, start_corner):
-                                move = Move(piece.id, orientation_idx, anchor_row, anchor_col)
-                                legal_moves.append(move)
+                                move_key = (piece.id, orientation_idx, anchor_row, anchor_col)
+                                if move_key not in seen_moves:
+                                    seen_moves.add(move_key)
+                                    legal_moves.append(Move(piece.id, orientation_idx, anchor_row, anchor_col))
                                 found_legal_anchor = True
                                 any_legal_for_orientation = True
 
@@ -496,8 +501,10 @@ class LegalMoveGenerator:
                                             board, player, placement_coords,
                                             is_first_move=is_first_move
                                         ):
-                                            move = Move(piece.id, orientation_idx, anchor_row, anchor_col)
-                                            legal_moves.append(move)
+                                            move_key = (piece.id, orientation_idx, anchor_row, anchor_col)
+                                            if move_key not in seen_moves:
+                                                seen_moves.add(move_key)
+                                                legal_moves.append(Move(piece.id, orientation_idx, anchor_row, anchor_col))
                                             any_legal_for_orientation = True
                                 else:
                                     # Use grid-based legality check
@@ -533,8 +540,10 @@ class LegalMoveGenerator:
                                     if self._check_adjacency_fast_inline(relative_positions, anchor_row, anchor_col,
                                                                          player_value, grid, board.SIZE,
                                                                          is_first_move, start_corner):
-                                        move = Move(piece.id, orientation_idx, anchor_row, anchor_col)
-                                        legal_moves.append(move)
+                                        move_key = (piece.id, orientation_idx, anchor_row, anchor_col)
+                                        if move_key not in seen_moves:
+                                            seen_moves.add(move_key)
+                                            legal_moves.append(Move(piece.id, orientation_idx, anchor_row, anchor_col))
                                         any_legal_for_orientation = True
 
             if _debug_timing:
