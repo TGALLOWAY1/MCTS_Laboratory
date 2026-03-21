@@ -1215,3 +1215,19 @@ def debug_compare_bitboard_vs_grid(
     print("=== END DEBUG ===")
     print("=" * 80)
     print()
+
+
+# Module-level shared instance to avoid redundant _cache_piece_orientations() calls
+_SHARED_GENERATOR: Optional[LegalMoveGenerator] = None
+
+
+def get_shared_generator() -> LegalMoveGenerator:
+    """Return a shared LegalMoveGenerator instance (lazily initialized).
+
+    Use this instead of LegalMoveGenerator() when you don't need a dedicated
+    instance, to avoid redundant piece orientation caching on each instantiation.
+    """
+    global _SHARED_GENERATOR
+    if _SHARED_GENERATOR is None:
+        _SHARED_GENERATOR = LegalMoveGenerator()
+    return _SHARED_GENERATOR

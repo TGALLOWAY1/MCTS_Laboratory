@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional
 
 from .board import Board, Player, Position
-from .move_generator import LegalMoveGenerator, Move
+from .move_generator import LegalMoveGenerator, Move, get_shared_generator
 from .pieces import PieceGenerator
 
 try:
@@ -47,7 +47,7 @@ class BlokusGame:
 
     def __init__(self, enable_telemetry: bool = True, telemetry_fast_mode: bool = True):
         self.board = Board()
-        self.move_generator = LegalMoveGenerator()
+        self.move_generator = get_shared_generator()
         self.piece_generator = PieceGenerator()
         self.game_history = []
         self.winner = None
