@@ -9,7 +9,7 @@ import numpy as np
 
 from agents.heuristic_agent import HeuristicAgent
 from engine.board import Board, Player, Position, _PLAYERS
-from engine.move_generator import LegalMoveGenerator, Move
+from engine.move_generator import LegalMoveGenerator, Move, get_shared_generator
 from engine.pieces import PieceGenerator
 
 from .learned_evaluator import LearnedWinProbabilityEvaluator
@@ -54,7 +54,7 @@ class MCTSNode:
 
     def _initialize_untried_moves(self):
         """Initialize list of untried moves."""
-        move_generator = LegalMoveGenerator()
+        move_generator = get_shared_generator()
         self.untried_moves = move_generator.get_legal_moves(self.board, self.player)
 
     def is_fully_expanded(self) -> bool:
@@ -146,7 +146,7 @@ class MCTSNode:
 
     def _get_move_positions(self, move: Move) -> List[Position]:
         """Get positions that a move would occupy."""
-        move_generator = LegalMoveGenerator()
+        move_generator = get_shared_generator()
         orientations = move_generator.piece_orientations_cache[move.piece_id]
         orientation = orientations[move.orientation]
 
@@ -268,7 +268,7 @@ class MCTSAgent:
             )
 
         # Initialize components
-        self.move_generator = LegalMoveGenerator()
+        self.move_generator = get_shared_generator()
         self.piece_generator = PieceGenerator()
         self.zobrist_hash = ZobristHash(seed=seed)
 
