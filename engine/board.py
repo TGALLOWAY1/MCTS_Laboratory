@@ -23,6 +23,10 @@ class Player(Enum):
     GREEN = 4
 
 
+# Pre-computed player list to avoid repeated list(Player) allocations
+_PLAYERS = list(Player)
+
+
 @dataclass
 class Position:
     """Represents a position on the board."""
@@ -249,9 +253,10 @@ class Board:
         - NOT orthogonally adjacent to any cell occupied by the player
         
         Returns:
-            Set of (row, col) tuples representing frontier cells
+            Set of (row, col) tuples representing frontier cells.
+            Callers must not mutate the returned set.
         """
-        return self.player_frontiers[player].copy()
+        return self.player_frontiers[player]
 
     def _compute_full_frontier(self, player: Player) -> Set[Tuple[int, int]]:
         """
@@ -507,15 +512,20 @@ class Board:
 
         return True
 
-    def place_piece(self, piece_positions: List[Position], player: Player, piece_id: int) -> bool:
+    def place_piece(self, piece_positions: List[Position], player: Player, piece_id: int,
+                     validate: bool = True) -> bool:
         """
         Place a piece on the board.
-        
+
         OPTIMIZED: Uses direct grid access for faster placement.
-        
+
+        Args:
+            validate: If False, skip can_place_piece() check. Use only when the
+                      caller has already validated the move (e.g. via is_move_legal).
+
         Returns True if placement was successful, False otherwise.
         """
-        if not self.can_place_piece(piece_positions, player):
+        if validate and not self.can_place_piece(piece_positions, player):
             return False
 
         # Place the piece using direct grid access (faster than set_cell)
@@ -546,9 +556,8 @@ class Board:
 
     def _update_current_player(self) -> None:
         """Update the current player for the next turn."""
-        players = list(Player)
-        current_index = players.index(self.current_player)
-        self.current_player = players[(current_index + 1) % len(players)]
+        current_index = _PLAYERS.index(self.current_player)
+        self.current_player = _PLAYERS[(current_index + 1) % len(_PLAYERS)]
 
     def get_score(self, player: Player) -> int:
         """
@@ -632,17 +641,20 @@ class Board:
                         )
 
     def copy(self) -> 'Board':
-        """Create a deep copy of the board."""
-        new_board = Board()
+        """Create a deep copy of the board.
+
+        Uses object.__new__ to skip __init__ (which creates and then discards
+        a fresh grid, frontiers, etc.).
+        """
+        new_board = object.__new__(Board)
         new_board.grid = self.grid.copy()
         new_board.player_pieces_used = {k: v.copy() for k, v in self.player_pieces_used.items()}
         new_board.player_first_move = self.player_first_move.copy()
         new_board.game_over = self.game_over
         new_board.current_player = self.current_player
         new_board.move_count = self.move_count
-        # Copy frontiers
+        new_board.player_start_corners = self.player_start_corners
         new_board.player_frontiers = {k: v.copy() for k, v in self.player_frontiers.items()}
-        # Copy bitboard state
         new_board.occupied_bits = self.occupied_bits
         new_board.player_bits = self.player_bits.copy()
         return new_board
