@@ -71,6 +71,7 @@ logs/
 runs/
 training_data/
 arena_runs/
+baseline_runs/
 
 # IDE / Editor
 .idea/
