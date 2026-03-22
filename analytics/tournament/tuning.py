@@ -165,3 +165,35 @@ register_tuning_set(TuningSet(
         }),
     ]
 ))
+
+# 5. Trained Eval Model (real model vs rollout baseline)
+_EVAL_MODEL_PATH = "models/eval_v1.pkl"
+
+register_tuning_set(TuningSet(
+    name="eval_model_v1",
+    tunings=[
+        MctsTuning("base_rollout", {**_BASE_PARAMS}),
+        MctsTuning("leaf_eval_only", {
+            **_BASE_PARAMS,
+            "leaf_evaluation_enabled": True,
+            "progressive_bias_enabled": False,
+            "learned_model_path": _EVAL_MODEL_PATH,
+        }),
+        MctsTuning("leaf_eval_bias_0.25", {
+            **_BASE_PARAMS,
+            "leaf_evaluation_enabled": True,
+            "progressive_bias_enabled": True,
+            "progressive_bias_weight": 0.25,
+            "learned_model_path": _EVAL_MODEL_PATH,
+        }),
+        MctsTuning("leaf_eval_bias_shaping", {
+            **_BASE_PARAMS,
+            "leaf_evaluation_enabled": True,
+            "progressive_bias_enabled": True,
+            "progressive_bias_weight": 0.25,
+            "potential_shaping_enabled": True,
+            "potential_shaping_weight": 1.0,
+            "learned_model_path": _EVAL_MODEL_PATH,
+        }),
+    ]
+))
