@@ -17,6 +17,7 @@ dependencies = [
     "pydantic",
     "orjson",
     "websockets",
+    "openskill",
 ]
 
 [project.optional-dependencies]
