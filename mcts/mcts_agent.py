@@ -13,6 +13,7 @@ from engine.move_generator import LegalMoveGenerator, Move, get_shared_generator
 from engine.pieces import PieceGenerator
 
 from .learned_evaluator import LearnedWinProbabilityEvaluator
+from .utils import compute_policy_entropy
 from .zobrist import TranspositionTable, ZobristHash
 
 
@@ -304,12 +305,12 @@ class MCTSAgent:
     def select_action(self, board: Board, player: Player, legal_moves: List[Move]) -> Optional[Move]:
         """
         Select action using MCTS.
-        
+
         Args:
             board: Current board state
             player: Player making the move
             legal_moves: List of legal moves available
-            
+
         Returns:
             Selected move, or None if no legal moves available
         """
@@ -331,6 +332,9 @@ class MCTSAgent:
 
         self.stats["time_elapsed"] = time.time() - start_time
 
+        # Collect tree diagnostics before root is discarded
+        self._collect_tree_diagnostics(root)
+
         # Get best move
         best_move = root.get_best_move()
 
@@ -339,6 +343,76 @@ class MCTSAgent:
             self.transposition_table.clear()
 
         return best_move
+
+    def _collect_tree_diagnostics(self, root: MCTSNode) -> None:
+        """Walk the tree from root to collect diagnostic metrics.
+
+        Populates ``self.stats`` with tree depth, size, entropy, Q-values,
+        and regret gap so they are available via ``get_action_info()``.
+        """
+        # --- visit distribution entropy at root ---
+        if root.children:
+            visits = [child.visits for child in root.children]
+            self.stats["visit_entropy"] = compute_policy_entropy(visits)
+        else:
+            self.stats["visit_entropy"] = 0.0
+
+        # --- best and 2nd-best Q-values (regret gap) ---
+        if root.children:
+            q_values = []
+            for child in root.children:
+                if child.visits > 0:
+                    q_values.append((child.total_reward / child.visits, child.visits, child))
+            q_values.sort(key=lambda x: x[1], reverse=True)  # sort by visits (best move selection)
+
+            if q_values:
+                best_q, best_visits, _ = q_values[0]
+                self.stats["best_move_q"] = best_q
+                self.stats["best_move_visits"] = best_visits
+                if len(q_values) > 1:
+                    second_q = q_values[1][0]
+                    self.stats["second_best_q"] = second_q
+                    self.stats["regret_gap"] = best_q - second_q
+                else:
+                    self.stats["second_best_q"] = None
+                    self.stats["regret_gap"] = None
+            else:
+                self.stats["best_move_q"] = None
+                self.stats["best_move_visits"] = 0
+                self.stats["second_best_q"] = None
+                self.stats["regret_gap"] = None
+        else:
+            self.stats["best_move_q"] = None
+            self.stats["best_move_visits"] = 0
+            self.stats["second_best_q"] = None
+            self.stats["regret_gap"] = None
+            self.stats["visit_entropy"] = 0.0
+
+        # --- tree size and depth via BFS ---
+        total_nodes = 0
+        max_depth = 0
+        depth_sum = 0
+        leaf_count = 0
+
+        stack = [(root, 0)]
+        while stack:
+            node, depth = stack.pop()
+            total_nodes += 1
+            if not node.children:
+                leaf_count += 1
+                depth_sum += depth
+                if depth > max_depth:
+                    max_depth = depth
+            else:
+                for child in node.children:
+                    stack.append((child, depth + 1))
+
+        mean_depth = depth_sum / leaf_count if leaf_count > 0 else 0.0
+
+        self.stats["tree_size"] = total_nodes
+        self.stats["tree_depth_max"] = max_depth
+        self.stats["tree_depth_mean"] = mean_depth
+        self.stats["branching_factor"] = len(root.untried_moves) + len(root.children)
 
     def _run_mcts_with_iterations(self, root: MCTSNode):
         """Run MCTS for specified number of iterations."""

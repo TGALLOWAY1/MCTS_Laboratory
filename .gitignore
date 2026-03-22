@@ -70,6 +70,7 @@ checkpoints/
 logs/
 runs/
 training_data/
+arena_runs/
 
 # IDE / Editor
 .idea/

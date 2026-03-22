@@ -20,6 +20,7 @@ from agents.fast_mcts_agent import FastMCTSAgent
 from agents.gameplay_fast_mcts import GameplayFastMCTSAgent
 from agents.heuristic_agent import HeuristicAgent
 from agents.random_agent import RandomAgent
+from analytics.logging.logger import StrategyLogger
 from analytics.tournament.arena_stats import compute_summary, render_summary_markdown
 from analytics.winprob.features import (
     SNAPSHOT_FEATURE_COLUMNS,
@@ -327,6 +328,8 @@ class _SelectActionAdapter(_ArenaAgentAdapter):
                 move_stats["iterations_run"] = mcts_stats["iterations_run"]
             if mcts_stats.get("time_elapsed") is not None:
                 move_stats["timeSpentMs"] = float(mcts_stats["time_elapsed"]) * 1000.0
+            # Pass through full MCTS stats for game logger
+            move_stats["_mcts_stats"] = mcts_stats
         return move, move_stats
 
 
@@ -583,6 +586,7 @@ def run_single_game(
     run_config: RunConfig,
     seat_assignment: Mapping[str, str],
     agent_configs: Mapping[str, AgentConfig],
+    game_logger: Optional[StrategyLogger] = None,
 ) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
     """Run one game and return game record + snapshot rows."""
     random.seed(game_seed)
@@ -688,12 +692,29 @@ def run_single_game(
                 game._check_game_over()
                 continue
 
+            # Capture board state before move for logging
+            board_before = game.board.copy() if game_logger else None
+
             if not game.make_move(move, current_player):
                 invalid_actions += 1
                 passes += 1
                 game.board._update_current_player()
                 game._check_game_over()
                 continue
+
+            # Log move with MCTS diagnostics if logger attached
+            if game_logger and board_before is not None:
+                mcts_stats = raw_stats.get("_mcts_stats") if isinstance(raw_stats, dict) else None
+                game_logger.on_step(
+                    game_id=game_id,
+                    turn_index=turn_count,
+                    player_id=int(current_player.value),
+                    state=board_before,
+                    move=move,
+                    next_state=game.board,
+                    mcts_stats=mcts_stats,
+                    decision_time_ms=elapsed_ms,
+                )
 
             maybe_capture_snapshot()
     except Exception:
@@ -911,7 +932,12 @@ def _build_snapshot_diagnostics(snapshot_rows: Sequence[Mapping[str, Any]]) -> D
     }
 
 
-def run_experiment(run_config: RunConfig, *, verbose: bool = False) -> Dict[str, Any]:
+def run_experiment(
+    run_config: RunConfig,
+    *,
+    verbose: bool = False,
+    enable_game_logging: bool = False,
+) -> Dict[str, Any]:
     """Run a full arena experiment and write all required artifacts."""
     run_id, run_dir = _prepare_run_directory(run_config)
     timestamp_iso = datetime.now().isoformat(timespec="seconds")
@@ -920,6 +946,12 @@ def run_experiment(run_config: RunConfig, *, verbose: bool = False) -> Dict[str,
     run_config_payload["created_at"] = timestamp_iso
 
     _write_json(run_dir / "run_config.json", run_config_payload)
+
+    # Create game logger if requested
+    game_logger: Optional[StrategyLogger] = None
+    if enable_game_logging:
+        log_dir = str(run_dir / "game_logs")
+        game_logger = StrategyLogger(log_dir=log_dir)
 
     games_path = run_dir / "games.jsonl"
     all_games: List[Dict[str, Any]] = []
@@ -934,6 +966,16 @@ def run_experiment(run_config: RunConfig, *, verbose: bool = False) -> Dict[str,
                 game_seed,
                 run_config.seat_policy,
             )
+
+            # Initialize logger for this game
+            if game_logger:
+                game_id = f"{run_id}_g{game_index:04d}"
+                agent_ids = {
+                    int(pid): seat_assignment[pid]
+                    for pid in seat_assignment
+                }
+                game_logger.on_reset(game_id, game_seed, agent_ids, run_config_payload)
+
             record, snapshot_rows = run_single_game(
                 run_id=run_id,
                 game_index=game_index,
@@ -941,7 +983,20 @@ def run_experiment(run_config: RunConfig, *, verbose: bool = False) -> Dict[str,
                 run_config=run_config,
                 seat_assignment=seat_assignment,
                 agent_configs=agent_configs,
+                game_logger=game_logger,
             )
+
+            # Log game end
+            if game_logger:
+                scores = {
+                    int(k): int(v) for k, v in record["final_scores"].items()
+                }
+                game_logger.on_game_end(
+                    game_id=record["game_id"],
+                    final_scores=scores,
+                    winner_id=record.get("winner_id"),
+                    num_turns=record["turn_count"],
+                )
             handle.write(json.dumps(record, sort_keys=True) + "\n")
             all_games.append(record)
             all_snapshot_rows.extend(snapshot_rows)
