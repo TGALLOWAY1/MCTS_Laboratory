@@ -18,6 +18,9 @@ from typing import (
 
 import numpy as np
 
+from analytics.tournament.statistics import score_by_seat_position, score_margin_stats
+from analytics.tournament.trueskill_rating import TrueSkillTracker
+
 
 def load_games_jsonl(path: Union[str, Path]) -> List[Dict[str, Any]]:
     """Load game records from JSONL."""
@@ -331,6 +334,24 @@ def compute_summary(
         if not game.get("error")
     ]
 
+    # TrueSkill ratings
+    trueskill_tracker = TrueSkillTracker()
+    valid_games = [g for g in games if not g.get("error")]
+    for game in valid_games:
+        agent_scores = game.get("agent_scores") or {}
+        if len(agent_scores) >= 2:
+            trueskill_tracker.update_game(
+                {str(k): int(v) for k, v in agent_scores.items()}
+            )
+    trueskill_leaderboard = trueskill_tracker.get_leaderboard()
+    trueskill_converged = trueskill_tracker.is_converged()
+
+    # Score margin stats
+    margins = score_margin_stats(valid_games)
+
+    # Score by seat position
+    seat_scores = score_by_seat_position(valid_games, list(agent_names))
+
     summary = {
         "run_id": run_id,
         "seed": run_seed,
@@ -346,6 +367,12 @@ def compute_summary(
         "pairwise_total_comparisons": total_pairwise_comparisons,
         "time_sim_efficiency": efficiency,
         "game_duration_sec": _score_summary(duration_seconds),
+        "trueskill_ratings": {
+            "leaderboard": trueskill_leaderboard,
+            "converged": trueskill_converged,
+        },
+        "score_margins": margins,
+        "score_by_seat_position": seat_scores,
     }
     return summary
 
@@ -403,5 +430,43 @@ def render_summary_markdown(summary: Mapping[str, Any]) -> str:
             f"win_rate_per_sec={item['win_rate_per_second']}, score_per_sec={item['score_per_second']}"
         )
     lines.append("")
+
+    # TrueSkill Ratings
+    ts_data = summary.get("trueskill_ratings")
+    if ts_data and ts_data.get("leaderboard"):
+        lines.append("## TrueSkill Ratings")
+        lines.append(f"- Converged: `{ts_data['converged']}`")
+        lines.append("")
+        lines.append("| Rank | Agent | mu | sigma | Conservative (mu-3sigma) | Games |")
+        lines.append("|------|-------|----|-------|-------------------------|-------|")
+        for entry in ts_data["leaderboard"]:
+            lines.append(
+                f"| {entry['rank']} | `{entry['agent_id']}` | "
+                f"{entry['mu']:.2f} | {entry['sigma']:.2f} | "
+                f"**{entry['conservative']:.2f}** | {entry['games_played']} |"
+            )
+        lines.append("")
+
+    # Score Margins
+    margins = summary.get("score_margins")
+    if margins and margins.get("n_games", 0) > 0:
+        lines.append("## Score Margins (winner - last place)")
+        lines.append(
+            f"- Mean: `{margins['mean_margin']}`, Median: `{margins['median_margin']}`, "
+            f"Std: `{margins['std_margin']}`, Range: `[{margins['min_margin']}, {margins['max_margin']}]`"
+        )
+        lines.append("")
+
+    # Score by Seat Position
+    seat_scores = summary.get("score_by_seat_position")
+    if seat_scores:
+        lines.append("## Score by Seat Position")
+        for agent_name, seats in sorted(seat_scores.items()):
+            seat_text = ", ".join(
+                f"{seat}: {stats['mean']}±{stats['se']} (n={stats['n']})"
+                for seat, stats in sorted(seats.items())
+            )
+            lines.append(f"- `{agent_name}`: {seat_text}")
+        lines.append("")
 
     return "\n".join(lines).strip() + "\n"
