@@ -9,20 +9,7 @@ from typing import Any, Dict, List, Optional
 
 from engine.board import Board, Player
 from engine.move_generator import LegalMoveGenerator, Move, get_shared_generator
-
-
-
-def compute_policy_entropy(visits: List[int]) -> float:
-    total = sum(visits)
-    if total <= 0:
-        return 0.0
-    import math
-    entropy = 0.0
-    for v in visits:
-        if v > 0:
-            p = v / total
-            entropy -= p * math.log(p)
-    return entropy
+from mcts.utils import compute_policy_entropy
 
 class FastMCTSNode:
 
