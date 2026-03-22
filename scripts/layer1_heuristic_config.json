@@ -1,0 +1,30 @@
+{
+  "agents": [
+    {
+      "name": "heuristic_a",
+      "type": "heuristic",
+      "params": {}
+    },
+    {
+      "name": "heuristic_b",
+      "type": "heuristic",
+      "params": {}
+    },
+    {
+      "name": "heuristic_c",
+      "type": "heuristic",
+      "params": {}
+    },
+    {
+      "name": "heuristic_d",
+      "type": "heuristic",
+      "params": {}
+    }
+  ],
+  "num_games": 100,
+  "seed": 20260322,
+  "seat_policy": "round_robin",
+  "output_root": "baseline_runs",
+  "max_turns": 2500,
+  "notes": "Layer 1.3: Simulation quality audit — heuristic-only (rollout policy) games"
+}

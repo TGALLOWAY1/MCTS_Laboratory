@@ -333,6 +333,41 @@ class _SelectActionAdapter(_ArenaAgentAdapter):
         return move, move_stats
 
 
+def _extract_mcts_stats_from_fast_diagnostics(stats: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Map FastMCTSAgent diagnostics to _mcts_stats format for step logger.
+
+    The ``MCTSAgent`` adapter (``_SelectActionAdapter``) natively produces
+    ``_mcts_stats`` consumed by ``StrategyLogger.on_step`` to populate
+    ``MCTSStepDiagnostics``.  ``FastMCTSAgent`` and ``GameplayFastMCTSAgent``
+    emit a different stats layout.  This helper bridges the gap so that step
+    logs contain branching factor, Q-values, visit counts, and other
+    diagnostics regardless of the underlying agent type.
+    """
+    diagnostics = stats.get("diagnostics")
+    if not diagnostics:
+        return None
+    top_moves = diagnostics.get("rootPolicy") or []
+    best = top_moves[0] if top_moves else {}
+    second = top_moves[1] if len(top_moves) > 1 else {}
+    best_q = best.get("q_value")
+    second_q = second.get("q_value")
+    return {
+        "branching_factor": diagnostics.get("rootLegalMoves"),
+        "iterations_run": diagnostics.get("simulations"),
+        "tree_size": diagnostics.get("nodesExpanded"),
+        "tree_depth_max": diagnostics.get("maxDepthReached"),
+        "visit_entropy": diagnostics.get("policyEntropy"),
+        "best_move_q": best_q,
+        "best_move_visits": best.get("visits"),
+        "second_best_q": second_q,
+        "regret_gap": (
+            (best_q - second_q)
+            if best_q is not None and second_q is not None
+            else None
+        ),
+    }
+
+
 class _FastMCTSAdapter(_ArenaAgentAdapter):
     def __init__(
         self,
@@ -369,9 +404,16 @@ class _FastMCTSAdapter(_ArenaAgentAdapter):
             stats = dict(result.get("stats") or {})
             stats["timeBudgetMs"] = budget
             stats["iterationCap"] = iteration_cap
+            mcts_stats = _extract_mcts_stats_from_fast_diagnostics(stats)
+            if mcts_stats is not None:
+                stats["_mcts_stats"] = mcts_stats
             return result.get("move"), stats
         result = self.agent.think(board, player, legal_moves, budget)
-        return result.get("move"), dict(result.get("stats") or {})
+        stats = dict(result.get("stats") or {})
+        mcts_stats = _extract_mcts_stats_from_fast_diagnostics(stats)
+        if mcts_stats is not None:
+            stats["_mcts_stats"] = mcts_stats
+        return result.get("move"), stats
 
 
 class _GameplayFastMCTSAdapter(_ArenaAgentAdapter):
@@ -410,9 +452,16 @@ class _GameplayFastMCTSAdapter(_ArenaAgentAdapter):
             output_stats = dict(stats or {})
             output_stats["timeBudgetMs"] = budget
             output_stats["iterationCap"] = iteration_cap
+            mcts_stats = _extract_mcts_stats_from_fast_diagnostics(output_stats)
+            if mcts_stats is not None:
+                output_stats["_mcts_stats"] = mcts_stats
             return move, output_stats
         move, stats = self.agent.choose_move(board, player, legal_moves, budget)
-        return move, dict(stats or {})
+        output_stats = dict(stats or {})
+        mcts_stats = _extract_mcts_stats_from_fast_diagnostics(output_stats)
+        if mcts_stats is not None:
+            output_stats["_mcts_stats"] = mcts_stats
+        return move, output_stats
 
 
 def build_agent(config: AgentConfig, seed: int) -> _ArenaAgentAdapter:
@@ -471,6 +520,7 @@ def build_agent(config: AgentConfig, seed: int) -> _ArenaAgentAdapter:
             time_limit=default_time,
             exploration_constant=float(params.get("exploration_constant", 1.414)),
             seed=seed,
+            enable_diagnostics=bool(params.get("enable_diagnostics", False)),
         )
         return _FastMCTSAdapter(
             agent,
@@ -486,6 +536,8 @@ def build_agent(config: AgentConfig, seed: int) -> _ArenaAgentAdapter:
             exploration_constant=float(params.get("exploration_constant", 1.414)),
             seed=seed,
         )
+        if bool(params.get("enable_diagnostics", False)):
+            agent._agent.enable_diagnostics = True
         return _GameplayFastMCTSAdapter(
             agent,
             deterministic_time_budget=deterministic_time_budget,

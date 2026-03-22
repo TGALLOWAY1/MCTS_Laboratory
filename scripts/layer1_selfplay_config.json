@@ -1,0 +1,58 @@
+{
+  "agents": [
+    {
+      "name": "mcts_a",
+      "type": "gameplay_fast_mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations": 5000,
+        "iterations_per_ms": 20.0,
+        "exploration_constant": 1.414,
+        "enable_diagnostics": true
+      }
+    },
+    {
+      "name": "mcts_b",
+      "type": "gameplay_fast_mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations": 5000,
+        "iterations_per_ms": 20.0,
+        "exploration_constant": 1.414,
+        "enable_diagnostics": true
+      }
+    },
+    {
+      "name": "mcts_c",
+      "type": "gameplay_fast_mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations": 5000,
+        "iterations_per_ms": 20.0,
+        "exploration_constant": 1.414,
+        "enable_diagnostics": true
+      }
+    },
+    {
+      "name": "mcts_d",
+      "type": "gameplay_fast_mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations": 5000,
+        "iterations_per_ms": 20.0,
+        "exploration_constant": 1.414,
+        "enable_diagnostics": true
+      }
+    }
+  ],
+  "num_games": 500,
+  "seed": 20260322,
+  "seat_policy": "round_robin",
+  "output_root": "baseline_runs",
+  "max_turns": 2500,
+  "notes": "Layer 1 baseline characterization: 500 self-play games with identical agents"
+}
