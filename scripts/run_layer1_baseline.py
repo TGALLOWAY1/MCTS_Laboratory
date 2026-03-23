@@ -10,6 +10,9 @@ Usage:
     # Quick smoke test
     python scripts/run_layer1_baseline.py --num-games 4 --num-heuristic-games 4 --skip-convergence
 
+    # Resume an incomplete run (runs remaining games, then analysis)
+    python scripts/run_layer1_baseline.py --resume baseline_runs/layer1_20260322_154726
+
     # Analysis only (skip game runs, use existing data)
     python scripts/run_layer1_baseline.py --analyze-only --selfplay-dir baseline_runs/<selfplay_run_id> --heuristic-dir baseline_runs/<heuristic_run_id>
 
@@ -26,6 +29,7 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -59,7 +63,31 @@ def _load_config(path: str) -> dict:
         return json.load(f)
 
 
-def _run_selfplay(args, output_dir: Path) -> Path:
+def _count_games(run_dir: Path) -> int:
+    """Count lines in games.jsonl under a run directory."""
+    games_path = run_dir / "games.jsonl"
+    if not games_path.exists():
+        return 0
+    with games_path.open() as f:
+        return sum(1 for line in f if line.strip())
+
+
+def _find_run_subdir(parent: Path) -> Optional[Path]:
+    """Find the run subdirectory (e.g. selfplay/20260322_154726_abc123).
+    If multiple exist, returns the one with the most games (most complete).
+    """
+    if not parent.exists():
+        return None
+    subdirs = [d for d in parent.iterdir() if d.is_dir()]
+    if not subdirs:
+        return None
+    if len(subdirs) == 1:
+        return subdirs[0]
+    # Multiple: pick the one with most games
+    return max(subdirs, key=_count_games)
+
+
+def _run_selfplay(args, output_dir: Path, resume_dir: Optional[Path] = None) -> Path:
     """Run the 500-game self-play tournament and return the run directory."""
     config_path = args.selfplay_config or str(
         Path(__file__).resolve().parent / "layer1_selfplay_config.json"
@@ -71,14 +99,30 @@ def _run_selfplay(args, output_dir: Path) -> Path:
     config_dict["output_root"] = str(output_dir / "selfplay")
 
     run_config = RunConfig.from_dict(config_dict)
+    target_games = run_config.num_games
+    resume_run_dir = None
+    if resume_dir is not None:
+        existing = _count_games(resume_dir)
+        if existing >= target_games:
+            print(f"[1/6] Self-play complete: {existing} games (skipping)")
+            return resume_dir
+        resume_run_dir = str(resume_dir)
+        print(
+            f"[1/6] Resuming self-play: {existing}/{target_games} games "
+            f"({target_games - existing} to go)"
+        )
+    else:
+        print(
+            f"[1/6] Running self-play tournament: {target_games} games "
+            f"with {', '.join(a.name for a in run_config.agents)}"
+        )
 
-    print(
-        f"[1/6] Running self-play tournament: {run_config.num_games} games "
-        f"with {', '.join(a.name for a in run_config.agents)}"
-    )
     start = time.time()
     result = run_experiment(
-        run_config, verbose=args.verbose, enable_game_logging=True
+        run_config,
+        verbose=args.verbose,
+        enable_game_logging=True,
+        resume_run_dir=resume_run_dir,
     )
     elapsed = time.time() - start
     run_dir = Path(result["run_dir"])
@@ -86,7 +130,7 @@ def _run_selfplay(args, output_dir: Path) -> Path:
     return run_dir
 
 
-def _run_heuristic(args, output_dir: Path) -> Path:
+def _run_heuristic(args, output_dir: Path, resume_dir: Optional[Path] = None) -> Path:
     """Run the 100-game heuristic-only tournament and return the run dir."""
     config_path = args.heuristic_config or str(
         Path(__file__).resolve().parent / "layer1_heuristic_config.json"
@@ -98,12 +142,27 @@ def _run_heuristic(args, output_dir: Path) -> Path:
     config_dict["output_root"] = str(output_dir / "heuristic")
 
     run_config = RunConfig.from_dict(config_dict)
+    target_games = run_config.num_games
+    resume_run_dir = None
+    if resume_dir is not None:
+        existing = _count_games(resume_dir)
+        if existing >= target_games:
+            print(f"[2/6] Heuristic complete: {existing} games (skipping)")
+            return resume_dir
+        resume_run_dir = str(resume_dir)
+        print(
+            f"[2/6] Resuming heuristic: {existing}/{target_games} games "
+            f"({target_games - existing} to go)"
+        )
+    else:
+        print(f"[2/6] Running heuristic-only tournament: {target_games} games")
 
-    print(
-        f"[2/6] Running heuristic-only tournament: {run_config.num_games} games"
-    )
     start = time.time()
-    result = run_experiment(run_config, verbose=args.verbose)
+    result = run_experiment(
+        run_config,
+        verbose=args.verbose,
+        resume_run_dir=resume_run_dir,
+    )
     elapsed = time.time() - start
     run_dir = Path(result["run_dir"])
     print(f"      Done in {elapsed:.0f}s — {run_dir}")
@@ -242,6 +301,10 @@ def main():
         help="Skip the slow Q-value convergence check (1.4)",
     )
     parser.add_argument(
+        "--resume", type=str, default=None, metavar="OUTPUT_DIR",
+        help="Resume an incomplete run. Runs remaining games for self-play and heuristic phases, then analysis.",
+    )
+    parser.add_argument(
         "--analyze-only", action="store_true",
         help="Skip game runs, analyse existing data",
     )
@@ -262,15 +325,25 @@ def main():
     args = parser.parse_args()
 
     # Resolve output directory
-    if args.output_dir:
+    if args.resume:
+        output_dir = Path(args.resume)
+        if not output_dir.exists():
+            parser.error(f"--resume directory does not exist: {output_dir}")
+        selfplay_resume = _find_run_subdir(output_dir / "selfplay")
+        heuristic_resume = _find_run_subdir(output_dir / "heuristic")
+    elif args.output_dir:
         output_dir = Path(args.output_dir)
+        selfplay_resume = heuristic_resume = None
     else:
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         output_dir = Path("baseline_runs") / f"layer1_{ts}"
+        selfplay_resume = heuristic_resume = None
     output_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"Layer 1 Baseline Characterization")
     print(f"Output: {output_dir}")
+    if args.resume:
+        print("Mode:   Resume")
     print(f"{'=' * 60}\n")
 
     # Phase 1: Run games (or locate existing runs)
@@ -280,8 +353,8 @@ def main():
         selfplay_dir = Path(args.selfplay_dir)
         heuristic_dir = Path(args.heuristic_dir)
     else:
-        selfplay_dir = _run_selfplay(args, output_dir)
-        heuristic_dir = _run_heuristic(args, output_dir)
+        selfplay_dir = _run_selfplay(args, output_dir, resume_dir=selfplay_resume)
+        heuristic_dir = _run_heuristic(args, output_dir, resume_dir=heuristic_resume)
 
     # Phase 2: Load data
     steps_path = selfplay_dir / "game_logs" / "steps.jsonl"
@@ -328,6 +401,24 @@ def main():
     report_path = output_dir / "baseline_report.md"
     generate_baseline_report(all_results, report_path)
 
+    # Also save a copy to reports/ for easy access
+    reports_dir = Path("reports")
+    reports_dir.mkdir(parents=True, exist_ok=True)
+    copy_path = reports_dir / "layer1_baseline_report.md"
+    report_text = report_path.read_text(encoding="utf-8")
+    # Fix image paths to be relative to project root
+    report_text = report_text.replace("](plots/", f"]({output_dir}/plots/")
+    # Add data source after the title
+    if report_text.startswith("# "):
+        first_newline = report_text.index("\n")
+        report_text = (
+            report_text[: first_newline + 1]
+            + f"**Data source:** `{output_dir}`\n\n"
+            + report_text[first_newline + 1 :]
+        )
+    copy_path.write_text(report_text, encoding="utf-8")
+    print(f"      Copy saved to {copy_path}")
+
     # Save raw data (excluding large curve/results that are in sub-dirs)
     data_path = output_dir / "baseline_data.json"
     # Serialize only JSON-safe parts
@@ -356,6 +447,7 @@ def main():
     print(f"Layer 1 Baseline Characterization Complete")
     print(f"{'=' * 60}")
     print(f"Report:  {report_path}")
+    print(f"Copy:    {copy_path}")
     print(f"Data:    {data_path}")
     print(f"Plots:   {output_dir / 'plots'}")
     if not args.skip_convergence:
