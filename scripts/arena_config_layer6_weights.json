@@ -1,0 +1,59 @@
+{
+  "agents": [
+    {
+      "name": "mcts_default_eval",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 10.0,
+        "rollout_policy": "two_ply",
+        "rollout_cutoff_depth": 8
+      }
+    },
+    {
+      "name": "mcts_calibrated_eval",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 10.0,
+        "rollout_policy": "two_ply",
+        "rollout_cutoff_depth": 8,
+        "state_eval_weights": "__PLACEHOLDER_CALIBRATED__"
+      }
+    },
+    {
+      "name": "mcts_baseline_no_eval",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 10.0,
+        "rollout_policy": "heuristic"
+      }
+    },
+    {
+      "name": "mcts_default_heuristic_rollout",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 10.0,
+        "rollout_policy": "heuristic",
+        "rollout_cutoff_depth": 8
+      }
+    }
+  ],
+  "num_games": 25,
+  "seed": 20260323,
+  "seat_policy": "round_robin",
+  "output_root": "arena_runs",
+  "max_turns": 2500,
+  "snapshots": {
+    "enabled": true,
+    "strategy": "fixed_ply",
+    "checkpoints": [8, 16, 24, 32, 40, 48, 56, 64]
+  },
+  "notes": "Layer 6.1: Calibrated weights vs default weights. Replace __PLACEHOLDER_CALIBRATED__ with weights from data/layer6_calibrated_weights.json after running analyze_layer6_features.py"
+}
