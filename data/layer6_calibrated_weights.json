@@ -6,6 +6,7 @@
     "reachable_empty_squares": 0.08109693693246343,
     "largest_remaining_piece_size": -0.23120837257261234,
     "opponent_avg_mobility": -0.3,
+    "center_proximity": 0.0,
     "territory_enclosure_area": 0.0
   },
   "phase_weights": {
@@ -16,6 +17,7 @@
       "reachable_empty_squares": 0.0,
       "largest_remaining_piece_size": 0.0,
       "opponent_avg_mobility": -0.05287834609528694,
+      "center_proximity": 0.0,
       "territory_enclosure_area": 0.0
     },
     "mid": {
@@ -25,6 +27,7 @@
       "reachable_empty_squares": 0.22774497158891033,
       "largest_remaining_piece_size": -0.238473591231953,
       "opponent_avg_mobility": -0.20277351241243552,
+      "center_proximity": 0.0,
       "territory_enclosure_area": 0.0
     },
     "late": {
@@ -34,6 +37,7 @@
       "reachable_empty_squares": 0.13361753070802862,
       "largest_remaining_piece_size": -0.08518919739412929,
       "opponent_avg_mobility": -0.06278383996091268,
+      "center_proximity": 0.0,
       "territory_enclosure_area": 0.0
     }
   },
@@ -44,6 +48,7 @@
     "reachable_empty_squares": 0.1,
     "largest_remaining_piece_size": 0.1,
     "opponent_avg_mobility": -0.1,
+    "center_proximity": 0.0,
     "territory_enclosure_area": 0.0
   }
 }
