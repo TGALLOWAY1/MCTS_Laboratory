@@ -67,48 +67,91 @@ _MAX_FRONTIER = 40.0  # reasonable upper bound for frontier cells
 _MAX_REACHABLE = 60.0  # bounded BFS limit
 
 
+FEATURE_NAMES = [
+    "squares_placed",
+    "remaining_piece_area",
+    "accessible_corners",
+    "reachable_empty_squares",
+    "largest_remaining_piece_size",
+    "opponent_avg_mobility",
+    "territory_enclosure_area",
+]
+
+# Phase-occupancy thresholds (calibrated from Layer 1 branching factor curve)
+PHASE_EARLY_THRESHOLD = 0.25
+PHASE_LATE_THRESHOLD = 0.55
+
+
 class BlokusStateEvaluator:
     """Fast board-state evaluation for Blokus MCTS rollout strategies.
 
     Designed to be called at every step of every simulation — all features
     use pre-computed data on the Board object to stay under 0.5ms/call.
+
+    Supports optional phase-dependent weight vectors (Layer 6).  When
+    *phase_weights* is provided, the evaluator selects the weight vector
+    matching the current game phase (early / mid / late) based on board
+    occupancy.
     """
 
-    def __init__(self, weights: Optional[Dict[str, float]] = None):
+    def __init__(
+        self,
+        weights: Optional[Dict[str, float]] = None,
+        phase_weights: Optional[Dict[str, Dict[str, float]]] = None,
+    ):
         self.weights = dict(weights) if weights else dict(DEFAULT_WEIGHTS)
+        self.phase_weights = phase_weights  # {"early": {...}, "mid": {...}, "late": {...}}
         self._piece_sizes = _get_piece_sizes()
         self._total_piece_area = _TOTAL_PIECE_AREA
 
-    def evaluate(self, board: Board, player: Player) -> float:
-        """Evaluate a board state for *player*.  Returns a value in [0, 1]."""
-        w = self.weights
+    # ------------------------------------------------------------------
+    # Phase detection
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def get_phase(board: Board) -> str:
+        """Determine game phase from board occupancy.
+
+        Returns ``"early"``, ``"mid"``, or ``"late"``.
+        """
+        occupancy = float(np.count_nonzero(board.grid)) / (board.SIZE * board.SIZE)
+        if occupancy < PHASE_EARLY_THRESHOLD:
+            return "early"
+        elif occupancy < PHASE_LATE_THRESHOLD:
+            return "mid"
+        return "late"
+
+    # ------------------------------------------------------------------
+    # Feature extraction (raw normalised values)
+    # ------------------------------------------------------------------
+
+    def extract_features(self, board: Board, player: Player) -> Dict[str, float]:
+        """Return the raw normalised feature dict for *player*.
+
+        This is the same computation used by :meth:`evaluate` but returns
+        the individual feature values instead of the weighted sum.
+        """
         pieces_used = board.player_pieces_used[player]
 
-        # 1. squares_placed  — normalised by total piece area (89)
         squares = float(np.sum(board.grid == player.value))
         f_squares = squares / max(self._total_piece_area, 1)
 
-        # 2. remaining_piece_area  — fraction of area still unplaced
         remaining = sum(
             sz for pid, sz in self._piece_sizes.items() if pid not in pieces_used
         )
         f_remaining = remaining / max(self._total_piece_area, 1)
 
-        # 3. accessible_corners  — frontier size
         frontier = board.get_frontier(player)
         f_corners = min(len(frontier) / _MAX_FRONTIER, 1.0)
 
-        # 4. reachable_empty_squares — bounded BFS from frontier
         f_reachable = self._reachable_empty(board, frontier)
 
-        # 5. largest_remaining_piece_size
         largest = 0
         for pid, sz in self._piece_sizes.items():
             if pid not in pieces_used and sz > largest:
                 largest = sz
-        f_largest = largest / 5.0  # max piece size is 5
+        f_largest = largest / 5.0
 
-        # 6. opponent_avg_mobility — average frontier across opponents
         opp_frontier_sum = 0
         opp_count = 0
         for p in _PLAYERS:
@@ -119,19 +162,34 @@ class BlokusStateEvaluator:
             (opp_frontier_sum / max(opp_count, 1)) / _MAX_FRONTIER, 1.0
         )
 
-        # 7. territory_enclosure_area — placeholder (weight=0)
         f_territory = 0.0
 
-        # Weighted sum
-        raw = (
-            w["squares_placed"] * f_squares
-            + w["remaining_piece_area"] * f_remaining
-            + w["accessible_corners"] * f_corners
-            + w["reachable_empty_squares"] * f_reachable
-            + w["largest_remaining_piece_size"] * f_largest
-            + w["opponent_avg_mobility"] * f_opp_mobility
-            + w["territory_enclosure_area"] * f_territory
-        )
+        return {
+            "squares_placed": f_squares,
+            "remaining_piece_area": f_remaining,
+            "accessible_corners": f_corners,
+            "reachable_empty_squares": f_reachable,
+            "largest_remaining_piece_size": f_largest,
+            "opponent_avg_mobility": f_opp_mobility,
+            "territory_enclosure_area": f_territory,
+        }
+
+    # ------------------------------------------------------------------
+    # Evaluation
+    # ------------------------------------------------------------------
+
+    def evaluate(self, board: Board, player: Player) -> float:
+        """Evaluate a board state for *player*.  Returns a value in [0, 1]."""
+        features = self.extract_features(board, player)
+
+        # Select weight vector: phase-dependent if available, else global
+        if self.phase_weights:
+            phase = self.get_phase(board)
+            w = self.phase_weights[phase]
+        else:
+            w = self.weights
+
+        raw = sum(w.get(k, 0.0) * v for k, v in features.items())
 
         # Clamp to [0, 1]
         return max(0.0, min(1.0, raw))
