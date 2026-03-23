@@ -7,7 +7,7 @@ Aggregated from Layers 0–9 PR reports. Last updated: 2026-03-23.
 | Layer | What | Arena Results? |
 |-------|------|---------------|
 | L0 | Measurement infrastructure (profiler, TrueSkill, tournament runner) | N/A (foundation) |
-| L1 | Baseline characterization (571 self-play + 119 heuristic games) | Done — MCTS hurts by 8pts vs heuristic, 11% utilization, peak BF=534 |
+| L1 | Baseline characterization (571 self-play + 119 heuristic games) | **Invalid** — used `gameplay_fast_mcts` (no real rollout), not full MCTS. Needs re-run. |
 | L2 | Learned evaluation model (GBT on 11,604 snapshots) | Done — zero benefit, inference cost (~26ms) eats 200ms budget |
 | L3 | Action reduction (progressive widening + progressive history) | 8-game smoke test only — +19.2 avg score, needs full validation |
 | L4 | Simulation strategy (two-ply, cutoff, minimax backups) | **None** |
