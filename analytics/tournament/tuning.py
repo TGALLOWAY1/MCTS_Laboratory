@@ -197,3 +197,74 @@ register_tuning_set(TuningSet(
         }),
     ]
 ))
+
+# =============================================================================
+# Layer 3: Action Reduction Tuning Sets
+# =============================================================================
+
+_PW_BASE = {
+    **_BASE_PARAMS,
+    "progressive_widening_enabled": True,
+    "heuristic_move_ordering": True,
+}
+
+# 6. Progressive Widening parameter sweep (C_pw × alpha)
+register_tuning_set(TuningSet(
+    name="pw_sweep",
+    tunings=[
+        MctsTuning("baseline_no_pw", {**_BASE_PARAMS}),
+        MctsTuning("pw_c2_a0.25", {**_PW_BASE, "pw_c": 2.0, "pw_alpha": 0.25}),
+        MctsTuning("pw_c2_a0.5", {**_PW_BASE, "pw_c": 2.0, "pw_alpha": 0.5}),
+        MctsTuning("pw_c4_a0.5", {**_PW_BASE, "pw_c": 4.0, "pw_alpha": 0.5}),
+    ]
+))
+
+# 7. Progressive History sweep
+register_tuning_set(TuningSet(
+    name="ph_sweep",
+    tunings=[
+        MctsTuning("baseline_no_ph", {**_BASE_PARAMS}),
+        MctsTuning("ph_w0.5", {
+            **_BASE_PARAMS,
+            "progressive_history_enabled": True,
+            "progressive_history_weight": 0.5,
+            "heuristic_move_ordering": True,
+        }),
+        MctsTuning("ph_w1.0", {
+            **_BASE_PARAMS,
+            "progressive_history_enabled": True,
+            "progressive_history_weight": 1.0,
+            "heuristic_move_ordering": True,
+        }),
+        MctsTuning("ph_w2.0", {
+            **_BASE_PARAMS,
+            "progressive_history_enabled": True,
+            "progressive_history_weight": 2.0,
+            "heuristic_move_ordering": True,
+        }),
+    ]
+))
+
+# 8. Full Layer 3 ablation: PW + PH combined
+register_tuning_set(TuningSet(
+    name="action_reduction_ablation",
+    tunings=[
+        MctsTuning("baseline", {**_BASE_PARAMS}),
+        MctsTuning("heuristic_ordering_only", {
+            **_BASE_PARAMS,
+            "heuristic_move_ordering": True,
+        }),
+        MctsTuning("pw_only", {
+            **_PW_BASE,
+            "pw_c": 2.0,
+            "pw_alpha": 0.5,
+        }),
+        MctsTuning("pw_plus_ph", {
+            **_PW_BASE,
+            "pw_c": 2.0,
+            "pw_alpha": 0.5,
+            "progressive_history_enabled": True,
+            "progressive_history_weight": 1.0,
+        }),
+    ]
+))

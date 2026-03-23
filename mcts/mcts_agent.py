@@ -1,9 +1,14 @@
 """
 Monte Carlo Tree Search agent for Blokus.
+
+Layer 3 additions: Progressive Widening and Progressive History for
+action reduction in high-branching-factor games.
 """
 
+import math
 import time
-from typing import Any, Dict, List, Optional
+from collections import defaultdict
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -13,6 +18,11 @@ from engine.move_generator import LegalMoveGenerator, Move, get_shared_generator
 from engine.pieces import PieceGenerator
 
 from .learned_evaluator import LearnedWinProbabilityEvaluator
+from .move_heuristic import (
+    compute_move_heuristic,
+    move_action_key,
+    rank_moves_by_heuristic,
+)
 from .utils import compute_policy_entropy
 from .zobrist import TranspositionTable, ZobristHash
 
@@ -28,15 +38,17 @@ class MCTSNode:
         player: Player,
         move: Optional[Move] = None,
         parent: Optional['MCTSNode'] = None,
+        heuristic_sorted: bool = False,
     ):
         """
         Initialize MCTS node.
-        
+
         Args:
             board: Board state at this node
             player: Player whose turn it is
             move: Move that led to this node
             parent: Parent node
+            heuristic_sorted: If True, untried_moves are already heuristic-sorted
         """
         self.board = board.copy()
         self.player = player
@@ -49,6 +61,9 @@ class MCTSNode:
         self.total_reward = 0.0
         self.prior_bias = 0.0
         self.untried_moves: List[Move] = []
+        self._heuristic_sorted = heuristic_sorted
+        # Track the total legal move count (before any widening)
+        self._total_legal_moves = 0
 
         # Initialize untried moves
         self._initialize_untried_moves()
@@ -57,26 +72,46 @@ class MCTSNode:
         """Initialize list of untried moves."""
         move_generator = get_shared_generator()
         self.untried_moves = move_generator.get_legal_moves(self.board, self.player)
+        self._total_legal_moves = len(self.untried_moves)
 
     def is_fully_expanded(self) -> bool:
-        """Check if node is fully expanded."""
+        """Check if node is fully expanded (all legal moves tried)."""
         return len(self.untried_moves) == 0
 
     def is_terminal(self) -> bool:
         """Check if node is terminal."""
         return len(self.untried_moves) == 0 and len(self.children) == 0
 
+    def max_children_for_visits(self, pw_c: float, pw_alpha: float) -> int:
+        """Progressive widening child limit: C_pw * N^alpha."""
+        if self.visits <= 0:
+            return max(1, int(pw_c))
+        return max(1, int(pw_c * (self.visits ** pw_alpha)))
+
+    def should_expand_pw(self, pw_c: float, pw_alpha: float) -> bool:
+        """Whether progressive widening allows another child expansion."""
+        if not self.untried_moves:
+            return False
+        return len(self.children) < self.max_children_for_visits(pw_c, pw_alpha)
+
     def ucb1_value(
         self,
         exploration_constant: float = 1.414,
         progressive_bias_weight: float = 0.0,
+        progressive_history_weight: float = 0.0,
+        history_score: float = 0.0,
     ) -> float:
         """
-        Calculate UCB1 value for node selection.
-        
+        Calculate UCB1 value with optional progressive bias and progressive history.
+
+        UCB = Q/N + C*sqrt(ln(N_parent)/N) + W_bias*(prior_bias/(1+N)) + W_hist*(H(a)/(1+N))
+
         Args:
             exploration_constant: Exploration parameter (sqrt(2) is common)
-            
+            progressive_bias_weight: Weight for learned-model bias (Layer 2)
+            progressive_history_weight: Weight for progressive history bias (Layer 3)
+            history_score: H(a) — historical win rate of this move's action key
+
         Returns:
             UCB1 value
         """
@@ -84,32 +119,47 @@ class MCTSNode:
             return float('inf')
 
         exploitation = self.total_reward / self.visits
-        exploration = exploration_constant * np.sqrt(np.log(self.parent.visits) / self.visits)
+        exploration = exploration_constant * math.sqrt(math.log(self.parent.visits) / self.visits)
 
         bias_term = progressive_bias_weight * (self.prior_bias / (1.0 + self.visits))
-        return exploitation + exploration + bias_term
+        history_term = progressive_history_weight * (history_score / (1.0 + self.visits))
+        return exploitation + exploration + bias_term + history_term
 
     def select_child(
         self,
         exploration_constant: float = 1.414,
         progressive_bias_weight: float = 0.0,
+        progressive_history_weight: float = 0.0,
+        history_table: Optional[Dict] = None,
     ) -> 'MCTSNode':
         """
-        Select child node using UCB1.
-        
+        Select child node using UCB1 + progressive history.
+
         Args:
             exploration_constant: Exploration parameter
-            
+            progressive_bias_weight: Weight for learned-model bias
+            progressive_history_weight: Weight for progressive history
+            history_table: {action_key: (total_reward, count)} table
+
         Returns:
             Selected child node
         """
-        return max(
-            self.children,
-            key=lambda child: child.ucb1_value(
+        def _ucb(child: 'MCTSNode') -> float:
+            h_score = 0.0
+            if progressive_history_weight > 0 and history_table and child.move is not None:
+                key = move_action_key(child.move)
+                entry = history_table.get(key)
+                if entry is not None:
+                    total, count = entry
+                    h_score = total / count if count > 0 else 0.0
+            return child.ucb1_value(
                 exploration_constant=exploration_constant,
                 progressive_bias_weight=progressive_bias_weight,
-            ),
-        )
+                progressive_history_weight=progressive_history_weight,
+                history_score=h_score,
+            )
+
+        return max(self.children, key=_ucb)
 
     def expand(self) -> 'MCTSNode':
         """
@@ -217,10 +267,17 @@ class MCTSAgent:
         potential_shaping_weight: float = 1.0,
         potential_mode: str = "prob",
         max_rollout_moves: int = 50,
+        # --- Layer 3: Action Reduction ---
+        progressive_widening_enabled: bool = False,
+        pw_c: float = 2.0,
+        pw_alpha: float = 0.5,
+        progressive_history_enabled: bool = False,
+        progressive_history_weight: float = 1.0,
+        heuristic_move_ordering: bool = False,
     ):
         """
         Initialize MCTS agent.
-        
+
         Args:
             iterations: Maximum number of MCTS iterations
             time_limit: Maximum time in seconds (overrides iterations)
@@ -237,6 +294,12 @@ class MCTSAgent:
             potential_shaping_weight: Scale factor for shaping contribution
             potential_mode: Potential representation ('prob' or 'logit')
             max_rollout_moves: Maximum rollout length when rollouts are used
+            progressive_widening_enabled: Enable progressive widening (Layer 3)
+            pw_c: Progressive widening coefficient (children at visit=1)
+            pw_alpha: Progressive widening exponent (growth rate)
+            progressive_history_enabled: Enable progressive history bias in UCB (Layer 3)
+            progressive_history_weight: Weight W for history term in UCB formula
+            heuristic_move_ordering: Sort untried moves by domain heuristic (Layer 3)
         """
         self.iterations = iterations
         self.time_limit = time_limit
@@ -251,6 +314,14 @@ class MCTSAgent:
         self.potential_mode = potential_mode
         self.learned_model_path = learned_model_path
         self.max_rollout_moves = int(max_rollout_moves)
+
+        # Layer 3 params
+        self.progressive_widening_enabled = bool(progressive_widening_enabled)
+        self.pw_c = float(pw_c)
+        self.pw_alpha = float(pw_alpha)
+        self.progressive_history_enabled = bool(progressive_history_enabled)
+        self.progressive_history_weight = float(progressive_history_weight)
+        self.heuristic_move_ordering = bool(heuristic_move_ordering)
 
         if self.potential_mode not in {"prob", "logit"}:
             raise ValueError("potential_mode must be either 'prob' or 'logit'.")
@@ -290,6 +361,10 @@ class MCTSAgent:
                 potential_mode=potential_mode,
             )
 
+        # Progressive history table: {action_key: [total_reward, count]}
+        # Persists across moves within a game.
+        self._history_table: Dict[int, List[float]] = defaultdict(lambda: [0.0, 0])
+
         # Statistics
         self.stats = {
             "iterations_run": 0,
@@ -300,6 +375,8 @@ class MCTSAgent:
             "progressive_bias_updates": 0,
             "potential_shaping_terms": [],
             "evaluator_errors": 0,
+            "pw_expansions_saved": 0,
+            "history_table_size": 0,
         }
 
     def select_action(self, board: Board, player: Player, legal_moves: List[Move]) -> Optional[Move]:
@@ -325,12 +402,17 @@ class MCTSAgent:
         start_time = time.time()
         root = MCTSNode(board, player)
 
+        # Heuristic move ordering: sort untried_moves so best are popped last
+        if self.heuristic_move_ordering or self.progressive_widening_enabled:
+            self._sort_untried_moves(root)
+
         if self.time_limit:
             self._run_mcts_with_time_limit(root)
         else:
             self._run_mcts_with_iterations(root)
 
         self.stats["time_elapsed"] = time.time() - start_time
+        self.stats["history_table_size"] = len(self._history_table)
 
         # Collect tree diagnostics before root is discarded
         self._collect_tree_diagnostics(root)
@@ -343,6 +425,14 @@ class MCTSAgent:
             self.transposition_table.clear()
 
         return best_move
+
+    def _sort_untried_moves(self, node: MCTSNode) -> None:
+        """Sort a node's untried moves by heuristic score (ascending — best last)."""
+        scored = rank_moves_by_heuristic(
+            node.board, node.player, node.untried_moves, self.move_generator,
+        )
+        node.untried_moves = [m for _, m in scored]
+        node._heuristic_sorted = True
 
     def _collect_tree_diagnostics(self, root: MCTSNode) -> None:
         """Walk the tree from root to collect diagnostic metrics.
@@ -434,16 +524,33 @@ class MCTSAgent:
     def _mcts_iteration(self, root: MCTSNode):
         """
         Run one MCTS iteration.
-        
+
         Args:
             root: Root node of the search tree
         """
         # Selection: traverse tree using UCB1
         node = self._selection(root)
 
-        # Expansion: expand node if not fully expanded
-        if not node.is_fully_expanded() and not node.is_terminal():
+        # Expansion: expand node if allowed
+        expand = False
+        if self.progressive_widening_enabled:
+            # Progressive widening: expand only if child count < C_pw * N^alpha
+            if node.should_expand_pw(self.pw_c, self.pw_alpha):
+                expand = True
+            elif not node.untried_moves and not node.children:
+                # Terminal: no moves at all
+                pass
+            else:
+                self.stats["pw_expansions_saved"] += 1
+        else:
+            # Standard MCTS: expand if not fully expanded
+            expand = not node.is_fully_expanded() and not node.is_terminal()
+
+        if expand:
             parent = node
+            # Sort child moves on first expansion if not done yet
+            if (self.heuristic_move_ordering or self.progressive_widening_enabled) and not node._heuristic_sorted:
+                self._sort_untried_moves(node)
             node = node.expand()
             if node is None:
                 return
@@ -457,24 +564,45 @@ class MCTSAgent:
 
     def _selection(self, node: MCTSNode) -> MCTSNode:
         """
-        Selection phase: traverse tree using UCB1.
-        
+        Selection phase: traverse tree using UCB1 + progressive history.
+
+        With progressive widening, a node is "expandable" when
+        len(children) < C_pw * visits^alpha AND untried_moves remain.
+
         Args:
             node: Starting node
-            
+
         Returns:
             Selected node
         """
+        pw_bias_w = self.progressive_bias_weight if self.progressive_bias_enabled else 0.0
+        ph_w = self.progressive_history_weight if self.progressive_history_enabled else 0.0
+        hist = self._history_table if self.progressive_history_enabled else None
+
         while not node.is_terminal():
-            if not node.is_fully_expanded():
-                return node
+            if self.progressive_widening_enabled:
+                # With PW: return node for expansion if widening allows
+                if node.should_expand_pw(self.pw_c, self.pw_alpha):
+                    return node
+                # Otherwise, if there are children, select among them
+                if node.children:
+                    node = node.select_child(
+                        exploration_constant=self.exploration_constant,
+                        progressive_bias_weight=pw_bias_w,
+                        progressive_history_weight=ph_w,
+                        history_table=hist,
+                    )
+                else:
+                    return node
             else:
-                progressive_bias_weight = (
-                    self.progressive_bias_weight if self.progressive_bias_enabled else 0.0
-                )
+                # Standard MCTS
+                if not node.is_fully_expanded():
+                    return node
                 node = node.select_child(
                     exploration_constant=self.exploration_constant,
-                    progressive_bias_weight=progressive_bias_weight,
+                    progressive_bias_weight=pw_bias_w,
+                    progressive_history_weight=ph_w,
+                    history_table=hist,
                 )
 
         return node
@@ -646,13 +774,21 @@ class MCTSAgent:
     def _backpropagation(self, node: MCTSNode, reward: float):
         """
         Backpropagation phase: update statistics up the tree.
-        
+
+        Also updates the progressive history table with move performance.
+
         Args:
             node: Node to start backpropagation from
             reward: Reward to propagate
         """
         while node is not None:
             node.update(reward)
+            # Update progressive history for the move that led to this node
+            if self.progressive_history_enabled and node.move is not None:
+                key = move_action_key(node.move)
+                entry = self._history_table[key]
+                entry[0] += reward
+                entry[1] += 1
             node = node.parent
 
     def get_action_info(self) -> Dict[str, Any]:
@@ -675,6 +811,12 @@ class MCTSAgent:
                 "potential_shaping_gamma": self.potential_shaping_gamma,
                 "potential_shaping_weight": self.potential_shaping_weight,
                 "potential_mode": self.potential_mode,
+                "progressive_widening_enabled": self.progressive_widening_enabled,
+                "pw_c": self.pw_c,
+                "pw_alpha": self.pw_alpha,
+                "progressive_history_enabled": self.progressive_history_enabled,
+                "progressive_history_weight": self.progressive_history_weight,
+                "heuristic_move_ordering": self.heuristic_move_ordering,
             },
             "stats": self.stats.copy()
         }
@@ -685,7 +827,11 @@ class MCTSAgent:
         return info
 
     def reset(self):
-        """Reset agent state."""
+        """Reset agent state (per-move stats).
+
+        Note: progressive history table is NOT reset here — it accumulates
+        across moves within a game. Call ``reset_history()`` between games.
+        """
         self.stats = {
             "iterations_run": 0,
             "time_elapsed": 0.0,
@@ -695,10 +841,16 @@ class MCTSAgent:
             "progressive_bias_updates": 0,
             "potential_shaping_terms": [],
             "evaluator_errors": 0,
+            "pw_expansions_saved": 0,
+            "history_table_size": 0,
         }
 
         if self.transposition_table:
             self.transposition_table.clear()
+
+    def reset_history(self):
+        """Reset progressive history table (call between games)."""
+        self._history_table.clear()
 
     def set_seed(self, seed: int):
         """Set random seed for reproducible behavior."""
