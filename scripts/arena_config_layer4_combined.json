@@ -1,0 +1,60 @@
+{
+  "agents": [
+    {
+      "name": "mcts_100ms_baseline",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 10.0
+      }
+    },
+    {
+      "name": "mcts_100ms_two_ply_k10_cutoff8",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 10.0,
+        "rollout_policy": "two_ply",
+        "two_ply_top_k": 10,
+        "rollout_cutoff_depth": 8
+      }
+    },
+    {
+      "name": "mcts_100ms_cutoff4_minimax0.1",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 10.0,
+        "rollout_cutoff_depth": 4,
+        "minimax_backup_alpha": 0.1
+      }
+    },
+    {
+      "name": "mcts_100ms_two_ply_k10_cutoff8_minimax0.1",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 10.0,
+        "rollout_policy": "two_ply",
+        "two_ply_top_k": 10,
+        "rollout_cutoff_depth": 8,
+        "minimax_backup_alpha": 0.1
+      }
+    }
+  ],
+  "num_games": 25,
+  "seed": 20260323,
+  "seat_policy": "round_robin",
+  "output_root": "arena_runs",
+  "max_turns": 2500,
+  "snapshots": {
+    "enabled": true,
+    "strategy": "fixed_ply",
+    "checkpoints": [8, 16, 24, 32, 40, 48, 56, 64]
+  },
+  "notes": "Layer 4 combined: Best settings from each sub-task combined vs baseline — two-ply K10 + cutoff 8, cutoff 4 + minimax 0.1, and all three combined"
+}
