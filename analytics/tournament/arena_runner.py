@@ -332,6 +332,16 @@ class _SelectActionAdapter(_ArenaAgentAdapter):
             move_stats["_mcts_stats"] = mcts_stats
         return move, move_stats
 
+    def notify_move(self, board_before: Any, board_after: Any, player: Player) -> None:
+        """Forward move notification to underlying agent for opponent modeling."""
+        if hasattr(self.agent, 'notify_move'):
+            self.agent.notify_move(board_before, board_after, player)
+
+    @property
+    def has_opponent_modeling(self) -> bool:
+        """Check if the underlying agent has opponent modeling enabled."""
+        return getattr(self.agent, 'opponent_modeling_enabled', False)
+
 
 def _extract_mcts_stats_from_fast_diagnostics(stats: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """Map FastMCTSAgent diagnostics to _mcts_stats format for step logger.
@@ -523,6 +533,15 @@ def build_agent(config: AgentConfig, seed: int) -> _ArenaAgentAdapter:
             rave_k=float(params.get("rave_k", 1000.0)),
             nst_enabled=bool(params.get("nst_enabled", False)),
             nst_weight=float(params.get("nst_weight", 0.5)),
+            # Layer 7: Opponent Modeling
+            opponent_rollout_policy=str(params.get("opponent_rollout_policy", "same")),
+            opponent_modeling_enabled=bool(params.get("opponent_modeling_enabled", False)),
+            alliance_detection_enabled=bool(params.get("alliance_detection_enabled", False)),
+            alliance_threshold=float(params.get("alliance_threshold", 2.0)),
+            kingmaker_detection_enabled=bool(params.get("kingmaker_detection_enabled", False)),
+            kingmaker_score_gap=int(params.get("kingmaker_score_gap", 15)),
+            adaptive_opponent_enabled=bool(params.get("adaptive_opponent_enabled", False)),
+            defensive_weight_shift=float(params.get("defensive_weight_shift", 0.15)),
         )
         return _SelectActionAdapter(agent)
 
@@ -564,6 +583,16 @@ def build_agent(config: AgentConfig, seed: int) -> _ArenaAgentAdapter:
         )
 
     raise ValueError(f"Unsupported agent type: {config.type}")
+
+
+def _any_agent_has_opponent_modeling(
+    agent_instances: Mapping[str, _ArenaAgentAdapter],
+) -> bool:
+    """Check if any agent in the game has opponent modeling enabled."""
+    for inst in agent_instances.values():
+        if getattr(inst, 'has_opponent_modeling', False):
+            return True
+    return False
 
 
 def _extract_move_telemetry(
@@ -763,8 +792,9 @@ def run_single_game(
                 game._check_game_over()
                 continue
 
-            # Capture board state before move for logging
-            board_before = game.board.copy() if game_logger else None
+            # Capture board state before move for logging and opponent modeling
+            need_board_before = game_logger or _any_agent_has_opponent_modeling(agent_instances)
+            board_before = game.board.copy() if need_board_before else None
 
             if not game.make_move(move, current_player):
                 invalid_actions += 1
@@ -772,6 +802,12 @@ def run_single_game(
                 game.board._update_current_player()
                 game._check_game_over()
                 continue
+
+            # Layer 7: Notify all agents of the move for opponent tracking
+            if board_before is not None:
+                for a_name, a_inst in agent_instances.items():
+                    if hasattr(a_inst, 'notify_move'):
+                        a_inst.notify_move(board_before, game.board, current_player)
 
             # Log move with MCTS diagnostics if logger attached
             if game_logger and board_before is not None:
