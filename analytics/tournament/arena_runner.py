@@ -517,6 +517,9 @@ def build_agent(config: AgentConfig, seed: int) -> _ArenaAgentAdapter:
             rollout_cutoff_depth=int(params["rollout_cutoff_depth"]) if params.get("rollout_cutoff_depth") is not None else None,
             state_eval_weights=params.get("state_eval_weights"),
             minimax_backup_alpha=float(params.get("minimax_backup_alpha", 0.0)),
+            # Layer 5: History Heuristics & RAVE
+            rave_enabled=bool(params.get("rave_enabled", False)),
+            rave_k=float(params.get("rave_k", 1000.0)),
         )
         return _SelectActionAdapter(agent)
 
