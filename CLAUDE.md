@@ -48,9 +48,21 @@ python scripts/arena.py --config scripts/arena_config_extended_rollout.json --nu
 - Phase thresholds: early < 0.25, mid < 0.55, late >= 0.55 (board occupancy fraction).
 - Calibrated weights derived from regression on 13K+ self-play states are in `data/layer6_calibrated_weights.json`.
 
+### Layer 7: Opponent Modeling Parameters
+
+- `opponent_rollout_policy`: Rollout policy for opponents — `"same"` (default, backward compatible), `"random"`, or `"heuristic"`. When `"same"`, opponents use the same policy as `rollout_policy`.
+- `opponent_modeling_enabled`: Master switch for opponent tracking, alliance detection, and king-maker awareness (default: `false`).
+- `alliance_detection_enabled`: Track per-opponent blocking rates and flag targeting when rate > threshold × average (default: `false`).
+- `alliance_threshold`: Blocking rate multiplier for targeting detection (default: `2.0`).
+- `kingmaker_detection_enabled`: Detect late-game king-maker scenarios (occupancy >= 0.55, score gap > threshold) (default: `false`).
+- `kingmaker_score_gap`: Score gap threshold for king-maker classification (default: `15`).
+- `adaptive_opponent_enabled`: Build cross-game opponent profiles with EMA updates (default: `false`).
+- `defensive_weight_shift`: Evaluation weight shift magnitude when under targeting threat (default: `0.15`).
+
 ## Project Structure
 
-- `mcts/mcts_agent.py` — Full MCTSAgent with RAVE, progressive history, NST, and configurable rollout policies
+- `mcts/mcts_agent.py` — Full MCTSAgent with RAVE, progressive history, NST, configurable rollout policies, and opponent modeling (Layer 7)
+- `mcts/opponent_model.py` — Opponent modeling: blocking tracker, alliance detection, king-maker awareness, adaptive profiles (Layer 7)
 - `mcts/state_evaluator.py` — Lightweight state evaluation function with phase-dependent weights (Layers 4, 6)
 - `agents/fast_mcts_agent.py` — Lightweight FastMCTSAgent (use only when explicitly requested)
 - `scripts/arena.py` — Arena CLI entry point

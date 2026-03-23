@@ -13,6 +13,11 @@ bootstrapping — per-node action statistics from rollout moves blend with
 UCT Q-values via configurable equivalence constant k. NST (N-gram
 Selection Technique) biases rollout move selection using 2-gram
 same-player move pair statistics.
+
+Layer 7 additions: Opponent Modeling — asymmetric rollout policies
+(different move selection for self vs opponents), blocking-rate tracking,
+alliance detection, king-maker awareness, and adaptive opponent profiles
+for repeated play.
 """
 
 import math
@@ -33,6 +38,7 @@ from .move_heuristic import (
     move_action_key,
     rank_moves_by_heuristic,
 )
+from .opponent_model import OpponentModelManager
 from .state_evaluator import BlokusStateEvaluator
 from .utils import compute_policy_entropy
 from .zobrist import TranspositionTable, ZobristHash
@@ -360,6 +366,15 @@ class MCTSAgent:
         rave_k: float = 1000.0,
         nst_enabled: bool = False,
         nst_weight: float = 0.5,
+        # --- Layer 7: Opponent Modeling ---
+        opponent_rollout_policy: str = "same",
+        opponent_modeling_enabled: bool = False,
+        alliance_detection_enabled: bool = False,
+        alliance_threshold: float = 2.0,
+        kingmaker_detection_enabled: bool = False,
+        kingmaker_score_gap: int = 15,
+        adaptive_opponent_enabled: bool = False,
+        defensive_weight_shift: float = 0.15,
     ):
         """
         Initialize MCTS agent.
@@ -396,6 +411,15 @@ class MCTSAgent:
             rave_k: RAVE equivalence constant; beta = sqrt(k / (3*N + k)) (Layer 5)
             nst_enabled: Enable N-gram Selection Technique for rollout bias (Layer 5)
             nst_weight: Bias weight for NST-scored moves during rollout (Layer 5)
+            opponent_rollout_policy: Rollout policy for opponents — "same" (use self policy),
+                "random", or "heuristic" (Layer 7)
+            opponent_modeling_enabled: Master switch for opponent tracking (Layer 7)
+            alliance_detection_enabled: Detect opponents targeting root player (Layer 7)
+            alliance_threshold: Blocking rate multiplier to flag targeting (default 2.0) (Layer 7)
+            kingmaker_detection_enabled: Detect late-game king-maker scenarios (Layer 7)
+            kingmaker_score_gap: Score gap threshold for king-maker classification (Layer 7)
+            adaptive_opponent_enabled: Build cross-game opponent profiles (Layer 7)
+            defensive_weight_shift: Eval weight shift magnitude when under threat (Layer 7)
         """
         self.iterations = iterations
         self.time_limit = time_limit
@@ -437,6 +461,22 @@ class MCTSAgent:
         self.rave_k = float(rave_k)
         self.nst_enabled = bool(nst_enabled)
         self.nst_weight = float(nst_weight)
+
+        # Layer 7 params
+        if opponent_rollout_policy not in {"same", "random", "heuristic"}:
+            raise ValueError(
+                f"opponent_rollout_policy must be 'same', 'random', or 'heuristic', "
+                f"got '{opponent_rollout_policy}'"
+            )
+        self.opponent_rollout_policy = opponent_rollout_policy
+        self.opponent_modeling_enabled = bool(opponent_modeling_enabled)
+        self.alliance_detection_enabled = bool(alliance_detection_enabled)
+        self.alliance_threshold = float(alliance_threshold)
+        self.kingmaker_detection_enabled = bool(kingmaker_detection_enabled)
+        self.kingmaker_score_gap = int(kingmaker_score_gap)
+        self.adaptive_opponent_enabled = bool(adaptive_opponent_enabled)
+        self.defensive_weight_shift = float(defensive_weight_shift)
+        self._opponent_model: Optional[OpponentModelManager] = None
 
         if self.potential_mode not in {"prob", "logit"}:
             raise ValueError("potential_mode must be either 'prob' or 'logit'.")
@@ -517,6 +557,10 @@ class MCTSAgent:
             # Layer 5: RAVE & NST stats
             "rave_updates": 0,
             "nst_rollout_biases": 0,
+            # Layer 7: Opponent Modeling stats
+            "opponent_random_rollouts": 0,
+            "opponent_heuristic_rollouts": 0,
+            "opponent_upgraded_rollouts": 0,
         }
 
     def select_action(self, board: Board, player: Player, legal_moves: List[Move]) -> Optional[Move]:
@@ -541,6 +585,19 @@ class MCTSAgent:
         # Run MCTS
         start_time = time.time()
         self._root_player = player  # Layer 4: track for minimax backups
+
+        # Layer 7: Initialize opponent model on first use
+        if self.opponent_modeling_enabled and self._opponent_model is None:
+            self._opponent_model = OpponentModelManager(
+                root_player=player,
+                alliance_detection_enabled=self.alliance_detection_enabled,
+                alliance_threshold=self.alliance_threshold,
+                kingmaker_detection_enabled=self.kingmaker_detection_enabled,
+                kingmaker_score_gap=self.kingmaker_score_gap,
+                adaptive_enabled=self.adaptive_opponent_enabled,
+                defensive_weight_shift=self.defensive_weight_shift,
+            )
+
         root = MCTSNode(board, player)
 
         # Heuristic move ordering: sort untried_moves so best are popped last
@@ -900,14 +957,19 @@ class MCTSAgent:
                 and len(legal_moves) > 1
             ):
                 move = self._nst_biased_select(legal_moves, nst_prev_own_key)
-            # Layer 4: Select move using configured rollout policy
-            elif self.rollout_policy == "two_ply":
-                move = self._two_ply_select(sim_board, current_player, legal_moves)
-            elif self.rollout_policy == "random":
-                move = legal_moves[self._rng.randint(len(legal_moves))]
+            elif current_player == root_player or self.opponent_rollout_policy == "same":
+                # Self (or symmetric mode): use configured rollout_policy
+                if self.rollout_policy == "two_ply":
+                    move = self._two_ply_select(sim_board, current_player, legal_moves)
+                elif self.rollout_policy == "random":
+                    move = legal_moves[self._rng.randint(len(legal_moves))]
+                else:
+                    move = self.rollout_agent.select_action(sim_board, current_player, legal_moves)
             else:
-                # Default: heuristic rollout agent
-                move = self.rollout_agent.select_action(sim_board, current_player, legal_moves)
+                # Layer 7: Opponent — use opponent rollout policy (possibly upgraded)
+                move = self._select_opponent_rollout_move(
+                    sim_board, current_player, legal_moves
+                )
 
             if move is None:
                 break
@@ -1063,6 +1125,78 @@ class MCTSAgent:
                     positions.append(pos)
 
         return positions
+
+    # ------------------------------------------------------------------
+    # Layer 7: Opponent rollout and move notification
+    # ------------------------------------------------------------------
+
+    def _select_opponent_rollout_move(
+        self, board: Board, player: Player, legal_moves: List[Move]
+    ) -> Move:
+        """Select a rollout move for an opponent player.
+
+        Uses ``opponent_rollout_policy`` as the base, but may upgrade to
+        heuristic if the opponent model flags the player as targeting or
+        king-making.
+
+        Args:
+            board: Current simulation board state.
+            player: Opponent player to move.
+            legal_moves: Available legal moves.
+
+        Returns:
+            Selected move for the opponent.
+        """
+        policy = self.opponent_rollout_policy
+
+        # Allow the opponent model to override the policy per-player
+        if self._opponent_model is not None:
+            policy = self._opponent_model.get_opponent_rollout_policy(
+                player, policy
+            )
+            if policy != self.opponent_rollout_policy:
+                self.stats["opponent_upgraded_rollouts"] += 1
+
+        if policy == "random":
+            self.stats["opponent_random_rollouts"] += 1
+            return legal_moves[self._rng.randint(len(legal_moves))]
+        elif policy == "two_ply":
+            return self._two_ply_select(board, player, legal_moves)
+        else:
+            # "heuristic" (or fallback)
+            self.stats["opponent_heuristic_rollouts"] += 1
+            return self.rollout_agent.select_action(board, player, legal_moves)
+
+    def notify_move(
+        self,
+        board_before: Board,
+        board_after: Board,
+        player: Player,
+    ) -> None:
+        """Notify the agent that a move was made in the actual game.
+
+        Called by the arena runner after each move to update blocking
+        tracking and alliance detection. Only has an effect when
+        ``opponent_modeling_enabled`` is True.
+
+        Args:
+            board_before: Board state before the move.
+            board_after: Board state after the move.
+            player: Player who made the move.
+        """
+        if self._opponent_model is not None:
+            self._opponent_model.on_move_made(board_before, board_after, player)
+
+    def reset_opponent_model_game(self) -> None:
+        """Reset per-game opponent tracking. Profiles persist across games."""
+        if self._opponent_model is not None:
+            self._opponent_model.reset_game()
+
+    def get_opponent_model_stats(self) -> Dict[str, Any]:
+        """Return opponent model diagnostics."""
+        if self._opponent_model is not None:
+            return self._opponent_model.get_stats()
+        return {}
 
     def _backpropagation(
         self,
