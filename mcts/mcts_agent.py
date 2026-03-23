@@ -7,6 +7,10 @@ action reduction in high-branching-factor games.
 Layer 4 additions: Simulation Strategy — two-ply search-based playouts,
 early rollout termination with state evaluation, and implicit minimax
 backups for multi-player robustness.
+
+Layer 5 additions: RAVE (Rapid Action Value Estimation) for cold-start
+bootstrapping — per-node action statistics from rollout moves blend with
+UCT Q-values via configurable equivalence constant k.
 """
 
 import math
@@ -348,6 +352,9 @@ class MCTSAgent:
         rollout_cutoff_depth: Optional[int] = None,
         state_eval_weights: Optional[Dict[str, float]] = None,
         minimax_backup_alpha: float = 0.0,
+        # --- Layer 5: History Heuristics & RAVE ---
+        rave_enabled: bool = False,
+        rave_k: float = 1000.0,
     ):
         """
         Initialize MCTS agent.
@@ -379,6 +386,8 @@ class MCTSAgent:
             rollout_cutoff_depth: Cut off rollout at this depth and eval statically (None = full) (Layer 4)
             state_eval_weights: Custom weights for BlokusStateEvaluator (Layer 4)
             minimax_backup_alpha: Blending weight for implicit minimax backups (0.0 = off) (Layer 4)
+            rave_enabled: Enable RAVE (Rapid Action Value Estimation) blending (Layer 5)
+            rave_k: RAVE equivalence constant; beta = sqrt(k / (3*N + k)) (Layer 5)
         """
         self.iterations = iterations
         self.time_limit = time_limit
@@ -414,6 +423,10 @@ class MCTSAgent:
         )
         self.minimax_backup_alpha = float(minimax_backup_alpha)
         self._eval_reward_scale = 100.0  # match win-bonus magnitude
+
+        # Layer 5 params
+        self.rave_enabled = bool(rave_enabled)
+        self.rave_k = float(rave_k)
 
         if self.potential_mode not in {"prob", "logit"}:
             raise ValueError("potential_mode must be either 'prob' or 'logit'.")
@@ -480,6 +493,8 @@ class MCTSAgent:
             "two_ply_evals": 0,
             "cutoff_evals": 0,
             "minimax_updates": 0,
+            # Layer 5: RAVE stats
+            "rave_updates": 0,
         }
 
     def select_action(self, board: Board, player: Player, legal_moves: List[Move]) -> Optional[Move]:
@@ -660,15 +675,15 @@ class MCTSAgent:
                 return
             self._update_progressive_bias(parent, node)
 
-        # Simulation: run rollout
-        reward = self._simulation(node)
+        # Simulation: run rollout (returns rollout action keys when RAVE enabled)
+        reward, rollout_actions = self._simulation(node)
 
         # Backpropagation: update statistics up the tree
-        self._backpropagation(node, reward)
+        self._backpropagation(node, reward, rollout_actions=rollout_actions)
 
     def _selection(self, node: MCTSNode) -> MCTSNode:
         """
-        Selection phase: traverse tree using UCB1 + progressive history.
+        Selection phase: traverse tree using UCB1 + progressive history + RAVE.
 
         With progressive widening, a node is "expandable" when
         len(children) < C_pw * visits^alpha AND untried_moves remain.
@@ -683,6 +698,8 @@ class MCTSAgent:
         ph_w = self.progressive_history_weight if self.progressive_history_enabled else 0.0
         hist = self._history_table if self.progressive_history_enabled else None
         mm_alpha = self.minimax_backup_alpha
+        rave_on = self.rave_enabled
+        rave_k = self.rave_k
 
         while not node.is_terminal():
             if self.progressive_widening_enabled:
@@ -697,6 +714,8 @@ class MCTSAgent:
                         progressive_history_weight=ph_w,
                         history_table=hist,
                         minimax_alpha=mm_alpha,
+                        rave_enabled=rave_on,
+                        rave_k=rave_k,
                     )
                 else:
                     return node
@@ -710,19 +729,23 @@ class MCTSAgent:
                     progressive_history_weight=ph_w,
                     history_table=hist,
                     minimax_alpha=mm_alpha,
+                    rave_enabled=rave_on,
+                    rave_k=rave_k,
                 )
 
         return node
 
-    def _simulation(self, node: MCTSNode) -> float:
+    def _simulation(self, node: MCTSNode) -> Tuple[float, List[int]]:
         """
         Simulation phase: run rollout from node.
-        
+
         Args:
             node: Node to simulate from
-            
+
         Returns:
-            Reward from simulation
+            Tuple of (reward, rollout_action_keys). The action key list
+            contains piece_ids played by the root player during the rollout,
+            used for RAVE updates. Empty when RAVE is disabled or on cache hit.
         """
         # Check transposition table
         if self.transposition_table:
@@ -730,20 +753,21 @@ class MCTSAgent:
             cached_result = self.transposition_table.get(board_hash)
             if cached_result:
                 self.stats["transposition_hits"] += 1
-                return cached_result["reward"]
+                return cached_result["reward"], []
 
         # Run learned leaf evaluation or rollout.
+        rollout_actions: List[int] = []
         if self.leaf_evaluation_enabled and self.learned_evaluator is not None:
             reward = self._evaluate_leaf(node.board, node.player)
         else:
-            reward = self._rollout(node.board, node.player)
+            reward, rollout_actions = self._rollout(node.board, node.player)
 
         # Cache result
         if self.transposition_table:
             self.transposition_table.put(board_hash, {"reward": reward})
 
         self.stats["rollout_rewards"].append(reward)
-        return reward
+        return reward, rollout_actions
 
     def _evaluate_leaf(self, board: Board, player: Player) -> float:
         """Evaluate leaf with learned model-backed win probability."""
@@ -776,7 +800,7 @@ class MCTSAgent:
             child.prior_bias = 0.0
             self.stats["evaluator_errors"] += 1
 
-    def _rollout(self, board: Board, player: Player) -> float:
+    def _rollout(self, board: Board, player: Player) -> Tuple[float, List[int]]:
         """
         Run rollout simulation with configurable policy and early termination.
 
@@ -784,17 +808,20 @@ class MCTSAgent:
         - rollout_policy: "heuristic" (default), "random", or "two_ply"
         - rollout_cutoff_depth: terminate early and evaluate statically
 
+        Layer 5: When RAVE is enabled, collects action keys (piece_ids) played
+        by the root player during the rollout for RAVE back-propagation.
+
         Args:
             board: Board state to simulate from
             player: Player whose turn it is
 
         Returns:
-            Reward from rollout
+            Tuple of (reward, rollout_action_keys)
         """
         # Layer 4: depth-0 cutoff — pure static evaluation, no rollout at all
         if self.rollout_cutoff_depth is not None and self.rollout_cutoff_depth <= 0:
             self.stats["cutoff_evals"] += 1
-            return self.state_evaluator.evaluate(board, player) * self._eval_reward_scale
+            return self.state_evaluator.evaluate(board, player) * self._eval_reward_scale, []
 
         # Create copy for simulation
         sim_board = board.copy()
@@ -810,6 +837,11 @@ class MCTSAgent:
                 self.stats["evaluator_errors"] += 1
                 initial_potential = None
 
+        # Layer 5: Track root player's moves for RAVE
+        root_player = self._root_player
+        track_rave = self.rave_enabled and root_player is not None
+        rollout_actions: List[int] = []
+
         # Simulate until game ends or max moves
         moves_made = 0
 
@@ -820,7 +852,10 @@ class MCTSAgent:
                 and moves_made >= self.rollout_cutoff_depth
             ):
                 self.stats["cutoff_evals"] += 1
-                return self.state_evaluator.evaluate(sim_board, player) * self._eval_reward_scale
+                return (
+                    self.state_evaluator.evaluate(sim_board, player) * self._eval_reward_scale,
+                    rollout_actions,
+                )
 
             # Get legal moves
             legal_moves = self.move_generator.get_legal_moves(sim_board, current_player)
@@ -839,6 +874,10 @@ class MCTSAgent:
 
             if move is None:
                 break
+
+            # Layer 5: Record root player's moves for RAVE
+            if track_rave and current_player == root_player:
+                rollout_actions.append(move_action_key(move))
 
             # Make move
             move_positions = self._get_move_positions(move)
@@ -883,7 +922,7 @@ class MCTSAgent:
             except Exception:
                 self.stats["evaluator_errors"] += 1
 
-        return reward
+        return reward, rollout_actions
 
     def _two_ply_select(
         self, board: Board, player: Player, legal_moves: List[Move]
@@ -943,19 +982,38 @@ class MCTSAgent:
 
         return positions
 
-    def _backpropagation(self, node: MCTSNode, reward: float):
+    def _backpropagation(
+        self,
+        node: MCTSNode,
+        reward: float,
+        rollout_actions: Optional[List[int]] = None,
+    ):
         """
         Backpropagation phase: update statistics up the tree.
 
         Also updates the progressive history table with move performance,
-        and implicit minimax values when minimax_backup_alpha > 0.
+        implicit minimax values when minimax_backup_alpha > 0, and per-node
+        RAVE tables when rave_enabled is True.
 
         Args:
             node: Node to start backpropagation from
             reward: Reward to propagate
+            rollout_actions: Action keys (piece_ids) played by root player
+                during rollout, for RAVE updates (Layer 5)
         """
         use_minimax = self.minimax_backup_alpha > 0.0
         root_player = self._root_player
+
+        # Layer 5: Build the full set of action keys seen in the simulation.
+        # As we walk up the tree, we collect tree-move action keys and combine
+        # them with rollout actions. Each node gets RAVE updates for all
+        # actions seen *below* it.
+        use_rave = self.rave_enabled and rollout_actions is not None
+        if use_rave:
+            # Start with rollout actions as a set
+            rave_action_set: set = set(rollout_actions)
+        else:
+            rave_action_set = set()
 
         while node is not None:
             node.update(reward)
@@ -965,6 +1023,22 @@ class MCTSAgent:
                 entry = self._history_table[key]
                 entry[0] += reward
                 entry[1] += 1
+
+            # Layer 5: Update RAVE tables at this node for all actions below
+            if use_rave and rave_action_set:
+                for akey in rave_action_set:
+                    if akey in node.rave_visits:
+                        node.rave_total[akey] += reward
+                        node.rave_visits[akey] += 1
+                    else:
+                        node.rave_total[akey] = reward
+                        node.rave_visits[akey] = 1
+                self.stats["rave_updates"] += 1
+                # Add this node's own move to the set so that ancestors
+                # see it as part of the "actions below"
+                if node.move is not None:
+                    rave_action_set.add(move_action_key(node.move))
+
             # Layer 4: Update implicit minimax values
             if use_minimax and node.children:
                 visited_children_q = [
@@ -1013,6 +1087,9 @@ class MCTSAgent:
                 "two_ply_top_k": self.two_ply_top_k,
                 "rollout_cutoff_depth": self.rollout_cutoff_depth,
                 "minimax_backup_alpha": self.minimax_backup_alpha,
+                # Layer 5
+                "rave_enabled": self.rave_enabled,
+                "rave_k": self.rave_k,
             },
             "stats": self.stats.copy()
         }
