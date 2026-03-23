@@ -16,6 +16,7 @@ Welcome to the Blokus RL documentation directory. This folder aggregates all tec
 - **/metrics/**: Notes on advanced mobility metrics, frontier calculations, etc.
 - **arena.md**: Reproducible arena experiment runner, output artifacts, summary interpretation, win-probability training commands, and learned-evaluator MCTS integration.
 - **datasets.md**: Arena dataset schemas (`games.jsonl`, snapshots parquet/csv), pairwise transformation, and loading examples.
+- **project-history.md**: Condensed narrative of the repository's shift from an RL-first Blokus environment to an MCTS-centered experimentation platform.
 - **profiler_baseline.md**: MCTS profiler baseline results — time breakdown by phase (selection, expansion, simulation, backpropagation), memory footprint, and optimization recommendations.
 
 ## Measurement Infrastructure (Layer 0)
