@@ -53,7 +53,7 @@ This project provides a full-stack implementation of Blokus with:
 ### AI Agents
 - **Random Agent**: Baseline agent making random legal moves
 - **Heuristic Agent**: Rule-based agent with configurable weights
-- **MCTS Agent**: Monte Carlo Tree Search with transposition tables
+- **MCTS Agent**: Monte Carlo Tree Search with transposition tables, RAVE bootstrapping, progressive history, and N-gram selection
 - **Fast MCTS Agent**: Optimized MCTS for real-time gameplay
 
 <img width="712" height="213" alt="image" src="https://github.com/user-attachments/assets/32be3357-c4cf-4b89-8954-90f6c6a8b075" />
@@ -305,7 +305,7 @@ def select_action(board: Board, player: Player, legal_moves: List[Move]) -> Move
 
 - **RandomAgent**: Baseline random selection
 - **HeuristicAgent**: Evaluates moves using configurable heuristics
-- **MCTSAgent**: Full Monte Carlo Tree Search
+- **MCTSAgent**: Full Monte Carlo Tree Search with RAVE, progressive history, NST, minimax backups, and configurable rollout policies
 - **FastMCTSAgent**: Optimized MCTS for real-time play
 
 ### RL Environment (`envs/blokus_v0.py`)
