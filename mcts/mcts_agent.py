@@ -18,6 +18,11 @@ Layer 7 additions: Opponent Modeling — asymmetric rollout policies
 (different move selection for self vs opponents), blocking-rate tracking,
 alliance detection, king-maker awareness, and adaptive opponent profiles
 for repeated play.
+
+Layer 8 additions: Parallelization — root parallelization (independent
+trees merged at decision time via multiprocessing) and tree parallelization
+with virtual loss (shared tree via threading). Root parallelization is the
+default and recommended strategy for Python due to the GIL.
 """
 
 import math
@@ -91,6 +96,11 @@ class MCTSNode:
         self.rave_total: Dict[int, float] = {}
         self.rave_visits: Dict[int, int] = {}
 
+        # Layer 8: Virtual loss for tree parallelization.
+        # Temporarily penalizes a node's UCB score while a thread is simulating
+        # below it, discouraging other threads from the same path.
+        self.virtual_losses: int = 0
+
         # Initialize untried moves
         self._initialize_untried_moves()
 
@@ -134,6 +144,22 @@ class MCTSNode:
             return avg_q
         return (1.0 - alpha) * avg_q + alpha * self.minimax_value
 
+    def apply_virtual_loss(self, magnitude: float = 1.0) -> None:
+        """Apply virtual loss during tree-parallel selection.
+
+        Temporarily inflates visit count and decreases reward, discouraging
+        other threads from selecting this node.
+        """
+        self.virtual_losses += 1
+        self.visits += 1
+        self.total_reward -= magnitude
+
+    def remove_virtual_loss(self, magnitude: float = 1.0) -> None:
+        """Remove virtual loss after backpropagation completes."""
+        self.virtual_losses = max(0, self.virtual_losses - 1)
+        self.visits = max(0, self.visits - 1)
+        self.total_reward += magnitude
+
     def ucb1_value(
         self,
         exploration_constant: float = 1.414,
@@ -152,6 +178,11 @@ class MCTSNode:
 
         where Q_UCT = Q_hat (blended averaging + minimax), and beta is the RAVE
         weighting factor that decays with parent visits.
+
+        Layer 8: When virtual losses are active, the visit count and total
+        reward already include the virtual loss penalty (applied in-place by
+        apply_virtual_loss), so the standard formulas naturally produce a
+        lower UCB score for nodes being explored by other threads.
 
         Args:
             exploration_constant: Exploration parameter (sqrt(2) is common)
@@ -375,6 +406,10 @@ class MCTSAgent:
         kingmaker_score_gap: int = 15,
         adaptive_opponent_enabled: bool = False,
         defensive_weight_shift: float = 0.15,
+        # --- Layer 8: Parallelization ---
+        num_workers: int = 1,
+        virtual_loss: float = 1.0,
+        parallel_strategy: str = "root",
     ):
         """
         Initialize MCTS agent.
@@ -420,6 +455,10 @@ class MCTSAgent:
             kingmaker_score_gap: Score gap threshold for king-maker classification (Layer 7)
             adaptive_opponent_enabled: Build cross-game opponent profiles (Layer 7)
             defensive_weight_shift: Eval weight shift magnitude when under threat (Layer 7)
+            num_workers: Number of parallel MCTS workers (1 = single-threaded) (Layer 8)
+            virtual_loss: Virtual loss magnitude for tree parallelization (Layer 8)
+            parallel_strategy: "root" (independent trees, merge) or "tree" (shared tree,
+                virtual loss + threading) (Layer 8)
         """
         self.iterations = iterations
         self.time_limit = time_limit
@@ -477,6 +516,15 @@ class MCTSAgent:
         self.adaptive_opponent_enabled = bool(adaptive_opponent_enabled)
         self.defensive_weight_shift = float(defensive_weight_shift)
         self._opponent_model: Optional[OpponentModelManager] = None
+
+        # Layer 8 params
+        if parallel_strategy not in {"root", "tree"}:
+            raise ValueError(
+                f"parallel_strategy must be 'root' or 'tree', got '{parallel_strategy}'"
+            )
+        self.num_workers = max(1, int(num_workers))
+        self.virtual_loss = float(virtual_loss)
+        self.parallel_strategy = parallel_strategy
 
         if self.potential_mode not in {"prob", "logit"}:
             raise ValueError("potential_mode must be either 'prob' or 'logit'.")
@@ -561,6 +609,11 @@ class MCTSAgent:
             "opponent_random_rollouts": 0,
             "opponent_heuristic_rollouts": 0,
             "opponent_upgraded_rollouts": 0,
+            # Layer 8: Parallelization stats
+            "parallel_workers": 0,
+            "parallel_strategy": "none",
+            "parallel_trees_merged": 0,
+            "virtual_loss_applications": 0,
         }
 
     def select_action(self, board: Board, player: Player, legal_moves: List[Move]) -> Optional[Move]:
@@ -598,19 +651,41 @@ class MCTSAgent:
                 defensive_weight_shift=self.defensive_weight_shift,
             )
 
+        # Layer 8: Dispatch to parallel implementation when num_workers > 1
+        if self.num_workers > 1 and self.parallel_strategy == "root":
+            from .parallel import run_root_parallel
+
+            best_move, par_stats = run_root_parallel(
+                self, board, player, legal_moves, self.num_workers
+            )
+            self.stats["time_elapsed"] = time.time() - start_time
+            self.stats["parallel_workers"] = self.num_workers
+            self.stats["parallel_strategy"] = "root"
+            self.stats["parallel_trees_merged"] = par_stats.get("trees_merged", 0)
+            self.stats["iterations_run"] = par_stats.get("total_iterations", 0)
+            if self.nst_enabled and best_move is not None:
+                self._last_root_action_key = move_action_key(best_move)
+            return best_move
+
         root = MCTSNode(board, player)
 
         # Heuristic move ordering: sort untried_moves so best are popped last
         if self.heuristic_move_ordering or self.progressive_widening_enabled:
             self._sort_untried_moves(root)
 
-        if self.time_limit:
+        # Layer 8: Tree parallelization with virtual loss
+        if self.num_workers > 1 and self.parallel_strategy == "tree":
+            self._run_mcts_tree_parallel(root)
+        elif self.time_limit:
             self._run_mcts_with_time_limit(root)
         else:
             self._run_mcts_with_iterations(root)
 
         self.stats["time_elapsed"] = time.time() - start_time
         self.stats["history_table_size"] = len(self._history_table)
+        if self.num_workers > 1:
+            self.stats["parallel_workers"] = self.num_workers
+            self.stats["parallel_strategy"] = self.parallel_strategy
 
         # Collect tree diagnostics before root is discarded
         self._collect_tree_diagnostics(root)
@@ -722,6 +797,131 @@ class MCTSAgent:
             iteration += 1
 
         self.stats["iterations_run"] = iteration
+
+    def _run_mcts_tree_parallel(self, root: MCTSNode):
+        """Run tree-parallel MCTS with virtual loss using threads.
+
+        Layer 8: Multiple threads share a single tree. Virtual loss prevents
+        threads from selecting the same path simultaneously — when a thread
+        enters a node during selection, it applies a virtual loss penalty that
+        reduces the node's UCB score for other threads.
+
+        Note: Due to CPython's GIL, this does not provide true CPU parallelism.
+        It demonstrates the correct algorithm and is ready for free-threaded
+        Python (3.13+).
+        """
+        import threading
+
+        expand_lock = threading.Lock()
+        iterations_per_worker = max(1, self.iterations // self.num_workers)
+        total_iterations = [0]
+        total_vl = [0]
+        count_lock = threading.Lock()
+
+        def worker():
+            local_iters = 0
+            local_vl = 0
+            for _ in range(iterations_per_worker):
+                # Selection with virtual loss
+                node, vl_path = self._selection_with_virtual_loss(root)
+                local_vl += len(vl_path)
+
+                # Expansion (under lock to prevent duplicate children)
+                expanded = False
+                with expand_lock:
+                    expand = False
+                    if self.progressive_widening_enabled:
+                        if node.should_expand_pw(self.pw_c, self.pw_alpha):
+                            expand = True
+                    else:
+                        expand = not node.is_fully_expanded() and not node.is_terminal()
+                    if expand:
+                        if (self.heuristic_move_ordering or self.progressive_widening_enabled) and not node._heuristic_sorted:
+                            self._sort_untried_moves(node)
+                        child = node.expand()
+                        if child is not None:
+                            self._update_progressive_bias(node, child)
+                            node = child
+                            expanded = True
+
+                # Simulation (no lock — each thread simulates independently)
+                reward, rollout_actions = self._simulation(node)
+
+                # Remove virtual losses from selection path
+                for vl_node in vl_path:
+                    vl_node.remove_virtual_loss(self.virtual_loss)
+
+                # Backpropagation (minor races on node.visits/total_reward are
+                # tolerable — standard in MCTS literature)
+                self._backpropagation(node, reward, rollout_actions=rollout_actions)
+                local_iters += 1
+
+            with count_lock:
+                total_iterations[0] += local_iters
+                total_vl[0] += local_vl
+
+        threads = [threading.Thread(target=worker) for _ in range(self.num_workers)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        self.stats["iterations_run"] = total_iterations[0]
+        self.stats["virtual_loss_applications"] = total_vl[0]
+
+    def _selection_with_virtual_loss(self, root: MCTSNode):
+        """Selection phase with virtual loss for tree parallelization.
+
+        Same as _selection but applies virtual loss at each visited node
+        to discourage other threads from the same path.
+
+        Returns:
+            Tuple of (selected_node, list_of_nodes_with_virtual_loss)
+        """
+        vl_path = []
+        node = root
+
+        pw_bias_w = self.progressive_bias_weight if self.progressive_bias_enabled else 0.0
+        ph_w = self.progressive_history_weight if self.progressive_history_enabled else 0.0
+        hist = self._history_table if self.progressive_history_enabled else None
+        mm_alpha = self.minimax_backup_alpha
+        rave_on = self.rave_enabled
+        rave_k = self.rave_k
+
+        while not node.is_terminal():
+            if self.progressive_widening_enabled:
+                if node.should_expand_pw(self.pw_c, self.pw_alpha):
+                    return node, vl_path
+                if node.children:
+                    node.apply_virtual_loss(self.virtual_loss)
+                    vl_path.append(node)
+                    node = node.select_child(
+                        exploration_constant=self.exploration_constant,
+                        progressive_bias_weight=pw_bias_w,
+                        progressive_history_weight=ph_w,
+                        history_table=hist,
+                        minimax_alpha=mm_alpha,
+                        rave_enabled=rave_on,
+                        rave_k=rave_k,
+                    )
+                else:
+                    return node, vl_path
+            else:
+                if not node.is_fully_expanded():
+                    return node, vl_path
+                node.apply_virtual_loss(self.virtual_loss)
+                vl_path.append(node)
+                node = node.select_child(
+                    exploration_constant=self.exploration_constant,
+                    progressive_bias_weight=pw_bias_w,
+                    progressive_history_weight=ph_w,
+                    history_table=hist,
+                    minimax_alpha=mm_alpha,
+                    rave_enabled=rave_on,
+                    rave_k=rave_k,
+                )
+
+        return node, vl_path
 
     def _mcts_iteration(self, root: MCTSNode):
         """
@@ -1319,6 +1519,10 @@ class MCTSAgent:
                 "rave_k": self.rave_k,
                 "nst_enabled": self.nst_enabled,
                 "nst_weight": self.nst_weight,
+                # Layer 8
+                "num_workers": self.num_workers,
+                "virtual_loss": self.virtual_loss,
+                "parallel_strategy": self.parallel_strategy,
             },
             "stats": self.stats.copy()
         }
@@ -1349,6 +1553,11 @@ class MCTSAgent:
             "two_ply_evals": 0,
             "cutoff_evals": 0,
             "minimax_updates": 0,
+            # Layer 8
+            "parallel_workers": 0,
+            "parallel_strategy": "none",
+            "parallel_trees_merged": 0,
+            "virtual_loss_applications": 0,
         }
 
         if self.transposition_table:

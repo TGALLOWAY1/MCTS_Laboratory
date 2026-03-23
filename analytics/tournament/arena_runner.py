@@ -542,6 +542,10 @@ def build_agent(config: AgentConfig, seed: int) -> _ArenaAgentAdapter:
             kingmaker_score_gap=int(params.get("kingmaker_score_gap", 15)),
             adaptive_opponent_enabled=bool(params.get("adaptive_opponent_enabled", False)),
             defensive_weight_shift=float(params.get("defensive_weight_shift", 0.15)),
+            # Layer 8: Parallelization
+            num_workers=int(params.get("num_workers", 1)),
+            virtual_loss=float(params.get("virtual_loss", 1.0)),
+            parallel_strategy=str(params.get("parallel_strategy", "root")),
         )
         return _SelectActionAdapter(agent)
 
