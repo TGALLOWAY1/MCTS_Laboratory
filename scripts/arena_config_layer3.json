@@ -1,56 +1,53 @@
 {
   "agents": [
     {
-      "name": "mcts_default_eval",
+      "name": "mcts_baseline",
       "type": "mcts",
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
         "iterations_per_ms": 10.0,
-        "rollout_policy": "two_ply",
-        "rollout_cutoff_depth": 8
+        "exploration_constant": 1.414
       }
     },
     {
-      "name": "mcts_calibrated_eval",
+      "name": "mcts_progressive_widening",
       "type": "mcts",
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
         "iterations_per_ms": 10.0,
-        "rollout_policy": "two_ply",
-        "rollout_cutoff_depth": 8,
-        "state_eval_weights": {
-          "squares_placed": 0.029522477044715226,
-          "remaining_piece_area": -0.029522477044715147,
-          "accessible_corners": 0.24310302640254203,
-          "reachable_empty_squares": 0.08109693693246343,
-          "largest_remaining_piece_size": -0.23120837257261234,
-          "opponent_avg_mobility": -0.3,
-          "center_proximity": 0.0,
-          "territory_enclosure_area": 0.0
-        }
+        "exploration_constant": 1.414,
+        "progressive_widening_enabled": true,
+        "pw_c": 2.0,
+        "pw_alpha": 0.5
       }
     },
     {
-      "name": "mcts_baseline_no_eval",
+      "name": "mcts_progressive_history",
       "type": "mcts",
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
         "iterations_per_ms": 10.0,
-        "rollout_policy": "heuristic"
+        "exploration_constant": 1.414,
+        "progressive_history_enabled": true,
+        "progressive_history_weight": 1.0
       }
     },
     {
-      "name": "mcts_default_heuristic_rollout",
+      "name": "mcts_pw_plus_ph",
       "type": "mcts",
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
         "iterations_per_ms": 10.0,
-        "rollout_policy": "heuristic",
-        "rollout_cutoff_depth": 8
+        "exploration_constant": 1.414,
+        "progressive_widening_enabled": true,
+        "pw_c": 2.0,
+        "pw_alpha": 0.5,
+        "progressive_history_enabled": true,
+        "progressive_history_weight": 1.0
       }
     }
   ],
@@ -64,5 +61,5 @@
     "strategy": "fixed_ply",
     "checkpoints": [8, 16, 24, 32, 40, 48, 56, 64]
   },
-  "notes": "Layer 6.1: Calibrated weights vs default weights"
+  "notes": "Layer 3: Full validation of progressive widening and progressive history vs baseline MCTS"
 }
