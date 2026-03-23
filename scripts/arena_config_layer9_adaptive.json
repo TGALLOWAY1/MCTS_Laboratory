@@ -1,0 +1,71 @@
+{
+  "agents": [
+    {
+      "name": "mcts_baseline",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 10.0,
+        "exploration_constant": 1.414,
+        "rollout_cutoff_depth": 20,
+        "heuristic_move_ordering": true
+      }
+    },
+    {
+      "name": "mcts_adaptive_c",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 10.0,
+        "exploration_constant": 1.414,
+        "rollout_cutoff_depth": 20,
+        "heuristic_move_ordering": true,
+        "adaptive_exploration_enabled": true,
+        "adaptive_exploration_base": 1.414,
+        "adaptive_exploration_avg_bf": 80.0
+      }
+    },
+    {
+      "name": "mcts_adaptive_depth",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 10.0,
+        "exploration_constant": 1.414,
+        "heuristic_move_ordering": true,
+        "adaptive_rollout_depth_enabled": true,
+        "adaptive_rollout_depth_base": 20,
+        "adaptive_rollout_depth_avg_bf": 80.0
+      }
+    },
+    {
+      "name": "mcts_adaptive_full",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 10.0,
+        "exploration_constant": 1.414,
+        "heuristic_move_ordering": true,
+        "adaptive_exploration_enabled": true,
+        "adaptive_exploration_base": 1.414,
+        "adaptive_exploration_avg_bf": 80.0,
+        "adaptive_rollout_depth_enabled": true,
+        "adaptive_rollout_depth_base": 20,
+        "adaptive_rollout_depth_avg_bf": 80.0,
+        "sufficiency_threshold_enabled": true,
+        "loss_avoidance_enabled": true,
+        "loss_avoidance_threshold": -50.0
+      }
+    }
+  ],
+  "num_games": 100,
+  "seed": 20260323,
+  "seat_policy": "round_robin",
+  "output_root": "arena_runs",
+  "max_turns": 2500,
+  "notes": "Layer 9: Meta-optimization — adaptive C, adaptive rollout depth, sufficiency threshold, and loss avoidance vs baseline"
+}
