@@ -989,15 +989,70 @@ def run_experiment(
     *,
     verbose: bool = False,
     enable_game_logging: bool = False,
+    resume_run_dir: Optional[str | Path] = None,
 ) -> Dict[str, Any]:
-    """Run a full arena experiment and write all required artifacts."""
-    run_id, run_dir = _prepare_run_directory(run_config)
-    timestamp_iso = datetime.now().isoformat(timespec="seconds")
-    run_config_payload = run_config.to_dict()
-    run_config_payload["run_id"] = run_id
-    run_config_payload["created_at"] = timestamp_iso
+    """Run a full arena experiment and write all required artifacts.
 
-    _write_json(run_dir / "run_config.json", run_config_payload)
+    If resume_run_dir is provided, appends games to an existing run until
+    num_games is reached. Uses the config from the existing run.
+    """
+    if resume_run_dir is not None:
+        run_dir = Path(resume_run_dir)
+        if not run_dir.exists():
+            raise FileNotFoundError(f"Resume directory not found: {run_dir}")
+        config_path = run_dir / "run_config.json"
+        if not config_path.exists():
+            raise FileNotFoundError(
+                f"Cannot resume: {config_path} not found. "
+                "Resume requires an existing run with run_config.json."
+            )
+        run_config_payload = json.loads(config_path.read_text())
+        run_config = RunConfig.from_dict(run_config_payload)
+        run_id = run_config_payload.get("run_id", run_dir.name)
+
+        # Load existing games (skip malformed lines from concurrent writes)
+        games_path = run_dir / "games.jsonl"
+        all_games = []
+        if games_path.exists():
+            with games_path.open("r", encoding="utf-8") as f:
+                for line in f:
+                    if not line.strip():
+                        continue
+                    try:
+                        record = json.loads(line)
+                        if isinstance(record, dict):
+                            all_games.append(record)
+                    except json.JSONDecodeError:
+                        continue
+
+        start_index = len(all_games)
+        if start_index >= run_config.num_games:
+            return {
+                "run_id": run_id,
+                "run_dir": str(run_dir),
+                "summary": json.loads((run_dir / "summary.json").read_text())
+                if (run_dir / "summary.json").exists()
+                else {},
+                "snapshot_rows": 0,
+            }
+
+        if verbose:
+            print(
+                f"      Resuming: {start_index} games exist, "
+                f"running {run_config.num_games - start_index} more"
+            )
+    else:
+        run_id, run_dir = _prepare_run_directory(run_config)
+        start_index = 0
+        all_games = []
+        games_path = run_dir / "games.jsonl"
+        timestamp_iso = datetime.now().isoformat(timespec="seconds")
+        run_config_payload = run_config.to_dict()
+        run_config_payload["run_id"] = run_id
+        run_config_payload["created_at"] = timestamp_iso
+        _write_json(run_dir / "run_config.json", run_config_payload)
+
+    timestamp_iso = datetime.now().isoformat(timespec="seconds")
 
     # Create game logger if requested
     game_logger: Optional[StrategyLogger] = None
@@ -1005,12 +1060,11 @@ def run_experiment(
         log_dir = str(run_dir / "game_logs")
         game_logger = StrategyLogger(log_dir=log_dir)
 
-    games_path = run_dir / "games.jsonl"
-    all_games: List[Dict[str, Any]] = []
     all_snapshot_rows: List[Dict[str, Any]] = []
     agent_configs = {agent.name: agent for agent in run_config.agents}
-    with games_path.open("w", encoding="utf-8") as handle:
-        for game_index in range(run_config.num_games):
+    mode = "a" if resume_run_dir else "w"
+    with games_path.open(mode, encoding="utf-8") as handle:
+        for game_index in range(start_index, run_config.num_games):
             game_seed = game_seed_from_run_seed(run_config.seed, game_index)
             seat_assignment = _seat_assignment_for_game(
                 run_config.agent_names,
