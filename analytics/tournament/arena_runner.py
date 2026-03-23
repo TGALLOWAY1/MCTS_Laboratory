@@ -504,6 +504,13 @@ def build_agent(config: AgentConfig, seed: int) -> _ArenaAgentAdapter:
             potential_shaping_weight=float(params.get("potential_shaping_weight", 1.0)),
             potential_mode=str(params.get("potential_mode", "prob")),
             max_rollout_moves=int(params.get("max_rollout_moves", 50)),
+            # Layer 3: Action Reduction
+            progressive_widening_enabled=bool(params.get("progressive_widening_enabled", False)),
+            pw_c=float(params.get("pw_c", 2.0)),
+            pw_alpha=float(params.get("pw_alpha", 0.5)),
+            progressive_history_enabled=bool(params.get("progressive_history_enabled", False)),
+            progressive_history_weight=float(params.get("progressive_history_weight", 1.0)),
+            heuristic_move_ordering=bool(params.get("heuristic_move_ordering", False)),
         )
         return _SelectActionAdapter(agent)
 
