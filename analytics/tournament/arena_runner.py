@@ -520,6 +520,8 @@ def build_agent(config: AgentConfig, seed: int) -> _ArenaAgentAdapter:
             # Layer 5: History Heuristics & RAVE
             rave_enabled=bool(params.get("rave_enabled", False)),
             rave_k=float(params.get("rave_k", 1000.0)),
+            nst_enabled=bool(params.get("nst_enabled", False)),
+            nst_weight=float(params.get("nst_weight", 0.5)),
         )
         return _SelectActionAdapter(agent)
 

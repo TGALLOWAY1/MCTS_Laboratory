@@ -10,7 +10,9 @@ backups for multi-player robustness.
 
 Layer 5 additions: RAVE (Rapid Action Value Estimation) for cold-start
 bootstrapping — per-node action statistics from rollout moves blend with
-UCT Q-values via configurable equivalence constant k.
+UCT Q-values via configurable equivalence constant k. NST (N-gram
+Selection Technique) biases rollout move selection using 2-gram
+same-player move pair statistics.
 """
 
 import math
@@ -355,6 +357,8 @@ class MCTSAgent:
         # --- Layer 5: History Heuristics & RAVE ---
         rave_enabled: bool = False,
         rave_k: float = 1000.0,
+        nst_enabled: bool = False,
+        nst_weight: float = 0.5,
     ):
         """
         Initialize MCTS agent.
@@ -388,6 +392,8 @@ class MCTSAgent:
             minimax_backup_alpha: Blending weight for implicit minimax backups (0.0 = off) (Layer 4)
             rave_enabled: Enable RAVE (Rapid Action Value Estimation) blending (Layer 5)
             rave_k: RAVE equivalence constant; beta = sqrt(k / (3*N + k)) (Layer 5)
+            nst_enabled: Enable N-gram Selection Technique for rollout bias (Layer 5)
+            nst_weight: Bias weight for NST-scored moves during rollout (Layer 5)
         """
         self.iterations = iterations
         self.time_limit = time_limit
@@ -427,6 +433,8 @@ class MCTSAgent:
         # Layer 5 params
         self.rave_enabled = bool(rave_enabled)
         self.rave_k = float(rave_k)
+        self.nst_enabled = bool(nst_enabled)
+        self.nst_weight = float(nst_weight)
 
         if self.potential_mode not in {"prob", "logit"}:
             raise ValueError("potential_mode must be either 'prob' or 'logit'.")
@@ -477,6 +485,13 @@ class MCTSAgent:
         # Persists across moves within a game.
         self._history_table: Dict[int, List[float]] = defaultdict(lambda: [0.0, 0])
 
+        # Layer 5: NST (N-gram Selection Technique) table.
+        # Key: (prev_action_key, current_action_key) — 2-gram of same-player moves.
+        # Value: [total_reward, count]. Persists across moves within a game.
+        self._nst_table: Dict[Tuple[int, int], List[float]] = defaultdict(lambda: [0.0, 0])
+        # Track last action key played by root player (for NST continuity)
+        self._last_root_action_key: Optional[int] = None
+
         # Statistics
         self.stats = {
             "iterations_run": 0,
@@ -493,8 +508,9 @@ class MCTSAgent:
             "two_ply_evals": 0,
             "cutoff_evals": 0,
             "minimax_updates": 0,
-            # Layer 5: RAVE stats
+            # Layer 5: RAVE & NST stats
             "rave_updates": 0,
+            "nst_rollout_biases": 0,
         }
 
     def select_action(self, board: Board, player: Player, legal_moves: List[Move]) -> Optional[Move]:
@@ -538,6 +554,10 @@ class MCTSAgent:
 
         # Get best move
         best_move = root.get_best_move()
+
+        # Layer 5: Update NST last-action key for cross-move continuity
+        if self.nst_enabled and best_move is not None:
+            self._last_root_action_key = move_action_key(best_move)
 
         # Clean up transposition table if needed
         if self.transposition_table and len(self.transposition_table.table) > 500000:
@@ -837,10 +857,13 @@ class MCTSAgent:
                 self.stats["evaluator_errors"] += 1
                 initial_potential = None
 
-        # Layer 5: Track root player's moves for RAVE
+        # Layer 5: Track root player's moves for RAVE and NST
         root_player = self._root_player
         track_rave = self.rave_enabled and root_player is not None
+        track_nst = self.nst_enabled and root_player is not None
         rollout_actions: List[int] = []
+        # NST: track root player's previous action key within this rollout
+        nst_prev_own_key: Optional[int] = self._last_root_action_key if track_nst else None
 
         # Simulate until game ends or max moves
         moves_made = 0
@@ -863,8 +886,16 @@ class MCTSAgent:
             if not legal_moves:
                 break
 
+            # Layer 5: NST-biased move selection for root player
+            if (
+                track_nst
+                and current_player == root_player
+                and nst_prev_own_key is not None
+                and len(legal_moves) > 1
+            ):
+                move = self._nst_biased_select(legal_moves, nst_prev_own_key)
             # Layer 4: Select move using configured rollout policy
-            if self.rollout_policy == "two_ply":
+            elif self.rollout_policy == "two_ply":
                 move = self._two_ply_select(sim_board, current_player, legal_moves)
             elif self.rollout_policy == "random":
                 move = legal_moves[self._rng.randint(len(legal_moves))]
@@ -875,9 +906,13 @@ class MCTSAgent:
             if move is None:
                 break
 
-            # Layer 5: Record root player's moves for RAVE
-            if track_rave and current_player == root_player:
-                rollout_actions.append(move_action_key(move))
+            # Layer 5: Record root player's moves for RAVE and NST
+            if current_player == root_player:
+                akey = move_action_key(move)
+                if track_rave:
+                    rollout_actions.append(akey)
+                if track_nst:
+                    nst_prev_own_key = akey
 
             # Make move
             move_positions = self._get_move_positions(move)
@@ -965,6 +1000,47 @@ class MCTSAgent:
 
         self.stats["two_ply_evals"] += len(candidates)
         return best_move
+
+    def _nst_biased_select(
+        self, legal_moves: List[Move], prev_action_key: int
+    ) -> Move:
+        """Select a rollout move biased by NST 2-gram statistics.
+
+        Computes a softmax-weighted distribution over legal moves using the
+        NST table score for the (prev_action_key, candidate_key) pair.
+        Falls back to uniform random if no NST data exists.
+
+        Args:
+            legal_moves: Available legal moves
+            prev_action_key: The root player's previous action key
+
+        Returns:
+            Selected move
+        """
+        scores = []
+        has_data = False
+        for move in legal_moves:
+            ckey = move_action_key(move)
+            entry = self._nst_table.get((prev_action_key, ckey))
+            if entry is not None and entry[1] > 0:
+                scores.append(entry[0] / entry[1])
+                has_data = True
+            else:
+                scores.append(0.0)
+
+        if not has_data:
+            # No NST data — fall back to random
+            return legal_moves[self._rng.randint(len(legal_moves))]
+
+        # Softmax with temperature = nst_weight
+        scores_arr = np.array(scores, dtype=np.float64)
+        # Shift for numerical stability
+        scores_arr -= scores_arr.max()
+        weights = np.exp(scores_arr * self.nst_weight)
+        weights /= weights.sum()
+        idx = self._rng.choice(len(legal_moves), p=weights)
+        self.stats["nst_rollout_biases"] += 1
+        return legal_moves[idx]
 
     def _get_move_positions(self, move: Move) -> List[Position]:
         """Get positions that a move would occupy."""
@@ -1056,6 +1132,17 @@ class MCTSAgent:
                     self.stats["minimax_updates"] += 1
             node = node.parent
 
+        # Layer 5: Update NST 2-gram table from rollout action sequence.
+        # rollout_actions is the sequence of root player's action keys.
+        if self.nst_enabled and rollout_actions and len(rollout_actions) >= 2:
+            prev_key = self._last_root_action_key
+            for akey in rollout_actions:
+                if prev_key is not None:
+                    entry = self._nst_table[(prev_key, akey)]
+                    entry[0] += reward
+                    entry[1] += 1
+                prev_key = akey
+
     def get_action_info(self) -> Dict[str, Any]:
         """Get information about the agent."""
         info = {
@@ -1090,6 +1177,8 @@ class MCTSAgent:
                 # Layer 5
                 "rave_enabled": self.rave_enabled,
                 "rave_k": self.rave_k,
+                "nst_enabled": self.nst_enabled,
+                "nst_weight": self.nst_weight,
             },
             "stats": self.stats.copy()
         }
@@ -1126,8 +1215,14 @@ class MCTSAgent:
             self.transposition_table.clear()
 
     def reset_history(self):
-        """Reset progressive history table (call between games)."""
+        """Reset progressive history and NST tables (call between games).
+
+        RAVE tables are per-node (on the tree) and auto-reset when a new
+        tree is constructed each move.
+        """
         self._history_table.clear()
+        self._nst_table.clear()
+        self._last_root_action_key = None
 
     def set_seed(self, seed: int):
         """Set random seed for reproducible behavior."""
