@@ -47,6 +47,11 @@ class LearnedWinProbabilityEvaluator:
         self.max_turns = int(max_turns)
         self.potential_mode = potential_mode
         self.move_generator = LegalMoveGenerator()
+        # Cache to avoid redundant feature extraction for the same board state.
+        # predict_player_win_probability is called per-player, but features for
+        # ALL players are extracted each time — caching eliminates the 4x redundancy.
+        self._feature_cache_key: Tuple[Any, ...] | None = None
+        self._feature_cache_value: Dict[int, Dict[str, float]] = {}
 
         self._is_dummy = self.artifact_path.endswith("dummy_model.json")
         if self._is_dummy:
@@ -76,6 +81,10 @@ class LearnedWinProbabilityEvaluator:
         )
 
     def _extract_features_for_all_players(self, board: Board) -> Dict[int, Dict[str, float]]:
+        cache_key = self._build_cache_key(board)
+        if cache_key == self._feature_cache_key:
+            return self._feature_cache_value
+
         context = build_snapshot_runtime_context(
             board,
             turn_index=int(board.move_count),
@@ -90,6 +99,9 @@ class LearnedWinProbabilityEvaluator:
                 move_generator=self.move_generator,
             )
             by_player[int(player.value)] = coerce_feature_dict(features)
+
+        self._feature_cache_key = cache_key
+        self._feature_cache_value = by_player
         return by_player
 
     def _predict_pairwise(
