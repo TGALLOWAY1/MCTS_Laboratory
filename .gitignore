@@ -60,10 +60,6 @@ out/
 # Database Files
 *.sqlite3
 *.db
-league.db
-league_portfolio.db
-league_smoke.db
-league_stage2.db
 
 # Project Artifacts
 checkpoints/
@@ -73,6 +69,9 @@ training_data/
 arena_runs/
 baseline_runs/
 validation_runs/
+
+# Runtime logs
+*.log
 
 # IDE / Editor
 .idea/
