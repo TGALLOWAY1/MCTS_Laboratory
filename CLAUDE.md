@@ -65,9 +65,21 @@ python scripts/arena.py --config scripts/arena_config_extended_rollout.json --nu
 - `virtual_loss`: Virtual loss magnitude for tree parallelization (default: `1.0`). Controls how strongly nodes are penalized during concurrent selection.
 - `parallel_strategy`: `"root"` (default, recommended) or `"tree"`. Root parallelization uses multiprocessing (real speedup in Python). Tree parallelization uses threading with virtual loss (GIL-limited but architecturally correct).
 
+### Layer 9: Meta-Optimization Parameters
+
+- `adaptive_exploration_enabled`: Enable branching-factor-adaptive exploration constant C (default: `false`).
+- `adaptive_exploration_base`: Base exploration constant for adaptive C (default: `1.414`). Effective C = base * sqrt(bf / avg_bf).
+- `adaptive_exploration_avg_bf`: Average branching factor for C normalisation (default: `80.0`).
+- `adaptive_rollout_depth_enabled`: Enable branching-factor-adaptive rollout cutoff depth (default: `false`).
+- `adaptive_rollout_depth_base`: Base rollout cutoff depth (default: `20`). Effective depth = base * (avg_bf / bf).
+- `adaptive_rollout_depth_avg_bf`: Average branching factor for depth normalisation (default: `80.0`).
+- `sufficiency_threshold_enabled`: Enable UCT sufficiency threshold — after 1/3 warmup, switch to C=0 when any child Q > mean + stddev (default: `false`).
+- `loss_avoidance_enabled`: Enable loss avoidance — redirect selection away from catastrophic nodes (default: `false`).
+- `loss_avoidance_threshold`: Reward threshold below which a result is catastrophic (default: `-50.0`).
+
 ## Project Structure
 
-- `mcts/mcts_agent.py` — Full MCTSAgent with RAVE, progressive history, NST, configurable rollout policies, opponent modeling (Layer 7), and parallelization (Layer 8)
+- `mcts/mcts_agent.py` — Full MCTSAgent with RAVE, progressive history, NST, configurable rollout policies, opponent modeling (Layer 7), parallelization (Layer 8), and adaptive meta-optimization (Layer 9)
 - `mcts/parallel.py` — Root parallelization: worker spawning, config serialization, result merging (Layer 8)
 - `mcts/opponent_model.py` — Opponent modeling: blocking tracker, alliance detection, king-maker awareness, adaptive profiles (Layer 7)
 - `mcts/state_evaluator.py` — Lightweight state evaluation function with phase-dependent weights (Layers 4, 6)
@@ -76,4 +88,5 @@ python scripts/arena.py --config scripts/arena_config_extended_rollout.json --nu
 - `scripts/arena_config*.json` — Arena configuration files
 - `scripts/collect_layer6_data.py` — Self-play data collection for evaluation refinement
 - `scripts/analyze_layer6_features.py` — Feature importance analysis (regression, SHAP, residuals)
+- `scripts/self_improve.py` — Self-improvement loop: run tournaments, track metrics over time (Layer 9)
 - `analytics/tournament/arena_runner.py` — Arena harness and agent construction
