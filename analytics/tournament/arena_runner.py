@@ -516,6 +516,7 @@ def build_agent(config: AgentConfig, seed: int) -> _ArenaAgentAdapter:
             two_ply_top_k=int(params["two_ply_top_k"]) if params.get("two_ply_top_k") is not None else None,
             rollout_cutoff_depth=int(params["rollout_cutoff_depth"]) if params.get("rollout_cutoff_depth") is not None else None,
             state_eval_weights=params.get("state_eval_weights"),
+            state_eval_phase_weights=params.get("state_eval_phase_weights"),
             minimax_backup_alpha=float(params.get("minimax_backup_alpha", 0.0)),
             # Layer 5: History Heuristics & RAVE
             rave_enabled=bool(params.get("rave_enabled", False)),

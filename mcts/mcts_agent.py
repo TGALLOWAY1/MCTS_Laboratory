@@ -353,6 +353,7 @@ class MCTSAgent:
         two_ply_top_k: Optional[int] = None,
         rollout_cutoff_depth: Optional[int] = None,
         state_eval_weights: Optional[Dict[str, float]] = None,
+        state_eval_phase_weights: Optional[Dict[str, Dict[str, float]]] = None,
         minimax_backup_alpha: float = 0.0,
         # --- Layer 5: History Heuristics & RAVE ---
         rave_enabled: bool = False,
@@ -389,6 +390,7 @@ class MCTSAgent:
             two_ply_top_k: Top-K filter for two-ply rollouts (None = all moves) (Layer 4)
             rollout_cutoff_depth: Cut off rollout at this depth and eval statically (None = full) (Layer 4)
             state_eval_weights: Custom weights for BlokusStateEvaluator (Layer 4)
+            state_eval_phase_weights: Phase-dependent weight dicts {"early": {...}, "mid": {...}, "late": {...}} (Layer 6)
             minimax_backup_alpha: Blending weight for implicit minimax backups (0.0 = off) (Layer 4)
             rave_enabled: Enable RAVE (Rapid Action Value Estimation) blending (Layer 5)
             rave_k: RAVE equivalence constant; beta = sqrt(k / (3*N + k)) (Layer 5)
@@ -475,7 +477,11 @@ class MCTSAgent:
             )
 
         # Layer 4: State evaluator for two-ply search and early termination
-        self.state_evaluator = BlokusStateEvaluator(weights=state_eval_weights)
+        # Layer 6: Phase-dependent weights override single weight vector
+        self.state_evaluator = BlokusStateEvaluator(
+            weights=state_eval_weights,
+            phase_weights=state_eval_phase_weights,
+        )
         # RNG for random rollout policy
         self._rng = np.random.RandomState(seed)
         # Track root player for minimax backups
