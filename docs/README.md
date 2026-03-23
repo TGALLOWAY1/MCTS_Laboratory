@@ -1,32 +1,37 @@
-# Project Documentation Index
+# Documentation Index
 
-Last verified: March 2026.
+Last updated: March 2026.
 
-Welcome to the Blokus RL documentation directory. This folder aggregates all technical documentation, architecture notes, and guides for the project.
+## Active Documentation
 
-## Directory Structure
-
-- **/architecture/**: Architectural decisions, performance optimizations, and audit reports.
+- **/architecture/**: Engine optimization reports and performance results.
 - **/config/**: Agent configurations and environment variable setups.
-- **/deployment/**: Notes and manifests for deploying the frontend/backend to Vercel/etc.
+- **/deployment/**: Deployment notes and manifests (Vercel, etc.).
 - **/engine/**: Move generation logic, win detection, and game engine internals.
 - **/frontend/**: Setup instructions and design notes for the React UI.
-- **/training/**: Documentation covering SB3 / PettingZoo reinforcement learning pipelines, RL agent evaluation, and metrics.
-- **/webapi/**: Documentation for FastAPI gameplay and research endpoints.
-- **/metrics/**: Notes on advanced mobility metrics, frontier calculations, etc.
-- **arena.md**: Reproducible arena experiment runner, output artifacts, summary interpretation, win-probability training commands, and learned-evaluator MCTS integration.
-- **datasets.md**: Arena dataset schemas (`games.jsonl`, snapshots parquet/csv), pairwise transformation, and loading examples.
-- **project-history.md**: Condensed narrative of the repository's shift from an RL-first Blokus environment to an MCTS-centered experimentation platform.
-- **profiler_baseline.md**: MCTS profiler baseline results — time breakdown by phase (selection, expansion, simulation, backpropagation), memory footprint, and optimization recommendations.
+- **/mcts-analysis-mode/**: MCTS diagnostics, analysis panel usage, metrics explained.
+- **/metrics/**: Advanced mobility metrics, frontier calculations, endgame analysis.
+- **/telemetry/**: Move-delta dashboards, move-vs-round semantics, verification.
+- **/webapi/**: FastAPI gameplay and research endpoint documentation.
+- **arena.md**: Arena experiment runner, output artifacts, win-probability training, learned-evaluator integration.
+- **datasets.md**: Arena dataset schemas (`games.jsonl`, snapshots parquet/csv), pairwise transformation.
+- **evaluation.md**: State evaluation design and feature descriptions.
+- **profiler_baseline.md**: MCTS profiler baseline — time breakdown by phase, memory footprint, optimization notes.
+- **project-history.md**: Full narrative of the project's evolution from RL environment to MCTS platform.
 
-## Measurement Infrastructure (Layer 0)
+## Archived Documentation
 
-The project includes a comprehensive measurement infrastructure for evaluating agent performance:
+Outdated, RL-specific, and historical documentation has been moved to `archive/docs/` and `archive/rl/training-docs/`. This includes:
+- RL training architecture, VecEnv compatibility, checkpoint docs
+- Cleanup plans, audit notes, verification checklists
+- MongoDB setup, tournament planning docs
 
-- **Game Logger** (`analytics/logging/`): Per-move MCTS diagnostics (iterations, tree depth, visit entropy, Q-values, regret gap, score deltas). See `URGENT_TODO.md` at project root for verification instructions.
-- **TrueSkill Ratings** (`analytics/tournament/trueskill_rating.py`): Multiplayer skill rating using Plackett-Luce model with convergence detection.
-- **Statistical Testing** (`analytics/tournament/statistics.py`): Bootstrap CIs, permutation tests, seat-position analysis, score margins.
+## Measurement Infrastructure
+
+- **Game Logger** (`analytics/logging/`): Per-move MCTS diagnostics (iterations, tree depth, visit entropy, Q-values, regret gap, score deltas).
+- **TrueSkill Ratings** (`analytics/tournament/trueskill_rating.py`): Multiplayer skill rating with convergence detection.
+- **Statistical Testing** (`analytics/tournament/statistics.py`): Bootstrap CIs, permutation tests, seat-position analysis.
 - **Profiler** (`scripts/profile_mcts.py`): Structured per-phase MCTS timing breakdown.
-- **Tournament Runner** (`scripts/run_tournament.py`): Single command to run a tournament and produce a full report.
+- **Tournament Runner** (`scripts/run_tournament.py`): Single command for tournament + full report.
 
-*To start running or developing the project, please see the root [README.md](../README.md).*
+*To start running the project, see the root [README.md](../README.md).*
