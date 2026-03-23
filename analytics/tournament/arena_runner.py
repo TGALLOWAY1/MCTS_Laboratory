@@ -546,6 +546,16 @@ def build_agent(config: AgentConfig, seed: int) -> _ArenaAgentAdapter:
             num_workers=int(params.get("num_workers", 1)),
             virtual_loss=float(params.get("virtual_loss", 1.0)),
             parallel_strategy=str(params.get("parallel_strategy", "root")),
+            # Layer 9: Meta-Optimization
+            adaptive_exploration_enabled=bool(params.get("adaptive_exploration_enabled", False)),
+            adaptive_exploration_base=float(params.get("adaptive_exploration_base", 1.414)),
+            adaptive_exploration_avg_bf=float(params.get("adaptive_exploration_avg_bf", 80.0)),
+            adaptive_rollout_depth_enabled=bool(params.get("adaptive_rollout_depth_enabled", False)),
+            adaptive_rollout_depth_base=int(params.get("adaptive_rollout_depth_base", 20)),
+            adaptive_rollout_depth_avg_bf=float(params.get("adaptive_rollout_depth_avg_bf", 80.0)),
+            sufficiency_threshold_enabled=bool(params.get("sufficiency_threshold_enabled", False)),
+            loss_avoidance_enabled=bool(params.get("loss_avoidance_enabled", False)),
+            loss_avoidance_threshold=float(params.get("loss_avoidance_threshold", -50.0)),
         )
         return _SelectActionAdapter(agent)
 
