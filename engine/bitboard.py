@@ -83,6 +83,13 @@ def coord_to_bit(row: int, col: int) -> int:
     return BIT_TABLE[row][col]
 
 
+def popcount(mask: int) -> int:
+    """
+    Count set bits in a bitmask. Compatible with Python 3.9 (int.bit_count added in 3.10).
+    """
+    return bin(mask).count("1")
+
+
 def coords_to_mask(coords: Iterable[Tuple[int, int]]) -> int:
     """
     Convert a collection of coordinates to a bitmask.

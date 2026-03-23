@@ -26,6 +26,7 @@ from .bitboard import (
     coord_to_bit,
     coords_to_mask,
     mask_to_coords,
+    popcount,
     shift_mask,
     shift_mask_fast,
 )
@@ -787,7 +788,7 @@ class LegalMoveGenerator:
         # Verify all shape cells are on board (popcount check)
         # shift_mask_fast drops off-board bits, so if any were lost, the piece
         # doesn't fully fit.
-        if shifted_shape.bit_count() != len(piece_orientation.offsets):
+        if popcount(shifted_shape) != len(piece_orientation.offsets):
             return False
 
         # 2. Orthogonal adjacency check — must NOT touch own pieces orthogonally

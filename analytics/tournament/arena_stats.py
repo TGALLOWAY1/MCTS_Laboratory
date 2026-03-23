@@ -23,13 +23,23 @@ from analytics.tournament.trueskill_rating import TrueSkillTracker
 
 
 def load_games_jsonl(path: Union[str, Path]) -> List[Dict[str, Any]]:
-    """Load game records from JSONL."""
+    """Load game records from JSONL. Skips empty and malformed lines."""
     records: List[Dict[str, Any]] = []
-    with Path(path).open("r", encoding="utf-8") as handle:
-        for line in handle:
-            if not line.strip():
+    path_obj = Path(path)
+    if not path_obj.exists():
+        return records
+    with path_obj.open("r", encoding="utf-8") as handle:
+        for line_num, line in enumerate(handle, 1):
+            stripped = line.strip()
+            if not stripped:
                 continue
-            records.append(json.loads(line))
+            try:
+                record = json.loads(line)
+                if isinstance(record, dict):
+                    records.append(record)
+            except json.JSONDecodeError:
+                # Skip malformed lines (e.g. from concurrent writes)
+                continue
     return records
 
 

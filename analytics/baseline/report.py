@@ -142,11 +142,14 @@ def _section_qvalue_convergence(data: Dict[str, Any]) -> str:
             mq = entry.get("mean_best_q")
             sq = entry.get("std_best_q")
             rg = entry.get("mean_regret_gap")
+            mq_str = f"{mq:.4f}" if mq is not None else "N/A"
+            sq_str = f"{sq:.4f}" if sq is not None else "N/A"
+            rg_str = f"{rg:.4f}" if rg is not None else "N/A"
             lines.append(
                 f"| {int(budget)//1000}K | "
-                f"{mq:.4f if mq is not None else 'N/A'} | "
-                f"{sq:.4f if sq is not None else 'N/A'} | "
-                f"{rg:.4f if rg is not None else 'N/A'} | "
+                f"{mq_str} | "
+                f"{sq_str} | "
+                f"{rg_str} | "
                 f"{entry.get('states_measured', 0)} |"
             )
 
