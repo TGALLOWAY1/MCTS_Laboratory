@@ -401,6 +401,24 @@ def main():
     report_path = output_dir / "baseline_report.md"
     generate_baseline_report(all_results, report_path)
 
+    # Also save a copy to reports/ for easy access
+    reports_dir = Path("reports")
+    reports_dir.mkdir(parents=True, exist_ok=True)
+    copy_path = reports_dir / "layer1_baseline_report.md"
+    report_text = report_path.read_text(encoding="utf-8")
+    # Fix image paths to be relative to project root
+    report_text = report_text.replace("](plots/", f"]({output_dir}/plots/")
+    # Add data source after the title
+    if report_text.startswith("# "):
+        first_newline = report_text.index("\n")
+        report_text = (
+            report_text[: first_newline + 1]
+            + f"**Data source:** `{output_dir}`\n\n"
+            + report_text[first_newline + 1 :]
+        )
+    copy_path.write_text(report_text, encoding="utf-8")
+    print(f"      Copy saved to {copy_path}")
+
     # Save raw data (excluding large curve/results that are in sub-dirs)
     data_path = output_dir / "baseline_data.json"
     # Serialize only JSON-safe parts
@@ -429,6 +447,7 @@ def main():
     print(f"Layer 1 Baseline Characterization Complete")
     print(f"{'=' * 60}")
     print(f"Report:  {report_path}")
+    print(f"Copy:    {copy_path}")
     print(f"Data:    {data_path}")
     print(f"Plots:   {output_dir / 'plots'}")
     if not args.skip_convergence:
