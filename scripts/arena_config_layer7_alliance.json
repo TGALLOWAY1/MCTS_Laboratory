@@ -94,6 +94,52 @@
       }
     },
     {
+      "name": "L7_kingmaker_only",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 10.0,
+        "rollout_policy": "heuristic",
+        "rollout_cutoff_depth": 8,
+        "state_eval_phase_weights": {
+          "early": {
+            "squares_placed": -0.176,
+            "remaining_piece_area": 0.176,
+            "accessible_corners": 0.3,
+            "reachable_empty_squares": 0.0,
+            "largest_remaining_piece_size": 0.0,
+            "opponent_avg_mobility": -0.053,
+            "territory_enclosure_area": 0.0
+          },
+          "mid": {
+            "squares_placed": -0.004,
+            "remaining_piece_area": 0.004,
+            "accessible_corners": 0.3,
+            "reachable_empty_squares": 0.228,
+            "largest_remaining_piece_size": -0.238,
+            "opponent_avg_mobility": -0.203,
+            "territory_enclosure_area": 0.0
+          },
+          "late": {
+            "squares_placed": 0.3,
+            "remaining_piece_area": -0.3,
+            "accessible_corners": 0.176,
+            "reachable_empty_squares": 0.134,
+            "largest_remaining_piece_size": -0.085,
+            "opponent_avg_mobility": -0.063,
+            "territory_enclosure_area": 0.0
+          }
+        },
+        "opponent_rollout_policy": "heuristic",
+        "opponent_modeling_enabled": true,
+        "alliance_detection_enabled": false,
+        "kingmaker_detection_enabled": true,
+        "kingmaker_score_gap": 15,
+        "defensive_weight_shift": 0.15
+      }
+    },
+    {
       "name": "L6_baseline",
       "type": "mcts",
       "thinking_time_ms": 100,
