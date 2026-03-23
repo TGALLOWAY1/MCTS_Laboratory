@@ -73,6 +73,12 @@ class MCTSNode:
         # Layer 4: Implicit minimax backup value
         self.minimax_value: float = float('-inf')
 
+        # Layer 5: RAVE (Rapid Action Value Estimation) per-node statistics
+        # Keyed by action_key (piece_id). Updated during backprop for all
+        # moves seen in the rollout below this node.
+        self.rave_total: Dict[int, float] = {}
+        self.rave_visits: Dict[int, int] = {}
+
         # Initialize untried moves
         self._initialize_untried_moves()
 
@@ -123,13 +129,17 @@ class MCTSNode:
         progressive_history_weight: float = 0.0,
         history_score: float = 0.0,
         minimax_alpha: float = 0.0,
+        rave_q: float = 0.0,
+        rave_beta: float = 0.0,
     ) -> float:
         """
-        Calculate UCB1 value with optional progressive bias and progressive history.
+        Calculate UCB1 value with optional progressive bias, progressive history, and RAVE.
 
-        UCB = Q_hat + C*sqrt(ln(N_parent)/N) + W_bias*(prior_bias/(1+N)) + W_hist*(H(a)/(1+N))
+        Q_combined = (1 - beta) * Q_UCT + beta * Q_RAVE
+        UCB = Q_combined + C*sqrt(ln(N_parent)/N) + W_bias*(prior_bias/(1+N)) + W_hist*(H(a)/(1+N))
 
-        where Q_hat blends averaging with implicit minimax when minimax_alpha > 0.
+        where Q_UCT = Q_hat (blended averaging + minimax), and beta is the RAVE
+        weighting factor that decays with parent visits.
 
         Args:
             exploration_constant: Exploration parameter (sqrt(2) is common)
@@ -137,6 +147,8 @@ class MCTSNode:
             progressive_history_weight: Weight for progressive history bias (Layer 3)
             history_score: H(a) — historical win rate of this move's action key
             minimax_alpha: Blending weight for implicit minimax backup (Layer 4)
+            rave_q: Q_RAVE(s, a) — RAVE value for this child's action (Layer 5)
+            rave_beta: RAVE blending weight beta (Layer 5)
 
         Returns:
             UCB1 value
@@ -145,6 +157,11 @@ class MCTSNode:
             return float('inf')
 
         exploitation = self.blended_q(minimax_alpha)
+
+        # Layer 5: Blend UCT Q-value with RAVE Q-value
+        if rave_beta > 0.0:
+            exploitation = (1.0 - rave_beta) * exploitation + rave_beta * rave_q
+
         exploration = exploration_constant * math.sqrt(math.log(self.parent.visits) / self.visits)
 
         bias_term = progressive_bias_weight * (self.prior_bias / (1.0 + self.visits))
@@ -158,9 +175,11 @@ class MCTSNode:
         progressive_history_weight: float = 0.0,
         history_table: Optional[Dict] = None,
         minimax_alpha: float = 0.0,
+        rave_enabled: bool = False,
+        rave_k: float = 1000.0,
     ) -> 'MCTSNode':
         """
-        Select child node using UCB1 + progressive history + minimax blending.
+        Select child node using UCB1 + progressive history + minimax + RAVE.
 
         Args:
             exploration_constant: Exploration parameter
@@ -168,10 +187,17 @@ class MCTSNode:
             progressive_history_weight: Weight for progressive history
             history_table: {action_key: (total_reward, count)} table
             minimax_alpha: Blending weight for implicit minimax backup (Layer 4)
+            rave_enabled: Whether to use RAVE blending (Layer 5)
+            rave_k: RAVE equivalence constant (Layer 5)
 
         Returns:
             Selected child node
         """
+        # Layer 5: Pre-compute RAVE beta from parent visits
+        r_beta = 0.0
+        if rave_enabled and self.visits > 0:
+            r_beta = math.sqrt(rave_k / (3.0 * self.visits + rave_k))
+
         def _ucb(child: 'MCTSNode') -> float:
             h_score = 0.0
             if progressive_history_weight > 0 and history_table and child.move is not None:
@@ -180,12 +206,25 @@ class MCTSNode:
                 if entry is not None:
                     total, count = entry
                     h_score = total / count if count > 0 else 0.0
+
+            # Layer 5: Compute RAVE Q-value from parent's RAVE table
+            child_rave_q = 0.0
+            child_rave_beta = 0.0
+            if r_beta > 0.0 and child.move is not None:
+                akey = move_action_key(child.move)
+                rv = self.rave_visits.get(akey, 0)
+                if rv > 0:
+                    child_rave_q = self.rave_total[akey] / rv
+                    child_rave_beta = r_beta
+
             return child.ucb1_value(
                 exploration_constant=exploration_constant,
                 progressive_bias_weight=progressive_bias_weight,
                 progressive_history_weight=progressive_history_weight,
                 history_score=h_score,
                 minimax_alpha=minimax_alpha,
+                rave_q=child_rave_q,
+                rave_beta=child_rave_beta,
             )
 
         return max(self.children, key=_ucb)
