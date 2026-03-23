@@ -1,26 +1,26 @@
 {
   "base_rollout": {
-    "wins": 7,
+    "wins": 11,
     "games": 40,
-    "avg_score": 72.2,
-    "win_rate": 0.175
+    "avg_score": 75.775,
+    "win_rate": 0.275
   },
   "leaf_eval_only": {
-    "wins": 9,
+    "wins": 10,
     "games": 40,
-    "avg_score": 74.825,
-    "win_rate": 0.225
+    "avg_score": 75.35,
+    "win_rate": 0.25
   },
   "leaf_eval_bias_0.25": {
-    "wins": 14,
-    "games": 40,
-    "avg_score": 77.175,
-    "win_rate": 0.35
-  },
-  "leaf_eval_bias_shaping": {
     "wins": 9,
     "games": 40,
-    "avg_score": 74.45,
+    "avg_score": 75.075,
     "win_rate": 0.225
+  },
+  "leaf_eval_bias_shaping": {
+    "wins": 10,
+    "games": 40,
+    "avg_score": 75.325,
+    "win_rate": 0.25
   }
 }
