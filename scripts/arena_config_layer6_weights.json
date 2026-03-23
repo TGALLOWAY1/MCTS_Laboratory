@@ -20,7 +20,16 @@
         "iterations_per_ms": 10.0,
         "rollout_policy": "two_ply",
         "rollout_cutoff_depth": 8,
-        "state_eval_weights": "__PLACEHOLDER_CALIBRATED__"
+        "state_eval_weights": {
+          "squares_placed": 0.029522477044715226,
+          "remaining_piece_area": -0.029522477044715147,
+          "accessible_corners": 0.24310302640254203,
+          "reachable_empty_squares": 0.08109693693246343,
+          "largest_remaining_piece_size": -0.23120837257261234,
+          "opponent_avg_mobility": -0.3,
+          "center_proximity": 0.0,
+          "territory_enclosure_area": 0.0
+        }
       }
     },
     {
@@ -55,5 +64,5 @@
     "strategy": "fixed_ply",
     "checkpoints": [8, 16, 24, 32, 40, 48, 56, 64]
   },
-  "notes": "Layer 6.1: Calibrated weights vs default weights. Replace __PLACEHOLDER_CALIBRATED__ with weights from data/layer6_calibrated_weights.json after running analyze_layer6_features.py"
+  "notes": "Layer 6.1: Calibrated weights vs default weights"
 }
