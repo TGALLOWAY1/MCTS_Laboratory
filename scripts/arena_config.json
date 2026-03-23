@@ -2,45 +2,41 @@
   "agents": [
     {
       "name": "mcts_25ms",
-      "type": "gameplay_fast_mcts",
+      "type": "mcts",
       "thinking_time_ms": 25,
       "params": {
         "deterministic_time_budget": true,
-        "iterations": 5000,
-        "iterations_per_ms": 20.0,
+        "iterations_per_ms": 10.0,
         "exploration_constant": 1.414
       }
     },
     {
       "name": "mcts_50ms",
-      "type": "gameplay_fast_mcts",
+      "type": "mcts",
       "thinking_time_ms": 50,
       "params": {
         "deterministic_time_budget": true,
-        "iterations": 5000,
-        "iterations_per_ms": 20.0,
+        "iterations_per_ms": 10.0,
         "exploration_constant": 1.414
       }
     },
     {
       "name": "mcts_100ms",
-      "type": "gameplay_fast_mcts",
+      "type": "mcts",
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
-        "iterations": 5000,
-        "iterations_per_ms": 20.0,
+        "iterations_per_ms": 10.0,
         "exploration_constant": 1.414
       }
     },
     {
       "name": "mcts_200ms",
-      "type": "gameplay_fast_mcts",
+      "type": "mcts",
       "thinking_time_ms": 200,
       "params": {
         "deterministic_time_budget": true,
-        "iterations": 5000,
-        "iterations_per_ms": 20.0,
+        "iterations_per_ms": 10.0,
         "exploration_constant": 1.414
       }
     }
