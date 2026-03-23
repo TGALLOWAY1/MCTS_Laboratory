@@ -1,0 +1,65 @@
+{
+  "agents": [
+    {
+      "name": "mcts_baseline",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 10.0,
+        "exploration_constant": 1.414
+      }
+    },
+    {
+      "name": "mcts_progressive_widening",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 10.0,
+        "exploration_constant": 1.414,
+        "progressive_widening_enabled": true,
+        "pw_c": 2.0,
+        "pw_alpha": 0.5
+      }
+    },
+    {
+      "name": "mcts_progressive_history",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 10.0,
+        "exploration_constant": 1.414,
+        "progressive_history_enabled": true,
+        "progressive_history_weight": 1.0
+      }
+    },
+    {
+      "name": "mcts_pw_plus_ph",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 10.0,
+        "exploration_constant": 1.414,
+        "progressive_widening_enabled": true,
+        "pw_c": 2.0,
+        "pw_alpha": 0.5,
+        "progressive_history_enabled": true,
+        "progressive_history_weight": 1.0
+      }
+    }
+  ],
+  "num_games": 25,
+  "seed": 20260323,
+  "seat_policy": "round_robin",
+  "output_root": "arena_runs",
+  "max_turns": 2500,
+  "snapshots": {
+    "enabled": true,
+    "strategy": "fixed_ply",
+    "checkpoints": [8, 16, 24, 32, 40, 48, 56, 64]
+  },
+  "notes": "Layer 3: Full validation of progressive widening and progressive history vs baseline MCTS"
+}
