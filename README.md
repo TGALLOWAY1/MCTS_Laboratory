@@ -53,7 +53,7 @@ This project provides a full-stack implementation of Blokus with:
 ### AI Agents
 - **Random Agent**: Baseline agent making random legal moves
 - **Heuristic Agent**: Rule-based agent with configurable weights
-- **MCTS Agent**: Monte Carlo Tree Search with transposition tables, RAVE bootstrapping, progressive history, N-gram selection, data-driven phase-dependent evaluation (Layer 6), opponent modeling with asymmetric rollout policies, alliance detection, and king-maker awareness (Layer 7), and parallelization via root-parallel multiprocessing or tree-parallel virtual loss (Layer 8)
+- **MCTS Agent**: Monte Carlo Tree Search with transposition tables, RAVE bootstrapping, progressive history, N-gram selection, data-driven phase-dependent evaluation (Layer 6), opponent modeling with asymmetric rollout policies, alliance detection, and king-maker awareness (Layer 7), parallelization via root-parallel multiprocessing or tree-parallel virtual loss (Layer 8), and adaptive meta-optimization with branching-factor-driven exploration/rollout tuning, UCT sufficiency threshold, and loss avoidance (Layer 9)
 - **Fast MCTS Agent**: Optimized MCTS for real-time gameplay
 
 <img width="712" height="213" alt="image" src="https://github.com/user-attachments/assets/32be3357-c4cf-4b89-8954-90f6c6a8b075" />
@@ -89,6 +89,9 @@ This project provides a full-stack implementation of Blokus with:
 - Layer 8 parallelization experiments:
   - `scripts/arena_config_layer8_throughput.json` (root-parallel throughput scaling at 1/2/4/8 workers)
   - `scripts/arena_config_layer8_strength.json` (playing strength: root-parallel vs tree-parallel vs baseline)
+- Layer 9 meta-optimization experiments:
+  - `scripts/arena_config_layer9_adaptive.json` (adaptive C, adaptive depth, sufficiency threshold, loss avoidance vs baseline)
+  - `scripts/self_improve.py` (self-improvement loop: run tournaments, track metrics, print trends)
 
 ## 🚀 Quick Start
 

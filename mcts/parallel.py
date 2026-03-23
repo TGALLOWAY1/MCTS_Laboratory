@@ -83,6 +83,16 @@ def _extract_agent_config(agent) -> dict:
         "num_workers": 1,
         "virtual_loss": agent.virtual_loss,
         "parallel_strategy": "root",
+        # Layer 9: Meta-Optimization
+        "adaptive_exploration_enabled": agent.adaptive_exploration_enabled,
+        "adaptive_exploration_base": agent.adaptive_exploration_base,
+        "adaptive_exploration_avg_bf": agent.adaptive_exploration_avg_bf,
+        "adaptive_rollout_depth_enabled": agent.adaptive_rollout_depth_enabled,
+        "adaptive_rollout_depth_base": agent.adaptive_rollout_depth_base,
+        "adaptive_rollout_depth_avg_bf": agent.adaptive_rollout_depth_avg_bf,
+        "sufficiency_threshold_enabled": agent.sufficiency_threshold_enabled,
+        "loss_avoidance_enabled": agent.loss_avoidance_enabled,
+        "loss_avoidance_threshold": agent.loss_avoidance_threshold,
     }
 
 
