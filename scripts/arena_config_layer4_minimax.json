@@ -1,0 +1,55 @@
+{
+  "agents": [
+    {
+      "name": "mcts_100ms_alpha_0.0",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 10.0,
+        "minimax_backup_alpha": 0.0
+      }
+    },
+    {
+      "name": "mcts_100ms_alpha_0.1",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 10.0,
+        "minimax_backup_alpha": 0.1
+      }
+    },
+    {
+      "name": "mcts_100ms_alpha_0.25",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 10.0,
+        "minimax_backup_alpha": 0.25
+      }
+    },
+    {
+      "name": "mcts_100ms_alpha_0.5",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 10.0,
+        "minimax_backup_alpha": 0.5
+      }
+    }
+  ],
+  "num_games": 25,
+  "seed": 20260323,
+  "seat_policy": "round_robin",
+  "output_root": "arena_runs",
+  "max_turns": 2500,
+  "snapshots": {
+    "enabled": true,
+    "strategy": "fixed_ply",
+    "checkpoints": [8, 16, 24, 32, 40, 48, 56, 64]
+  },
+  "notes": "Layer 4.3: Implicit minimax backup alpha sweep — pure averaging (0.0) vs blended at 0.1, 0.25, 0.5"
+}
