@@ -35,9 +35,16 @@ python scripts/arena.py --config scripts/arena_config_extended_rollout.json --nu
 - `minimax_backup_alpha`: Blending weight for implicit minimax backups (0.0 = pure averaging, default).
 - `state_eval_weights`: Custom weights dict for `BlokusStateEvaluator` features.
 
+### Layer 5: History Heuristics & RAVE Parameters
+
+- `rave_enabled`: Enable RAVE (Rapid Action Value Estimation) blending in UCB selection (default: `false`).
+- `rave_k`: RAVE equivalence constant — controls how long RAVE influence persists. β = sqrt(k / (3×N + k)). Higher k = more RAVE influence. Sweep values: 100, 500, 1000, 5000.
+- `nst_enabled`: Enable N-gram Selection Technique for rollout bias (default: `false`).
+- `nst_weight`: Softmax temperature for NST scoring during rollouts (default: 0.5).
+
 ## Project Structure
 
-- `mcts/mcts_agent.py` — Full MCTSAgent with configurable rollout length
+- `mcts/mcts_agent.py` — Full MCTSAgent with RAVE, progressive history, NST, and configurable rollout policies
 - `mcts/state_evaluator.py` — Lightweight state evaluation function (Layer 4)
 - `agents/fast_mcts_agent.py` — Lightweight FastMCTSAgent (use only when explicitly requested)
 - `scripts/arena.py` — Arena CLI entry point
