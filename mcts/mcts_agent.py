@@ -3,6 +3,10 @@ Monte Carlo Tree Search agent for Blokus.
 
 Layer 3 additions: Progressive Widening and Progressive History for
 action reduction in high-branching-factor games.
+
+Layer 4 additions: Simulation Strategy — two-ply search-based playouts,
+early rollout termination with state evaluation, and implicit minimax
+backups for multi-player robustness.
 """
 
 import math
@@ -23,6 +27,7 @@ from .move_heuristic import (
     move_action_key,
     rank_moves_by_heuristic,
 )
+from .state_evaluator import BlokusStateEvaluator
 from .utils import compute_policy_entropy
 from .zobrist import TranspositionTable, ZobristHash
 
@@ -65,6 +70,9 @@ class MCTSNode:
         # Track the total legal move count (before any widening)
         self._total_legal_moves = 0
 
+        # Layer 4: Implicit minimax backup value
+        self.minimax_value: float = float('-inf')
+
         # Initialize untried moves
         self._initialize_untried_moves()
 
@@ -94,23 +102,41 @@ class MCTSNode:
             return False
         return len(self.children) < self.max_children_for_visits(pw_c, pw_alpha)
 
+    def blended_q(self, alpha: float = 0.0) -> float:
+        """Return Q-value blended with implicit minimax backup.
+
+        Q_hat = (1 - alpha) * (r/n) + alpha * v_minimax
+
+        When alpha is 0.0 this is identical to standard averaging.
+        """
+        if self.visits == 0:
+            return 0.0
+        avg_q = self.total_reward / self.visits
+        if alpha <= 0.0 or self.minimax_value == float('-inf'):
+            return avg_q
+        return (1.0 - alpha) * avg_q + alpha * self.minimax_value
+
     def ucb1_value(
         self,
         exploration_constant: float = 1.414,
         progressive_bias_weight: float = 0.0,
         progressive_history_weight: float = 0.0,
         history_score: float = 0.0,
+        minimax_alpha: float = 0.0,
     ) -> float:
         """
         Calculate UCB1 value with optional progressive bias and progressive history.
 
-        UCB = Q/N + C*sqrt(ln(N_parent)/N) + W_bias*(prior_bias/(1+N)) + W_hist*(H(a)/(1+N))
+        UCB = Q_hat + C*sqrt(ln(N_parent)/N) + W_bias*(prior_bias/(1+N)) + W_hist*(H(a)/(1+N))
+
+        where Q_hat blends averaging with implicit minimax when minimax_alpha > 0.
 
         Args:
             exploration_constant: Exploration parameter (sqrt(2) is common)
             progressive_bias_weight: Weight for learned-model bias (Layer 2)
             progressive_history_weight: Weight for progressive history bias (Layer 3)
             history_score: H(a) — historical win rate of this move's action key
+            minimax_alpha: Blending weight for implicit minimax backup (Layer 4)
 
         Returns:
             UCB1 value
@@ -118,7 +144,7 @@ class MCTSNode:
         if self.visits == 0:
             return float('inf')
 
-        exploitation = self.total_reward / self.visits
+        exploitation = self.blended_q(minimax_alpha)
         exploration = exploration_constant * math.sqrt(math.log(self.parent.visits) / self.visits)
 
         bias_term = progressive_bias_weight * (self.prior_bias / (1.0 + self.visits))
@@ -131,15 +157,17 @@ class MCTSNode:
         progressive_bias_weight: float = 0.0,
         progressive_history_weight: float = 0.0,
         history_table: Optional[Dict] = None,
+        minimax_alpha: float = 0.0,
     ) -> 'MCTSNode':
         """
-        Select child node using UCB1 + progressive history.
+        Select child node using UCB1 + progressive history + minimax blending.
 
         Args:
             exploration_constant: Exploration parameter
             progressive_bias_weight: Weight for learned-model bias
             progressive_history_weight: Weight for progressive history
             history_table: {action_key: (total_reward, count)} table
+            minimax_alpha: Blending weight for implicit minimax backup (Layer 4)
 
         Returns:
             Selected child node
@@ -157,6 +185,7 @@ class MCTSNode:
                 progressive_bias_weight=progressive_bias_weight,
                 progressive_history_weight=progressive_history_weight,
                 history_score=h_score,
+                minimax_alpha=minimax_alpha,
             )
 
         return max(self.children, key=_ucb)
@@ -274,6 +303,12 @@ class MCTSAgent:
         progressive_history_enabled: bool = False,
         progressive_history_weight: float = 1.0,
         heuristic_move_ordering: bool = False,
+        # --- Layer 4: Simulation Strategy ---
+        rollout_policy: str = "heuristic",
+        two_ply_top_k: Optional[int] = None,
+        rollout_cutoff_depth: Optional[int] = None,
+        state_eval_weights: Optional[Dict[str, float]] = None,
+        minimax_backup_alpha: float = 0.0,
     ):
         """
         Initialize MCTS agent.
@@ -300,6 +335,11 @@ class MCTSAgent:
             progressive_history_enabled: Enable progressive history bias in UCB (Layer 3)
             progressive_history_weight: Weight W for history term in UCB formula
             heuristic_move_ordering: Sort untried moves by domain heuristic (Layer 3)
+            rollout_policy: Rollout move selection — "heuristic", "random", or "two_ply" (Layer 4)
+            two_ply_top_k: Top-K filter for two-ply rollouts (None = all moves) (Layer 4)
+            rollout_cutoff_depth: Cut off rollout at this depth and eval statically (None = full) (Layer 4)
+            state_eval_weights: Custom weights for BlokusStateEvaluator (Layer 4)
+            minimax_backup_alpha: Blending weight for implicit minimax backups (0.0 = off) (Layer 4)
         """
         self.iterations = iterations
         self.time_limit = time_limit
@@ -322,6 +362,19 @@ class MCTSAgent:
         self.progressive_history_enabled = bool(progressive_history_enabled)
         self.progressive_history_weight = float(progressive_history_weight)
         self.heuristic_move_ordering = bool(heuristic_move_ordering)
+
+        # Layer 4 params
+        if rollout_policy not in {"heuristic", "random", "two_ply"}:
+            raise ValueError(
+                f"rollout_policy must be 'heuristic', 'random', or 'two_ply', got '{rollout_policy}'"
+            )
+        self.rollout_policy = rollout_policy
+        self.two_ply_top_k = int(two_ply_top_k) if two_ply_top_k is not None else None
+        self.rollout_cutoff_depth = (
+            int(rollout_cutoff_depth) if rollout_cutoff_depth is not None else None
+        )
+        self.minimax_backup_alpha = float(minimax_backup_alpha)
+        self._eval_reward_scale = 100.0  # match win-bonus magnitude
 
         if self.potential_mode not in {"prob", "logit"}:
             raise ValueError("potential_mode must be either 'prob' or 'logit'.")
@@ -361,6 +414,13 @@ class MCTSAgent:
                 potential_mode=potential_mode,
             )
 
+        # Layer 4: State evaluator for two-ply search and early termination
+        self.state_evaluator = BlokusStateEvaluator(weights=state_eval_weights)
+        # RNG for random rollout policy
+        self._rng = np.random.RandomState(seed)
+        # Track root player for minimax backups
+        self._root_player: Optional[Player] = None
+
         # Progressive history table: {action_key: [total_reward, count]}
         # Persists across moves within a game.
         self._history_table: Dict[int, List[float]] = defaultdict(lambda: [0.0, 0])
@@ -377,6 +437,10 @@ class MCTSAgent:
             "evaluator_errors": 0,
             "pw_expansions_saved": 0,
             "history_table_size": 0,
+            # Layer 4: Simulation strategy stats
+            "two_ply_evals": 0,
+            "cutoff_evals": 0,
+            "minimax_updates": 0,
         }
 
     def select_action(self, board: Board, player: Player, legal_moves: List[Move]) -> Optional[Move]:
@@ -400,6 +464,7 @@ class MCTSAgent:
 
         # Run MCTS
         start_time = time.time()
+        self._root_player = player  # Layer 4: track for minimax backups
         root = MCTSNode(board, player)
 
         # Heuristic move ordering: sort untried_moves so best are popped last
@@ -578,6 +643,7 @@ class MCTSAgent:
         pw_bias_w = self.progressive_bias_weight if self.progressive_bias_enabled else 0.0
         ph_w = self.progressive_history_weight if self.progressive_history_enabled else 0.0
         hist = self._history_table if self.progressive_history_enabled else None
+        mm_alpha = self.minimax_backup_alpha
 
         while not node.is_terminal():
             if self.progressive_widening_enabled:
@@ -591,6 +657,7 @@ class MCTSAgent:
                         progressive_bias_weight=pw_bias_w,
                         progressive_history_weight=ph_w,
                         history_table=hist,
+                        minimax_alpha=mm_alpha,
                     )
                 else:
                     return node
@@ -603,6 +670,7 @@ class MCTSAgent:
                     progressive_bias_weight=pw_bias_w,
                     progressive_history_weight=ph_w,
                     history_table=hist,
+                    minimax_alpha=mm_alpha,
                 )
 
         return node
@@ -671,15 +739,24 @@ class MCTSAgent:
 
     def _rollout(self, board: Board, player: Player) -> float:
         """
-        Run rollout simulation.
-        
+        Run rollout simulation with configurable policy and early termination.
+
+        Layer 4 enhancements:
+        - rollout_policy: "heuristic" (default), "random", or "two_ply"
+        - rollout_cutoff_depth: terminate early and evaluate statically
+
         Args:
             board: Board state to simulate from
             player: Player whose turn it is
-            
+
         Returns:
             Reward from rollout
         """
+        # Layer 4: depth-0 cutoff — pure static evaluation, no rollout at all
+        if self.rollout_cutoff_depth is not None and self.rollout_cutoff_depth <= 0:
+            self.stats["cutoff_evals"] += 1
+            return self.state_evaluator.evaluate(board, player) * self._eval_reward_scale
+
         # Create copy for simulation
         sim_board = board.copy()
         current_player = player
@@ -698,14 +775,28 @@ class MCTSAgent:
         moves_made = 0
 
         while moves_made < self.max_rollout_moves:
+            # Layer 4: Early termination at cutoff depth
+            if (
+                self.rollout_cutoff_depth is not None
+                and moves_made >= self.rollout_cutoff_depth
+            ):
+                self.stats["cutoff_evals"] += 1
+                return self.state_evaluator.evaluate(sim_board, player) * self._eval_reward_scale
+
             # Get legal moves
             legal_moves = self.move_generator.get_legal_moves(sim_board, current_player)
 
             if not legal_moves:
                 break
 
-            # Select move using rollout agent
-            move = self.rollout_agent.select_action(sim_board, current_player, legal_moves)
+            # Layer 4: Select move using configured rollout policy
+            if self.rollout_policy == "two_ply":
+                move = self._two_ply_select(sim_board, current_player, legal_moves)
+            elif self.rollout_policy == "random":
+                move = legal_moves[self._rng.randint(len(legal_moves))]
+            else:
+                # Default: heuristic rollout agent
+                move = self.rollout_agent.select_action(sim_board, current_player, legal_moves)
 
             if move is None:
                 break
@@ -755,6 +846,48 @@ class MCTSAgent:
 
         return reward
 
+    def _two_ply_select(
+        self, board: Board, player: Player, legal_moves: List[Move]
+    ) -> Move:
+        """Select a rollout move using two-ply max-n search.
+
+        For each candidate move, apply it and evaluate the resulting state.
+        Return the move that maximises the state evaluation for *player*.
+
+        When ``two_ply_top_k`` is set, only the top-K moves (by heuristic
+        score) are evaluated, trading some quality for throughput.
+
+        Args:
+            board: Current board state
+            player: Player to move
+            legal_moves: Available legal moves
+
+        Returns:
+            Best move according to one-ply lookahead evaluation
+        """
+        candidates = legal_moves
+        if self.two_ply_top_k is not None and len(candidates) > self.two_ply_top_k:
+            scored = rank_moves_by_heuristic(
+                board, player, candidates, self.move_generator
+            )
+            # Best moves are at the end (ascending sort)
+            candidates = [m for _, m in scored[-self.two_ply_top_k:]]
+
+        best_move = candidates[0]
+        best_value = float('-inf')
+
+        for move in candidates:
+            sim = board.copy()
+            positions = self._get_move_positions(move)
+            sim.place_piece(positions, player, move.piece_id, validate=False)
+            value = self.state_evaluator.evaluate(sim, player)
+            if value > best_value:
+                best_value = value
+                best_move = move
+
+        self.stats["two_ply_evals"] += len(candidates)
+        return best_move
+
     def _get_move_positions(self, move: Move) -> List[Position]:
         """Get positions that a move would occupy."""
         orientations = self.move_generator.piece_orientations_cache[move.piece_id]
@@ -775,12 +908,16 @@ class MCTSAgent:
         """
         Backpropagation phase: update statistics up the tree.
 
-        Also updates the progressive history table with move performance.
+        Also updates the progressive history table with move performance,
+        and implicit minimax values when minimax_backup_alpha > 0.
 
         Args:
             node: Node to start backpropagation from
             reward: Reward to propagate
         """
+        use_minimax = self.minimax_backup_alpha > 0.0
+        root_player = self._root_player
+
         while node is not None:
             node.update(reward)
             # Update progressive history for the move that led to this node
@@ -789,6 +926,21 @@ class MCTSAgent:
                 entry = self._history_table[key]
                 entry[0] += reward
                 entry[1] += 1
+            # Layer 4: Update implicit minimax values
+            if use_minimax and node.children:
+                visited_children_q = [
+                    c.total_reward / c.visits
+                    for c in node.children
+                    if c.visits > 0
+                ]
+                if visited_children_q:
+                    if node.player == root_player:
+                        # Root player maximises
+                        node.minimax_value = max(visited_children_q)
+                    else:
+                        # Opponents minimise (from root's perspective)
+                        node.minimax_value = min(visited_children_q)
+                    self.stats["minimax_updates"] += 1
             node = node.parent
 
     def get_action_info(self) -> Dict[str, Any]:
@@ -817,6 +969,11 @@ class MCTSAgent:
                 "progressive_history_enabled": self.progressive_history_enabled,
                 "progressive_history_weight": self.progressive_history_weight,
                 "heuristic_move_ordering": self.heuristic_move_ordering,
+                # Layer 4
+                "rollout_policy": self.rollout_policy,
+                "two_ply_top_k": self.two_ply_top_k,
+                "rollout_cutoff_depth": self.rollout_cutoff_depth,
+                "minimax_backup_alpha": self.minimax_backup_alpha,
             },
             "stats": self.stats.copy()
         }
@@ -843,6 +1000,10 @@ class MCTSAgent:
             "evaluator_errors": 0,
             "pw_expansions_saved": 0,
             "history_table_size": 0,
+            # Layer 4
+            "two_ply_evals": 0,
+            "cutoff_evals": 0,
+            "minimax_updates": 0,
         }
 
         if self.transposition_table:
@@ -856,3 +1017,4 @@ class MCTSAgent:
         """Set random seed for reproducible behavior."""
         self.zobrist_hash = ZobristHash(seed=seed)
         self.rollout_agent.set_seed(seed)
+        self._rng = np.random.RandomState(seed)
