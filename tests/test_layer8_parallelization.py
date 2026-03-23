@@ -11,6 +11,17 @@ from engine.move_generator import get_shared_generator
 from mcts.mcts_agent import MCTSAgent, MCTSNode
 
 
+def _move_matches_any(move, legal_moves):
+    """Check if move matches any legal move by attributes (not identity)."""
+    for lm in legal_moves:
+        if (move.piece_id == lm.piece_id
+                and move.orientation == lm.orientation
+                and move.anchor_row == lm.anchor_row
+                and move.anchor_col == lm.anchor_col):
+            return True
+    return False
+
+
 # ---------------------------------------------------------------------------
 # MCTSNode virtual loss tests
 # ---------------------------------------------------------------------------
@@ -158,7 +169,10 @@ class TestSingleWorkerUnchanged(unittest.TestCase):
 
         move = agent.select_action(board, Player.RED, legal_moves)
         self.assertIsNotNone(move)
-        self.assertIn(move, legal_moves)
+        self.assertTrue(
+            _move_matches_any(move, legal_moves),
+            "Returned move should match a legal move by attributes",
+        )
 
     def test_single_worker_stats_no_parallel(self):
         """Single worker should not set parallel stats."""
@@ -193,7 +207,10 @@ class TestTreeParallelization(unittest.TestCase):
 
         move = agent.select_action(board, Player.RED, legal_moves)
         self.assertIsNotNone(move)
-        self.assertIn(move, legal_moves)
+        self.assertTrue(
+            _move_matches_any(move, legal_moves),
+            "Tree-parallel move should match a legal move by attributes",
+        )
 
     def test_tree_parallel_sets_stats(self):
         board = Board()
@@ -261,7 +278,10 @@ class TestRootParallelization(unittest.TestCase):
 
         move = agent.select_action(board, Player.RED, legal_moves)
         self.assertIsNotNone(move)
-        self.assertIn(move, legal_moves)
+        self.assertTrue(
+            _move_matches_any(move, legal_moves),
+            "Root-parallel move should match a legal move by attributes",
+        )
 
     def test_root_parallel_sets_stats(self):
         board = Board()
