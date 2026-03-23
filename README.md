@@ -53,7 +53,7 @@ This project provides a full-stack implementation of Blokus with:
 ### AI Agents
 - **Random Agent**: Baseline agent making random legal moves
 - **Heuristic Agent**: Rule-based agent with configurable weights
-- **MCTS Agent**: Monte Carlo Tree Search with transposition tables, RAVE bootstrapping, progressive history, N-gram selection, data-driven phase-dependent evaluation (Layer 6), and opponent modeling with asymmetric rollout policies, alliance detection, and king-maker awareness (Layer 7)
+- **MCTS Agent**: Monte Carlo Tree Search with transposition tables, RAVE bootstrapping, progressive history, N-gram selection, data-driven phase-dependent evaluation (Layer 6), opponent modeling with asymmetric rollout policies, alliance detection, and king-maker awareness (Layer 7), and parallelization via root-parallel multiprocessing or tree-parallel virtual loss (Layer 8)
 - **Fast MCTS Agent**: Optimized MCTS for real-time gameplay
 
 <img width="712" height="213" alt="image" src="https://github.com/user-attachments/assets/32be3357-c4cf-4b89-8954-90f6c6a8b075" />
@@ -86,6 +86,9 @@ This project provides a full-stack implementation of Blokus with:
 - Layer 7 opponent modeling experiments:
   - `scripts/arena_config_layer7_rollout_asymmetry.json` (symmetric vs self-focused vs balanced rollouts)
   - `scripts/arena_config_layer7_alliance.json` (alliance detection + king-maker awareness)
+- Layer 8 parallelization experiments:
+  - `scripts/arena_config_layer8_throughput.json` (root-parallel throughput scaling at 1/2/4/8 workers)
+  - `scripts/arena_config_layer8_strength.json` (playing strength: root-parallel vs tree-parallel vs baseline)
 
 ## 🚀 Quick Start
 
