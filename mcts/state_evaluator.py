@@ -53,18 +53,21 @@ _PLAYERS = list(Player)
 # ---------------------------------------------------------------------------
 
 DEFAULT_WEIGHTS: Dict[str, float] = {
-    "squares_placed": 0.30,
-    "remaining_piece_area": -0.15,
-    "accessible_corners": 0.25,
-    "reachable_empty_squares": 0.10,
-    "largest_remaining_piece_size": 0.10,
-    "opponent_avg_mobility": -0.10,
+    "squares_placed": 0.03,
+    "remaining_piece_area": -0.03,
+    "accessible_corners": 0.24,
+    "reachable_empty_squares": 0.08,
+    "largest_remaining_piece_size": -0.23,
+    "opponent_avg_mobility": -0.30,
+    "center_proximity": 0.25,
     "territory_enclosure_area": 0.00,  # placeholder — too expensive for per-step eval
 }
 
 # Normalization constants
 _MAX_FRONTIER = 40.0  # reasonable upper bound for frontier cells
 _MAX_REACHABLE = 60.0  # bounded BFS limit
+_CENTER = 9.5  # board center coordinate (20x20 grid, indices 0-19)
+_MAX_CENTER_DIST = 19.0  # max Manhattan distance from center: |0-9.5|+|0-9.5|
 
 
 FEATURE_NAMES = [
@@ -74,6 +77,7 @@ FEATURE_NAMES = [
     "reachable_empty_squares",
     "largest_remaining_piece_size",
     "opponent_avg_mobility",
+    "center_proximity",
     "territory_enclosure_area",
 ]
 
@@ -133,7 +137,8 @@ class BlokusStateEvaluator:
         """
         pieces_used = board.player_pieces_used[player]
 
-        squares = float(np.sum(board.grid == player.value))
+        player_mask = board.grid == player.value
+        squares = float(np.sum(player_mask))
         f_squares = squares / max(self._total_piece_area, 1)
 
         remaining = sum(
@@ -162,6 +167,16 @@ class BlokusStateEvaluator:
             (opp_frontier_sum / max(opp_count, 1)) / _MAX_FRONTIER, 1.0
         )
 
+        # center_proximity: 1 = pieces clustered at center, 0 = at edges
+        if squares > 0:
+            coords = np.argwhere(player_mask)
+            mean_dist = float(
+                np.mean(np.abs(coords[:, 0] - _CENTER) + np.abs(coords[:, 1] - _CENTER))
+            )
+            f_center = 1.0 - mean_dist / _MAX_CENTER_DIST
+        else:
+            f_center = 0.0
+
         f_territory = 0.0
 
         return {
@@ -171,6 +186,7 @@ class BlokusStateEvaluator:
             "reachable_empty_squares": f_reachable,
             "largest_remaining_piece_size": f_largest,
             "opponent_avg_mobility": f_opp_mobility,
+            "center_proximity": f_center,
             "territory_enclosure_area": f_territory,
         }
 
