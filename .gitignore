@@ -72,6 +72,7 @@ runs/
 training_data/
 arena_runs/
 baseline_runs/
+validation_runs/
 
 # IDE / Editor
 .idea/
