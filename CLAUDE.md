@@ -59,9 +59,16 @@ python scripts/arena.py --config scripts/arena_config_extended_rollout.json --nu
 - `adaptive_opponent_enabled`: Build cross-game opponent profiles with EMA updates (default: `false`).
 - `defensive_weight_shift`: Evaluation weight shift magnitude when under targeting threat (default: `0.15`).
 
+### Layer 8: Parallelization Parameters
+
+- `num_workers`: Number of parallel MCTS workers (default: `1`). When > 1, enables parallel search.
+- `virtual_loss`: Virtual loss magnitude for tree parallelization (default: `1.0`). Controls how strongly nodes are penalized during concurrent selection.
+- `parallel_strategy`: `"root"` (default, recommended) or `"tree"`. Root parallelization uses multiprocessing (real speedup in Python). Tree parallelization uses threading with virtual loss (GIL-limited but architecturally correct).
+
 ## Project Structure
 
-- `mcts/mcts_agent.py` — Full MCTSAgent with RAVE, progressive history, NST, configurable rollout policies, and opponent modeling (Layer 7)
+- `mcts/mcts_agent.py` — Full MCTSAgent with RAVE, progressive history, NST, configurable rollout policies, opponent modeling (Layer 7), and parallelization (Layer 8)
+- `mcts/parallel.py` — Root parallelization: worker spawning, config serialization, result merging (Layer 8)
 - `mcts/opponent_model.py` — Opponent modeling: blocking tracker, alliance detection, king-maker awareness, adaptive profiles (Layer 7)
 - `mcts/state_evaluator.py` — Lightweight state evaluation function with phase-dependent weights (Layers 4, 6)
 - `agents/fast_mcts_agent.py` — Lightweight FastMCTSAgent (use only when explicitly requested)
