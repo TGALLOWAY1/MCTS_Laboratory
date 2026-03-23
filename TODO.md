@@ -44,7 +44,7 @@ All configs exist in `scripts/` and are verified working.
 ### Layer 3 — Full validation (8-game smoke test is not enough)
 - [ ] Run full L3 validation tournament
   ```bash
-  python3 scripts/arena.py --config scripts/arena_config.json --num-games 25 --verbose
+  python3 scripts/arena.py --config scripts/arena_config_layer3.json --verbose
   ```
 
 ### Layer 4 — Simulation strategy (run in order, findings cascade)
