@@ -23,6 +23,12 @@ Layer 8 additions: Parallelization — root parallelization (independent
 trees merged at decision time via multiprocessing) and tree parallelization
 with virtual loss (shared tree via threading). Root parallelization is the
 default and recommended strategy for Python due to the GIL.
+
+Layer 9 additions: Meta-Optimization — adaptive exploration constant that
+scales with branching factor, adaptive rollout depth inversely proportional
+to branching factor, UCT sufficiency threshold (auto-calibrating α) that
+switches to pure exploitation when a dominant move emerges, and loss
+avoidance that redirects selection away from catastrophic nodes.
 """
 
 import math
@@ -95,6 +101,10 @@ class MCTSNode:
         # moves seen in the rollout below this node.
         self.rave_total: Dict[int, float] = {}
         self.rave_visits: Dict[int, int] = {}
+
+        # Layer 9: Loss avoidance flag — set when a catastrophic result is
+        # back-propagated through this node, causing selection to prefer siblings.
+        self.loss_detected = False
 
         # Layer 8: Virtual loss for tree parallelization.
         # Temporarily penalizes a node's UCB score while a thread is simulating
@@ -220,6 +230,7 @@ class MCTSNode:
         minimax_alpha: float = 0.0,
         rave_enabled: bool = False,
         rave_k: float = 1000.0,
+        loss_avoidance: bool = False,
     ) -> 'MCTSNode':
         """
         Select child node using UCB1 + progressive history + minimax + RAVE.
@@ -232,6 +243,7 @@ class MCTSNode:
             minimax_alpha: Blending weight for implicit minimax backup (Layer 4)
             rave_enabled: Whether to use RAVE blending (Layer 5)
             rave_k: RAVE equivalence constant (Layer 5)
+            loss_avoidance: Avoid children flagged with loss_detected (Layer 9)
 
         Returns:
             Selected child node
@@ -269,6 +281,20 @@ class MCTSNode:
                 rave_q=child_rave_q,
                 rave_beta=child_rave_beta,
             )
+
+        # Layer 9: Loss avoidance — prefer children not flagged as catastrophic
+        if loss_avoidance:
+            safe = [c for c in self.children if not c.loss_detected]
+            if safe:
+                chosen = max(safe, key=_ucb)
+            else:
+                # All flagged — clear flags and fall through to normal selection
+                for c in self.children:
+                    c.loss_detected = False
+                chosen = max(self.children, key=_ucb)
+            # One-shot: clear the flag after redirecting
+            chosen.loss_detected = False
+            return chosen
 
         return max(self.children, key=_ucb)
 
@@ -410,6 +436,16 @@ class MCTSAgent:
         num_workers: int = 1,
         virtual_loss: float = 1.0,
         parallel_strategy: str = "root",
+        # --- Layer 9: Meta-Optimization ---
+        adaptive_exploration_enabled: bool = False,
+        adaptive_exploration_base: float = 1.414,
+        adaptive_exploration_avg_bf: float = 80.0,
+        adaptive_rollout_depth_enabled: bool = False,
+        adaptive_rollout_depth_base: int = 20,
+        adaptive_rollout_depth_avg_bf: float = 80.0,
+        sufficiency_threshold_enabled: bool = False,
+        loss_avoidance_enabled: bool = False,
+        loss_avoidance_threshold: float = -50.0,
     ):
         """
         Initialize MCTS agent.
@@ -459,6 +495,16 @@ class MCTSAgent:
             virtual_loss: Virtual loss magnitude for tree parallelization (Layer 8)
             parallel_strategy: "root" (independent trees, merge) or "tree" (shared tree,
                 virtual loss + threading) (Layer 8)
+            adaptive_exploration_enabled: Enable branching-factor-adaptive C (Layer 9)
+            adaptive_exploration_base: Base exploration constant for adaptive C (Layer 9)
+            adaptive_exploration_avg_bf: Average branching factor for C normalisation (Layer 9)
+            adaptive_rollout_depth_enabled: Enable branching-factor-adaptive rollout depth (Layer 9)
+            adaptive_rollout_depth_base: Base rollout cutoff depth for adaptive depth (Layer 9)
+            adaptive_rollout_depth_avg_bf: Average branching factor for depth normalisation (Layer 9)
+            sufficiency_threshold_enabled: Enable UCT sufficiency threshold (Layer 9)
+            loss_avoidance_enabled: Enable loss avoidance — redirect away from catastrophic
+                nodes during selection (Layer 9)
+            loss_avoidance_threshold: Reward threshold below which a result is catastrophic (Layer 9)
         """
         self.iterations = iterations
         self.time_limit = time_limit
@@ -525,6 +571,22 @@ class MCTSAgent:
         self.num_workers = max(1, int(num_workers))
         self.virtual_loss = float(virtual_loss)
         self.parallel_strategy = parallel_strategy
+
+        # Layer 9 params
+        self.adaptive_exploration_enabled = bool(adaptive_exploration_enabled)
+        self.adaptive_exploration_base = float(adaptive_exploration_base)
+        self.adaptive_exploration_avg_bf = float(adaptive_exploration_avg_bf)
+        self.adaptive_rollout_depth_enabled = bool(adaptive_rollout_depth_enabled)
+        self.adaptive_rollout_depth_base = int(adaptive_rollout_depth_base)
+        self.adaptive_rollout_depth_avg_bf = float(adaptive_rollout_depth_avg_bf)
+        self.sufficiency_threshold_enabled = bool(sufficiency_threshold_enabled)
+        self.loss_avoidance_enabled = bool(loss_avoidance_enabled)
+        self.loss_avoidance_threshold = float(loss_avoidance_threshold)
+        # Effective per-move values (set in select_action)
+        self._effective_exploration_constant = float(
+            adaptive_exploration_base if adaptive_exploration_enabled else exploration_constant
+        )
+        self._effective_rollout_cutoff_depth = rollout_cutoff_depth
 
         if self.potential_mode not in {"prob", "logit"}:
             raise ValueError("potential_mode must be either 'prob' or 'logit'.")
@@ -614,6 +676,11 @@ class MCTSAgent:
             "parallel_strategy": "none",
             "parallel_trees_merged": 0,
             "virtual_loss_applications": 0,
+            # Layer 9: Meta-Optimization stats
+            "adaptive_c_value": 0.0,
+            "adaptive_rollout_depth": 0,
+            "sufficiency_activations": 0,
+            "loss_avoidance_triggers": 0,
         }
 
     def select_action(self, board: Board, player: Player, legal_moves: List[Move]) -> Optional[Move]:
@@ -638,6 +705,27 @@ class MCTSAgent:
         # Run MCTS
         start_time = time.time()
         self._root_player = player  # Layer 4: track for minimax backups
+
+        # Layer 9: Compute adaptive per-move parameters
+        if self.adaptive_exploration_enabled:
+            bf = len(legal_moves)
+            self._effective_exploration_constant = (
+                self.adaptive_exploration_base
+                * math.sqrt(bf / max(self.adaptive_exploration_avg_bf, 1.0))
+            )
+            self.stats["adaptive_c_value"] = self._effective_exploration_constant
+        else:
+            self._effective_exploration_constant = self.exploration_constant
+
+        if self.adaptive_rollout_depth_enabled:
+            bf = len(legal_moves)
+            raw_depth = self.adaptive_rollout_depth_base * (
+                self.adaptive_rollout_depth_avg_bf / max(bf, 1)
+            )
+            self._effective_rollout_cutoff_depth = max(1, int(round(raw_depth)))
+            self.stats["adaptive_rollout_depth"] = self._effective_rollout_cutoff_depth
+        else:
+            self._effective_rollout_cutoff_depth = self.rollout_cutoff_depth
 
         # Layer 7: Initialize opponent model on first use
         if self.opponent_modeling_enabled and self._opponent_model is None:
@@ -783,20 +871,46 @@ class MCTSAgent:
 
     def _run_mcts_with_iterations(self, root: MCTSNode):
         """Run MCTS for specified number of iterations."""
+        sufficiency_checked = False
+        warmup = self.iterations // 3 if self.sufficiency_threshold_enabled else -1
         for i in range(self.iterations):
             self._mcts_iteration(root)
             self.stats["iterations_run"] = i + 1
+            # Layer 9: Sufficiency threshold — after warmup, check if any child
+            # Q-value exceeds mean+stddev. If so, switch to pure exploitation.
+            if not sufficiency_checked and i == warmup:
+                sufficiency_checked = True
+                self._check_sufficiency_threshold(root)
 
     def _run_mcts_with_time_limit(self, root: MCTSNode):
         """Run MCTS for specified time limit."""
         start_time = time.time()
         iteration = 0
+        sufficiency_checked = False
+        warmup_time = self.time_limit / 3.0 if self.sufficiency_threshold_enabled else float('inf')
 
         while time.time() - start_time < self.time_limit:
             self._mcts_iteration(root)
             iteration += 1
+            if not sufficiency_checked and time.time() - start_time >= warmup_time:
+                sufficiency_checked = True
+                self._check_sufficiency_threshold(root)
 
         self.stats["iterations_run"] = iteration
+
+    def _check_sufficiency_threshold(self, root: MCTSNode) -> None:
+        """Layer 9: If any root child Q-value exceeds mean + stddev, switch to C=0."""
+        visited = [c for c in root.children if c.visits > 0]
+        if len(visited) < 2:
+            return
+        q_vals = [c.total_reward / c.visits for c in visited]
+        mean_q = sum(q_vals) / len(q_vals)
+        variance = sum((q - mean_q) ** 2 for q in q_vals) / len(q_vals)
+        std_q = variance ** 0.5
+        alpha = mean_q + std_q
+        if any(q > alpha for q in q_vals):
+            self._effective_exploration_constant = 0.0
+            self.stats["sufficiency_activations"] = 1
 
     def _run_mcts_tree_parallel(self, root: MCTSNode):
         """Run tree-parallel MCTS with virtual loss using threads.
@@ -887,6 +1001,7 @@ class MCTSAgent:
         mm_alpha = self.minimax_backup_alpha
         rave_on = self.rave_enabled
         rave_k = self.rave_k
+        la = self.loss_avoidance_enabled
 
         while not node.is_terminal():
             if self.progressive_widening_enabled:
@@ -896,13 +1011,14 @@ class MCTSAgent:
                     node.apply_virtual_loss(self.virtual_loss)
                     vl_path.append(node)
                     node = node.select_child(
-                        exploration_constant=self.exploration_constant,
+                        exploration_constant=self._effective_exploration_constant,
                         progressive_bias_weight=pw_bias_w,
                         progressive_history_weight=ph_w,
                         history_table=hist,
                         minimax_alpha=mm_alpha,
                         rave_enabled=rave_on,
                         rave_k=rave_k,
+                        loss_avoidance=la,
                     )
                 else:
                     return node, vl_path
@@ -912,13 +1028,14 @@ class MCTSAgent:
                 node.apply_virtual_loss(self.virtual_loss)
                 vl_path.append(node)
                 node = node.select_child(
-                    exploration_constant=self.exploration_constant,
+                    exploration_constant=self._effective_exploration_constant,
                     progressive_bias_weight=pw_bias_w,
                     progressive_history_weight=ph_w,
                     history_table=hist,
                     minimax_alpha=mm_alpha,
                     rave_enabled=rave_on,
                     rave_k=rave_k,
+                    loss_avoidance=la,
                 )
 
         return node, vl_path
@@ -983,6 +1100,7 @@ class MCTSAgent:
         mm_alpha = self.minimax_backup_alpha
         rave_on = self.rave_enabled
         rave_k = self.rave_k
+        la = self.loss_avoidance_enabled
 
         while not node.is_terminal():
             if self.progressive_widening_enabled:
@@ -992,13 +1110,14 @@ class MCTSAgent:
                 # Otherwise, if there are children, select among them
                 if node.children:
                     node = node.select_child(
-                        exploration_constant=self.exploration_constant,
+                        exploration_constant=self._effective_exploration_constant,
                         progressive_bias_weight=pw_bias_w,
                         progressive_history_weight=ph_w,
                         history_table=hist,
                         minimax_alpha=mm_alpha,
                         rave_enabled=rave_on,
                         rave_k=rave_k,
+                        loss_avoidance=la,
                     )
                 else:
                     return node
@@ -1007,13 +1126,14 @@ class MCTSAgent:
                 if not node.is_fully_expanded():
                     return node
                 node = node.select_child(
-                    exploration_constant=self.exploration_constant,
+                    exploration_constant=self._effective_exploration_constant,
                     progressive_bias_weight=pw_bias_w,
                     progressive_history_weight=ph_w,
                     history_table=hist,
                     minimax_alpha=mm_alpha,
                     rave_enabled=rave_on,
                     rave_k=rave_k,
+                    loss_avoidance=la,
                 )
 
         return node
@@ -1102,7 +1222,7 @@ class MCTSAgent:
             Tuple of (reward, rollout_action_keys)
         """
         # Layer 4: depth-0 cutoff — pure static evaluation, no rollout at all
-        if self.rollout_cutoff_depth is not None and self.rollout_cutoff_depth <= 0:
+        if self._effective_rollout_cutoff_depth is not None and self._effective_rollout_cutoff_depth <= 0:
             self.stats["cutoff_evals"] += 1
             return self.state_evaluator.evaluate(board, player) * self._eval_reward_scale, []
 
@@ -1134,8 +1254,8 @@ class MCTSAgent:
         while moves_made < self.max_rollout_moves:
             # Layer 4: Early termination at cutoff depth
             if (
-                self.rollout_cutoff_depth is not None
-                and moves_made >= self.rollout_cutoff_depth
+                self._effective_rollout_cutoff_depth is not None
+                and moves_made >= self._effective_rollout_cutoff_depth
             ):
                 self.stats["cutoff_evals"] += 1
                 return (
@@ -1431,8 +1551,19 @@ class MCTSAgent:
         else:
             rave_action_set = set()
 
+        # Layer 9: Loss avoidance — mark nodes that led to catastrophic results
+        use_loss_avoidance = (
+            self.loss_avoidance_enabled and reward < self.loss_avoidance_threshold
+        )
+
         while node is not None:
             node.update(reward)
+
+            # Layer 9: Flag this node so selection prefers siblings next time
+            if use_loss_avoidance and node.parent is not None:
+                node.loss_detected = True
+                self.stats["loss_avoidance_triggers"] += 1
+
             # Update progressive history for the move that led to this node
             if self.progressive_history_enabled and node.move is not None:
                 key = move_action_key(node.move)
@@ -1523,6 +1654,16 @@ class MCTSAgent:
                 "num_workers": self.num_workers,
                 "virtual_loss": self.virtual_loss,
                 "parallel_strategy": self.parallel_strategy,
+                # Layer 9
+                "adaptive_exploration_enabled": self.adaptive_exploration_enabled,
+                "adaptive_exploration_base": self.adaptive_exploration_base,
+                "adaptive_exploration_avg_bf": self.adaptive_exploration_avg_bf,
+                "adaptive_rollout_depth_enabled": self.adaptive_rollout_depth_enabled,
+                "adaptive_rollout_depth_base": self.adaptive_rollout_depth_base,
+                "adaptive_rollout_depth_avg_bf": self.adaptive_rollout_depth_avg_bf,
+                "sufficiency_threshold_enabled": self.sufficiency_threshold_enabled,
+                "loss_avoidance_enabled": self.loss_avoidance_enabled,
+                "loss_avoidance_threshold": self.loss_avoidance_threshold,
             },
             "stats": self.stats.copy()
         }
@@ -1558,6 +1699,11 @@ class MCTSAgent:
             "parallel_strategy": "none",
             "parallel_trees_merged": 0,
             "virtual_loss_applications": 0,
+            # Layer 9
+            "adaptive_c_value": 0.0,
+            "adaptive_rollout_depth": 0,
+            "sufficiency_activations": 0,
+            "loss_avoidance_triggers": 0,
         }
 
         if self.transposition_table:
