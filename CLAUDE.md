@@ -27,9 +27,18 @@ python scripts/arena.py --config scripts/arena_config_extended_rollout.json --nu
 - `iterations_per_ms`: Conversion rate for deterministic time budgets (10.0 for full MCTS, 20.0 for fast_mcts).
 - `exploration_constant`: UCB1 exploration parameter (default: 1.414).
 
+### Layer 4: Simulation Strategy Parameters
+
+- `rollout_policy`: Rollout move selection — `"heuristic"` (default), `"random"`, or `"two_ply"`.
+- `two_ply_top_k`: Top-K filter for two-ply rollouts (None = evaluate all legal moves).
+- `rollout_cutoff_depth`: Cut off rollout at this depth and evaluate statically (None = full rollout). Use 0 for pure static evaluation.
+- `minimax_backup_alpha`: Blending weight for implicit minimax backups (0.0 = pure averaging, default).
+- `state_eval_weights`: Custom weights dict for `BlokusStateEvaluator` features.
+
 ## Project Structure
 
 - `mcts/mcts_agent.py` — Full MCTSAgent with configurable rollout length
+- `mcts/state_evaluator.py` — Lightweight state evaluation function (Layer 4)
 - `agents/fast_mcts_agent.py` — Lightweight FastMCTSAgent (use only when explicitly requested)
 - `scripts/arena.py` — Arena CLI entry point
 - `scripts/arena_config*.json` — Arena configuration files
