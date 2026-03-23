@@ -112,7 +112,7 @@ class TestFeatureExtraction:
     def test_extract_features_returns_all_seven(self, evaluator, fresh_board):
         features = evaluator.extract_features(fresh_board, Player.RED)
         assert set(features.keys()) == set(FEATURE_NAMES)
-        assert len(features) == 7
+        assert len(features) == 8
 
     def test_extract_features_values_normalised(self, evaluator, fresh_board):
         features = evaluator.extract_features(fresh_board, Player.RED)
@@ -122,7 +122,7 @@ class TestFeatureExtraction:
     def test_extract_features_mid_game(self, evaluator, mid_game_board):
         for player in Player:
             features = evaluator.extract_features(mid_game_board, player)
-            assert len(features) == 7
+            assert len(features) == 8
             for val in features.values():
                 assert 0.0 <= val <= 1.0
 
