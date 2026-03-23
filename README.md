@@ -53,7 +53,7 @@ This project provides a full-stack implementation of Blokus with:
 ### AI Agents
 - **Random Agent**: Baseline agent making random legal moves
 - **Heuristic Agent**: Rule-based agent with configurable weights
-- **MCTS Agent**: Monte Carlo Tree Search with transposition tables, RAVE bootstrapping, progressive history, and N-gram selection
+- **MCTS Agent**: Monte Carlo Tree Search with transposition tables, RAVE bootstrapping, progressive history, N-gram selection, and data-driven phase-dependent evaluation (Layer 6)
 - **Fast MCTS Agent**: Optimized MCTS for real-time gameplay
 
 <img width="712" height="213" alt="image" src="https://github.com/user-attachments/assets/32be3357-c4cf-4b89-8954-90f6c6a8b075" />
@@ -80,6 +80,9 @@ This project provides a full-stack implementation of Blokus with:
 - Win-probability training scripts:
   - `scripts/train_winprob_v1.py` (pairwise logistic regression, calibrated baseline)
   - `scripts/train_winprob_v2.py` (phase-aware gradient boosting)
+- Layer 6 evaluation refinement:
+  - `scripts/collect_layer6_data.py` (self-play data collection with dual feature extraction)
+  - `scripts/analyze_layer6_features.py` (regression, SHAP, residual analysis, weight calibration)
 
 ## 🚀 Quick Start
 

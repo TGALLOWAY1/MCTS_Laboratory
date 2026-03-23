@@ -42,11 +42,19 @@ python scripts/arena.py --config scripts/arena_config_extended_rollout.json --nu
 - `nst_enabled`: Enable N-gram Selection Technique for rollout bias (default: `false`).
 - `nst_weight`: Softmax temperature for NST scoring during rollouts (default: 0.5).
 
+### Layer 6: Evaluation Function Refinement Parameters
+
+- `state_eval_phase_weights`: Phase-dependent weight dicts `{"early": {...}, "mid": {...}, "late": {...}}` for `BlokusStateEvaluator`. Overrides `state_eval_weights` with phase-appropriate weights based on board occupancy.
+- Phase thresholds: early < 0.25, mid < 0.55, late >= 0.55 (board occupancy fraction).
+- Calibrated weights derived from regression on 13K+ self-play states are in `data/layer6_calibrated_weights.json`.
+
 ## Project Structure
 
 - `mcts/mcts_agent.py` — Full MCTSAgent with RAVE, progressive history, NST, and configurable rollout policies
-- `mcts/state_evaluator.py` — Lightweight state evaluation function (Layer 4)
+- `mcts/state_evaluator.py` — Lightweight state evaluation function with phase-dependent weights (Layers 4, 6)
 - `agents/fast_mcts_agent.py` — Lightweight FastMCTSAgent (use only when explicitly requested)
 - `scripts/arena.py` — Arena CLI entry point
 - `scripts/arena_config*.json` — Arena configuration files
+- `scripts/collect_layer6_data.py` — Self-play data collection for evaluation refinement
+- `scripts/analyze_layer6_features.py` — Feature importance analysis (regression, SHAP, residuals)
 - `analytics/tournament/arena_runner.py` — Arena harness and agent construction
