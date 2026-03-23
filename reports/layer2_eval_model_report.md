@@ -50,7 +50,20 @@
 
 The average scores range from 75.1 to 75.8 — a spread of only **0.7 points** across all four configurations. For reference, the Layer 1 baseline showed an 8-point gap between heuristic-only and MCTS agents. The 0.7-point spread here is well within noise.
 
-## 2.5 — Implications for Future Layers
+## 2.5 — Inference Optimization: 4x Feature Extraction Redundancy Fix
+
+**Problem:** `predict_player_win_probability(board, player)` calls `_extract_features_for_all_players(board)` on every invocation. Since MCTS calls this method once per player (and multiple times per board state for reward shaping), features for all 4 players were extracted **4x redundantly** for the same board position.
+
+For example, during reward-shaping evaluation of a single node:
+- `parent_value` calls `predict_player_win_probability(parent_board, player)` → extracts features for all 4 players
+- `child_value` calls `predict_player_win_probability(child_board, player)` → extracts features for all 4 players
+- If `potential()` is called for each player on the same board, that's 4 calls × 4 feature extractions = **16 extractions** instead of 4
+
+**Fix:** Added a single-entry board-state cache (`_feature_cache_key` / `_feature_cache_value`) to `_extract_features_for_all_players()`. The cache key uses `board.grid.tobytes() + move_count + pieces_used`, so consecutive calls on the same board state hit the cache instead of re-extracting.
+
+**Expected impact:** Reduces per-evaluation cost from ~26ms to ~6.5ms for repeated calls on the same board state. This roughly quadruples the number of useful MCTS iterations within the same time budget, directly addressing the core bottleneck identified in Section 2.4.
+
+## 2.6 — Implications for Future Layers
 
 | Finding | Implication | Affected Layer |
 |---------|-------------|----------------|
@@ -66,7 +79,7 @@ The average scores range from 75.1 to 75.8 — a spread of only **0.7 points** a
 3. **Action pruning (Layer 3)**: Reducing the branching factor would make fewer evaluations more impactful
 4. **Batch evaluation**: Amortize model loading/prediction across multiple leaf nodes
 
-## 2.6 — Artifacts
+## 2.7 — Artifacts
 
 | File | Description |
 |------|-------------|
