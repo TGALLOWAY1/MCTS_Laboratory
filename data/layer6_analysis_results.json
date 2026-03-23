@@ -1,0 +1,518 @@
+{
+  "linear_regression_se": {
+    "r2": 0.1362117171785222,
+    "r2_cv_mean": 0.1324953745930741,
+    "r2_cv_std": 0.016213485398827138,
+    "intercept": 103.33245773900248,
+    "coefficients": [
+      {
+        "feature": "se_opponent_avg_mobility",
+        "coefficient": -33.649155110493126,
+        "ci_lower": -35.98715867468532,
+        "ci_upper": -31.38979455227238,
+        "significant": true
+      },
+      {
+        "feature": "se_accessible_corners",
+        "coefficient": 27.26737147749814,
+        "ci_lower": 25.176538959760375,
+        "ci_upper": 29.29949390172442,
+        "significant": true
+      },
+      {
+        "feature": "se_largest_remaining_piece_size",
+        "coefficient": -25.933221305135056,
+        "ci_lower": -29.385910656950326,
+        "ci_upper": -22.818219924490286,
+        "significant": true
+      },
+      {
+        "feature": "se_reachable_empty_squares",
+        "coefficient": 9.096144699421135,
+        "ci_lower": 7.787193444735461,
+        "ci_upper": 10.430113220029979,
+        "significant": true
+      },
+      {
+        "feature": "se_squares_placed",
+        "coefficient": 3.3113546977453177,
+        "ci_lower": 2.524945816676727,
+        "ci_upper": 4.090628740946654,
+        "significant": true
+      },
+      {
+        "feature": "se_remaining_piece_area",
+        "coefficient": -3.3113546977453088,
+        "ci_lower": -4.090628740946639,
+        "ci_upper": -2.524945816676724,
+        "significant": true
+      },
+      {
+        "feature": "se_territory_enclosure_area",
+        "coefficient": 0.0,
+        "ci_lower": 0.0,
+        "ci_upper": 0.0,
+        "significant": false
+      }
+    ]
+  },
+  "linear_regression_wp": {
+    "r2": 0.3520720249404673,
+    "r2_cv_mean": 0.33831626730054215,
+    "r2_cv_std": 0.023664339870690405,
+    "intercept": 216.15839136274235,
+    "coefficients": [
+      {
+        "feature": "phase_board_occupancy",
+        "coefficient": -185.21886891621338,
+        "ci_lower": -201.14546080261772,
+        "ci_upper": -167.81798329793122,
+        "significant": true
+      },
+      {
+        "feature": "remaining_size_1_count",
+        "coefficient": 3.388981822205721,
+        "ci_lower": 2.7017508396159253,
+        "ci_upper": 4.056499498446499,
+        "significant": true
+      },
+      {
+        "feature": "center_proximity",
+        "coefficient": -2.0838870202950117,
+        "ci_lower": -2.1798274579656147,
+        "ci_upper": -1.9878585312461388,
+        "significant": true
+      },
+      {
+        "feature": "remaining_key_piece_20",
+        "coefficient": -1.6097678682033414,
+        "ci_lower": -1.9558303373535837,
+        "ci_upper": -1.2752045424608822,
+        "significant": true
+      },
+      {
+        "feature": "remaining_squares",
+        "coefficient": -1.549613031347444,
+        "ci_lower": -1.6722567580883565,
+        "ci_upper": -1.4203129624389488,
+        "significant": true
+      },
+      {
+        "feature": "remaining_size_2_count",
+        "coefficient": -1.4037557522733248,
+        "ci_lower": -1.9581012566633165,
+        "ci_upper": -0.8674131617531803,
+        "significant": true
+      },
+      {
+        "feature": "pieces_used_count",
+        "coefficient": -1.3772423899876418,
+        "ci_lower": -1.6472924653580727,
+        "ci_upper": -1.080427140316597,
+        "significant": true
+      },
+      {
+        "feature": "pieces_remaining_count",
+        "coefficient": 1.3772423899875281,
+        "ci_lower": 1.080427140316548,
+        "ci_upper": 1.6472924653581047,
+        "significant": true
+      },
+      {
+        "feature": "phase_ply",
+        "coefficient": 0.65979459647996,
+        "ci_lower": 0.4294292422576977,
+        "ci_upper": 0.8840995603691357,
+        "significant": true
+      },
+      {
+        "feature": "remaining_key_piece_17",
+        "coefficient": -0.633684331973711,
+        "ci_lower": -0.9820998844269355,
+        "ci_upper": -0.2918434502431464,
+        "significant": true
+      },
+      {
+        "feature": "opponent_adjacency",
+        "coefficient": 0.383893778828997,
+        "ci_lower": 0.3580886986778277,
+        "ci_upper": 0.40884397501122277,
+        "significant": true
+      },
+      {
+        "feature": "mobility_bucket_3",
+        "coefficient": 0.336142233912796,
+        "ci_lower": 0.2503183997365361,
+        "ci_upper": 0.42219639957137106,
+        "significant": true
+      },
+      {
+        "feature": "mobility_bucket_2",
+        "coefficient": 0.3282878070688891,
+        "ci_lower": 0.23550097621464033,
+        "ci_upper": 0.4251001271398292,
+        "significant": true
+      },
+      {
+        "feature": "remaining_size_3_count",
+        "coefficient": -0.3249540406086933,
+        "ci_lower": -0.6389841735148152,
+        "ci_upper": -0.03229429053020386,
+        "significant": true
+      },
+      {
+        "feature": "mobility_bucket_1",
+        "coefficient": -0.29975347070390873,
+        "ci_lower": -0.3573393854662331,
+        "ci_upper": -0.24242004033864575,
+        "significant": true
+      },
+      {
+        "feature": "remaining_size_4_count",
+        "coefficient": -0.258926969501728,
+        "ci_lower": -0.4039766374187178,
+        "ci_upper": -0.11579196817609888,
+        "significant": true
+      },
+      {
+        "feature": "mobility_bucket_4",
+        "coefficient": -0.25676651887789326,
+        "ci_lower": -0.28739423098436556,
+        "ci_upper": -0.2265126670538277,
+        "significant": true
+      },
+      {
+        "feature": "remaining_key_piece_19",
+        "coefficient": -0.180274584071204,
+        "ci_lower": -0.6111180625090771,
+        "ci_upper": 0.2649354331602003,
+        "significant": false
+      },
+      {
+        "feature": "phase_turn_index",
+        "coefficient": -0.14473024518313404,
+        "ci_lower": -0.2487169633998131,
+        "ci_upper": -0.04144794079034835,
+        "significant": true
+      },
+      {
+        "feature": "corner_differential",
+        "coefficient": 0.1294023919935238,
+        "ci_lower": 0.1013991895776025,
+        "ci_upper": 0.15805901403958397,
+        "significant": true
+      },
+      {
+        "feature": "mobility_total_orientation_normalized",
+        "coefficient": -0.09302213455839203,
+        "ci_lower": -0.1251869878067038,
+        "ci_upper": -0.06027502205403035,
+        "significant": true
+      },
+      {
+        "feature": "deadzone_count",
+        "coefficient": -0.08675225522726077,
+        "ci_lower": -0.10554618750483342,
+        "ci_upper": -0.06829378711202673,
+        "significant": true
+      },
+      {
+        "feature": "mobility_total_cell_weighted",
+        "coefficient": 0.08156830652866219,
+        "ci_lower": 0.061228505254614485,
+        "ci_upper": 0.10169334376040384,
+        "significant": true
+      },
+      {
+        "feature": "phase_piece_usage_ratio",
+        "coefficient": -0.06558297095183326,
+        "ci_lower": -0.07844249835040673,
+        "ci_upper": -0.05144891144368144,
+        "significant": true
+      },
+      {
+        "feature": "frontier_size",
+        "coefficient": -0.05063381511777943,
+        "ci_lower": -0.08909126790681954,
+        "ci_upper": -0.011793667801576334,
+        "significant": true
+      },
+      {
+        "feature": "utility_frontier_plus_mobility",
+        "coefficient": 0.030934491422287533,
+        "ci_lower": 0.009683889242353637,
+        "ci_upper": 0.05209315214397684,
+        "significant": true
+      },
+      {
+        "feature": "mobility_bucket_5",
+        "coefficient": -0.02634174486965024,
+        "ci_lower": -0.03543016979460472,
+        "ci_upper": -0.017278857368605075,
+        "significant": true
+      },
+      {
+        "feature": "remaining_size_5_count",
+        "coefficient": -0.024102669834640218,
+        "ci_lower": -0.18583978473945953,
+        "ci_upper": 0.14825940815251692,
+        "significant": false
+      },
+      {
+        "feature": "mobility_total_placements",
+        "coefficient": -0.01656754984800831,
+        "ci_lower": -0.030657109897456084,
+        "ci_upper": -0.0030106181450918522,
+        "significant": true
+      },
+      {
+        "feature": "blocking_exposure_legal_moves_opp_sum",
+        "coefficient": -0.004277208288717355,
+        "ci_lower": -0.005330747551772558,
+        "ci_upper": -0.003283093480617142,
+        "significant": true
+      },
+      {
+        "feature": "player_board_occupancy",
+        "coefficient": 0.003874032578355964,
+        "ci_lower": 0.003550782406074074,
+        "ci_upper": 0.004180641895205266,
+        "significant": true
+      },
+      {
+        "feature": "phase_progress_placement_ratio",
+        "coefficient": 0.00026391783859389855,
+        "ci_lower": 0.00017177169690431478,
+        "ci_upper": 0.0003536398241498274,
+        "significant": true
+      },
+      {
+        "feature": "deadzone_fraction",
+        "coefficient": -0.00021688063803053585,
+        "ci_lower": -0.0002638654688507102,
+        "ci_upper": -0.00017073446779780727,
+        "significant": true
+      },
+      {
+        "feature": "phase_progress_turn_ratio",
+        "coefficient": -5.7892098072529136e-05,
+        "ci_lower": -9.948678535857458e-05,
+        "ci_upper": -1.65791763134668e-05,
+        "significant": true
+      }
+    ]
+  },
+  "random_forest_wp": {
+    "r2": 0.5351680111192318,
+    "r2_cv_mean": 0.3935386800950373,
+    "r2_cv_std": 0.03133143663134655,
+    "importances": [
+      {
+        "feature": "center_proximity",
+        "importance": 0.36079501328862895
+      },
+      {
+        "feature": "utility_frontier_plus_mobility",
+        "importance": 0.16982786408629366
+      },
+      {
+        "feature": "corner_differential",
+        "importance": 0.06131489610633603
+      },
+      {
+        "feature": "remaining_squares",
+        "importance": 0.059443882403298585
+      },
+      {
+        "feature": "opponent_adjacency",
+        "importance": 0.05722284524686391
+      },
+      {
+        "feature": "player_board_occupancy",
+        "importance": 0.05550658848906422
+      },
+      {
+        "feature": "blocking_exposure_legal_moves_opp_sum",
+        "importance": 0.0312593887132733
+      },
+      {
+        "feature": "mobility_total_cell_weighted",
+        "importance": 0.022076594330062108
+      },
+      {
+        "feature": "remaining_size_5_count",
+        "importance": 0.021643924683985998
+      },
+      {
+        "feature": "mobility_bucket_3",
+        "importance": 0.018282475993988214
+      },
+      {
+        "feature": "mobility_bucket_4",
+        "importance": 0.018100724158220987
+      },
+      {
+        "feature": "mobility_total_placements",
+        "importance": 0.01595269523875033
+      },
+      {
+        "feature": "mobility_bucket_2",
+        "importance": 0.015476978728095501
+      },
+      {
+        "feature": "mobility_total_orientation_normalized",
+        "importance": 0.014774206733425622
+      },
+      {
+        "feature": "mobility_bucket_5",
+        "importance": 0.014535522151499981
+      },
+      {
+        "feature": "frontier_size",
+        "importance": 0.013752117186657746
+      },
+      {
+        "feature": "phase_board_occupancy",
+        "importance": 0.007893811270834316
+      },
+      {
+        "feature": "mobility_bucket_1",
+        "importance": 0.007764249996261869
+      },
+      {
+        "feature": "deadzone_count",
+        "importance": 0.006351487106797649
+      },
+      {
+        "feature": "remaining_key_piece_20",
+        "importance": 0.005948462902395516
+      },
+      {
+        "feature": "deadzone_fraction",
+        "importance": 0.005836628480713056
+      },
+      {
+        "feature": "remaining_key_piece_17",
+        "importance": 0.004327737734692224
+      },
+      {
+        "feature": "remaining_size_4_count",
+        "importance": 0.0038918922374795504
+      },
+      {
+        "feature": "remaining_key_piece_19",
+        "importance": 0.0037555136578001796
+      },
+      {
+        "feature": "remaining_size_3_count",
+        "importance": 0.0011689626997667176
+      },
+      {
+        "feature": "phase_piece_usage_ratio",
+        "importance": 0.0006489613910173586
+      },
+      {
+        "feature": "phase_progress_placement_ratio",
+        "importance": 0.000612673202395431
+      },
+      {
+        "feature": "pieces_used_count",
+        "importance": 0.000535220482565838
+      },
+      {
+        "feature": "pieces_remaining_count",
+        "importance": 0.0003933138186163368
+      },
+      {
+        "feature": "phase_ply",
+        "importance": 0.0003618120610117092
+      },
+      {
+        "feature": "remaining_size_2_count",
+        "importance": 0.000229308322120226
+      },
+      {
+        "feature": "phase_progress_turn_ratio",
+        "importance": 0.00015445390654530687
+      },
+      {
+        "feature": "phase_turn_index",
+        "importance": 0.00014988360415401522
+      },
+      {
+        "feature": "remaining_size_1_count",
+        "importance": 9.90958638750662e-06
+      }
+    ],
+    "shap_importances": null
+  },
+  "residual_analysis": {
+    "rmse": 9.471756637298752,
+    "mae": 7.349703558666431,
+    "phase_residual_stats": {
+      "early": {
+        "count": 3216,
+        "rmse": 10.108461600386631,
+        "mae": 7.852464195876207,
+        "mean_residual": 0.42401674014049406
+      },
+      "mid": {
+        "count": 5608,
+        "rmse": 9.769807250034443,
+        "mae": 7.578367583359523,
+        "mean_residual": -0.05837254968287457
+      },
+      "late": {
+        "count": 4508,
+        "rmse": 8.58405566220401,
+        "mae": 6.706574441597774,
+        "mean_residual": -0.2298767918523178
+      }
+    }
+  },
+  "phase_weights": {
+    "early": {
+      "squares_placed": -0.17599664484103847,
+      "remaining_piece_area": 0.17599664484103822,
+      "accessible_corners": 0.3,
+      "reachable_empty_squares": 0.0,
+      "largest_remaining_piece_size": 0.0,
+      "opponent_avg_mobility": -0.05287834609528694,
+      "territory_enclosure_area": 0.0
+    },
+    "mid": {
+      "squares_placed": -0.00387502185581506,
+      "remaining_piece_area": 0.0038750218558150614,
+      "accessible_corners": 0.3,
+      "reachable_empty_squares": 0.22774497158891033,
+      "largest_remaining_piece_size": -0.238473591231953,
+      "opponent_avg_mobility": -0.20277351241243552,
+      "territory_enclosure_area": 0.0
+    },
+    "late": {
+      "squares_placed": 0.3,
+      "remaining_piece_area": -0.3,
+      "accessible_corners": 0.17573409689186584,
+      "reachable_empty_squares": 0.13361753070802862,
+      "largest_remaining_piece_size": -0.08518919739412929,
+      "opponent_avg_mobility": -0.06278383996091268,
+      "territory_enclosure_area": 0.0
+    }
+  },
+  "calibrated_weights": {
+    "squares_placed": 0.029522477044715226,
+    "remaining_piece_area": -0.029522477044715147,
+    "accessible_corners": 0.24310302640254203,
+    "reachable_empty_squares": 0.08109693693246343,
+    "largest_remaining_piece_size": -0.23120837257261234,
+    "opponent_avg_mobility": -0.3,
+    "territory_enclosure_area": 0.0
+  },
+  "td_learning_decision": {
+    "r2_se": 0.1362117171785222,
+    "r2_wp": 0.3520720249404673,
+    "r2_rf": 0.5351680111192318,
+    "decision": "implement",
+    "reason": "R^2=0.1362 < 0.5 \u2014 substantial room for improvement. TD-UCT bootstrapping recommended."
+  }
+}

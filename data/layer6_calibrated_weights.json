@@ -1,0 +1,49 @@
+{
+  "single_weights": {
+    "squares_placed": 0.029522477044715226,
+    "remaining_piece_area": -0.029522477044715147,
+    "accessible_corners": 0.24310302640254203,
+    "reachable_empty_squares": 0.08109693693246343,
+    "largest_remaining_piece_size": -0.23120837257261234,
+    "opponent_avg_mobility": -0.3,
+    "territory_enclosure_area": 0.0
+  },
+  "phase_weights": {
+    "early": {
+      "squares_placed": -0.17599664484103847,
+      "remaining_piece_area": 0.17599664484103822,
+      "accessible_corners": 0.3,
+      "reachable_empty_squares": 0.0,
+      "largest_remaining_piece_size": 0.0,
+      "opponent_avg_mobility": -0.05287834609528694,
+      "territory_enclosure_area": 0.0
+    },
+    "mid": {
+      "squares_placed": -0.00387502185581506,
+      "remaining_piece_area": 0.0038750218558150614,
+      "accessible_corners": 0.3,
+      "reachable_empty_squares": 0.22774497158891033,
+      "largest_remaining_piece_size": -0.238473591231953,
+      "opponent_avg_mobility": -0.20277351241243552,
+      "territory_enclosure_area": 0.0
+    },
+    "late": {
+      "squares_placed": 0.3,
+      "remaining_piece_area": -0.3,
+      "accessible_corners": 0.17573409689186584,
+      "reachable_empty_squares": 0.13361753070802862,
+      "largest_remaining_piece_size": -0.08518919739412929,
+      "opponent_avg_mobility": -0.06278383996091268,
+      "territory_enclosure_area": 0.0
+    }
+  },
+  "default_weights": {
+    "squares_placed": 0.3,
+    "remaining_piece_area": -0.15,
+    "accessible_corners": 0.25,
+    "reachable_empty_squares": 0.1,
+    "largest_remaining_piece_size": 0.1,
+    "opponent_avg_mobility": -0.1,
+    "territory_enclosure_area": 0.0
+  }
+}
