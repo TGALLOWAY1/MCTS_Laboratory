@@ -5,6 +5,8 @@ uvicorn[standard]
 pydantic
 orjson
 websockets
+openskill
+joblib
 pytest
 pytest-asyncio
 ruff
