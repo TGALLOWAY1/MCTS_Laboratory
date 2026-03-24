@@ -1,0 +1,123 @@
+{
+  "agents": [
+    {
+      "name": "default_weights_d0",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 10.0,
+        "exploration_constant": 1.414,
+        "rollout_cutoff_depth": 0
+      }
+    },
+    {
+      "name": "phase_weights_d0",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 10.0,
+        "exploration_constant": 1.414,
+        "rollout_cutoff_depth": 0,
+        "state_eval_phase_weights": {
+          "early": {
+            "squares_placed": -0.176,
+            "remaining_piece_area": 0.176,
+            "accessible_corners": 0.3,
+            "reachable_empty_squares": 0.0,
+            "largest_remaining_piece_size": 0.0,
+            "opponent_avg_mobility": -0.053,
+            "center_proximity": 0.0,
+            "territory_enclosure_area": 0.0
+          },
+          "mid": {
+            "squares_placed": -0.004,
+            "remaining_piece_area": 0.004,
+            "accessible_corners": 0.3,
+            "reachable_empty_squares": 0.228,
+            "largest_remaining_piece_size": -0.238,
+            "opponent_avg_mobility": -0.203,
+            "center_proximity": 0.0,
+            "territory_enclosure_area": 0.0
+          },
+          "late": {
+            "squares_placed": 0.3,
+            "remaining_piece_area": -0.3,
+            "accessible_corners": 0.176,
+            "reachable_empty_squares": 0.134,
+            "largest_remaining_piece_size": -0.085,
+            "opponent_avg_mobility": -0.063,
+            "center_proximity": 0.0,
+            "territory_enclosure_area": 0.0
+          }
+        }
+      }
+    },
+    {
+      "name": "default_weights_d5",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 0.25,
+        "exploration_constant": 1.414,
+        "rollout_cutoff_depth": 5
+      }
+    },
+    {
+      "name": "phase_weights_d5",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 0.25,
+        "exploration_constant": 1.414,
+        "rollout_cutoff_depth": 5,
+        "state_eval_phase_weights": {
+          "early": {
+            "squares_placed": -0.176,
+            "remaining_piece_area": 0.176,
+            "accessible_corners": 0.3,
+            "reachable_empty_squares": 0.0,
+            "largest_remaining_piece_size": 0.0,
+            "opponent_avg_mobility": -0.053,
+            "center_proximity": 0.0,
+            "territory_enclosure_area": 0.0
+          },
+          "mid": {
+            "squares_placed": -0.004,
+            "remaining_piece_area": 0.004,
+            "accessible_corners": 0.3,
+            "reachable_empty_squares": 0.228,
+            "largest_remaining_piece_size": -0.238,
+            "opponent_avg_mobility": -0.203,
+            "center_proximity": 0.0,
+            "territory_enclosure_area": 0.0
+          },
+          "late": {
+            "squares_placed": 0.3,
+            "remaining_piece_area": -0.3,
+            "accessible_corners": 0.176,
+            "reachable_empty_squares": 0.134,
+            "largest_remaining_piece_size": -0.085,
+            "opponent_avg_mobility": -0.063,
+            "center_proximity": 0.0,
+            "territory_enclosure_area": 0.0
+          }
+        }
+      }
+    }
+  ],
+  "num_games": 16,
+  "seed": 20260324,
+  "seat_policy": "round_robin",
+  "output_root": "arena_runs",
+  "max_turns": 2500,
+  "snapshots": {
+    "enabled": true,
+    "strategy": "fixed_ply",
+    "checkpoints": [8, 16, 24, 32, 40, 48, 56, 64]
+  },
+  "notes": "Layer 10.4: Eval quality x cutoff depth. depth_0 at 1000 iter (fast), depth_5 at 25 iter (calibrated for feasibility). Tests whether phase-dependent weights improve play enough to close the gap between depth_0 and depth_5."
+}
