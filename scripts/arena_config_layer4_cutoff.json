@@ -11,32 +11,23 @@
       }
     },
     {
-      "name": "mcts_100ms_cutoff_4",
+      "name": "mcts_100ms_cutoff_5",
       "type": "mcts",
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
         "iterations_per_ms": 10.0,
-        "rollout_cutoff_depth": 4
+        "rollout_cutoff_depth": 5
       }
     },
     {
-      "name": "mcts_100ms_cutoff_8",
+      "name": "mcts_100ms_cutoff_10",
       "type": "mcts",
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
         "iterations_per_ms": 10.0,
-        "rollout_cutoff_depth": 8
-      }
-    },
-    {
-      "name": "mcts_100ms_full_rollout",
-      "type": "mcts",
-      "thinking_time_ms": 100,
-      "params": {
-        "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0
+        "rollout_cutoff_depth": 10
       }
     }
   ],
@@ -50,5 +41,5 @@
     "strategy": "fixed_ply",
     "checkpoints": [8, 16, 24, 32, 40, 48, 56, 64]
   },
-  "notes": "Layer 4.2: Early termination cutoff depth sweep — depth 0 (pure eval), 4, 8, and full rollout baseline"
+  "notes": "Layer 4.2: Rollout cutoff depth sweep — depth 0 (pure static eval), 5 (short rollout), 10 (medium rollout). Full 50-move rollout dropped due to >2hr/game compute cost."
 }
