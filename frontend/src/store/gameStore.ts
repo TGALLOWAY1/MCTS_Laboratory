@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { ENABLE_DEBUG_UI } from '../constants/gameConstants';
+import { SearchTraceV1 } from '../types/mcts';
 import BlokusWorker from './blokusWorker?worker';
 
 // Types
@@ -81,6 +82,7 @@ export interface GameState {
     num_clusters: number;
   }>;
   piece_lock_risk?: Record<string, number>;
+  search_trace?: SearchTraceV1;
   self_block_risk?: {
     top_moves: Array<{
       piece_id: number;
