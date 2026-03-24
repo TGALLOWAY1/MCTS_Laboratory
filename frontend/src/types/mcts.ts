@@ -26,6 +26,73 @@ export interface MctsDiagnosticsV1 {
     nodesExpanded: number;
     nodesByDepth: { depth: number; nodes: number }[];
     bestMoveTrace: MctsBestMoveTracePoint[];
+    searchTrace?: SearchTraceV1;
+}
+
+// --- Search Trace types for MCTS Visualization Platform ---
+
+export interface DepthTimePoint {
+    iter: number;
+    maxDepth: number;
+    avgDepth: number;
+    selectedDepth: number;
+}
+
+export interface BreadthTimePoint {
+    iter: number;
+    treeSize: number;
+    rootChildren: number;
+    avgBranching: number;
+}
+
+export interface ExplorationTimePoint {
+    iter: number;
+    avgExploitation: number;
+    avgExploration: number;
+    ratio: number;
+}
+
+export interface RootChildSnapshotEntry {
+    actionId: string;
+    pieceId: number;
+    orientation: number;
+    anchorRow: number;
+    anchorCol: number;
+    visits: number;
+    qValue: number;
+    prob: number;
+}
+
+export interface RootSnapshotCheckpoint {
+    checkpoint: number;
+    children: RootChildSnapshotEntry[];
+}
+
+export interface UctChildBreakdown {
+    actionId: string;
+    pieceId: number;
+    orientation: number;
+    anchorRow: number;
+    anchorCol: number;
+    visits: number;
+    parentVisits: number;
+    exploitation: number;
+    exploration: number;
+    raveQ: number;
+    raveBeta: number;
+    total: number;
+}
+
+export interface SearchTraceV1 {
+    depthOverTime: DepthTimePoint[];
+    breadthOverTime: BreadthTimePoint[];
+    explorationOverTime: ExplorationTimePoint[];
+    rolloutResults: number[];
+    rootChildrenSnapshots: RootSnapshotCheckpoint[];
+    uctBreakdown: UctChildBreakdown[];
+    explorationGrid: number[][] | null;
+    totalIterations: number;
+    sampleRate: number;
 }
 
 /**

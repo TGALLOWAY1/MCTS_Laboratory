@@ -50,6 +50,13 @@ from .move_heuristic import (
     rank_moves_by_heuristic,
 )
 from .opponent_model import OpponentModelManager
+from .search_trace import (
+    IterationRecord,
+    RootChildSnapshot,
+    RootSnapshotCheckpoint,
+    SearchTrace,
+    UctChildBreakdown,
+)
 from .state_evaluator import BlokusStateEvaluator
 from .utils import compute_policy_entropy
 from .zobrist import TranspositionTable, ZobristHash
@@ -446,6 +453,9 @@ class MCTSAgent:
         sufficiency_threshold_enabled: bool = False,
         loss_avoidance_enabled: bool = False,
         loss_avoidance_threshold: float = -50.0,
+        # --- Search Trace (Visualization) ---
+        enable_search_trace: bool = False,
+        search_trace_sample_rate: int = 10,
     ):
         """
         Initialize MCTS agent.
@@ -683,6 +693,13 @@ class MCTSAgent:
             "loss_avoidance_triggers": 0,
         }
 
+        # Search Trace (Visualization)
+        self.enable_search_trace = bool(enable_search_trace)
+        self.search_trace_sample_rate = max(1, int(search_trace_sample_rate))
+        self._search_trace: Optional[SearchTrace] = None
+        self._trace_prev_best_key: Optional[str] = None
+        self._trace_exploration_grid: Optional[List[List[int]]] = None
+
     def select_action(self, board: Board, player: Player, legal_moves: List[Move]) -> Optional[Move]:
         """
         Select action using MCTS.
@@ -757,6 +774,12 @@ class MCTSAgent:
 
         root = MCTSNode(board, player)
 
+        # Initialize search trace if enabled
+        if self.enable_search_trace:
+            self._search_trace = SearchTrace(sample_rate=self.search_trace_sample_rate)
+            self._trace_prev_best_key = None
+            self._trace_exploration_grid = [[0] * 20 for _ in range(20)]
+
         # Heuristic move ordering: sort untried_moves so best are popped last
         if self.heuristic_move_ordering or self.progressive_widening_enabled:
             self._sort_untried_moves(root)
@@ -777,6 +800,10 @@ class MCTSAgent:
 
         # Collect tree diagnostics before root is discarded
         self._collect_tree_diagnostics(root)
+
+        # Finalize search trace before root is discarded
+        if self.enable_search_trace and self._search_trace is not None:
+            self._finalize_search_trace(root)
 
         # Get best move
         best_move = root.get_best_move()
@@ -869,18 +896,240 @@ class MCTSAgent:
         self.stats["tree_depth_mean"] = mean_depth
         self.stats["branching_factor"] = len(root.untried_moves) + len(root.children)
 
+    # --- Search Trace helpers ---
+
+    def _selection_traced(self, node: MCTSNode):
+        """Selection with UCT term tracking for search trace.
+
+        Returns (selected_node, selection_depth, avg_exploitation, avg_exploration).
+        """
+        pw_bias_w = self.progressive_bias_weight if self.progressive_bias_enabled else 0.0
+        ph_w = self.progressive_history_weight if self.progressive_history_enabled else 0.0
+        hist = self._history_table if self.progressive_history_enabled else None
+        mm_alpha = self.minimax_backup_alpha
+        rave_on = self.rave_enabled
+        rave_k_val = self.rave_k
+        la = self.loss_avoidance_enabled
+
+        depth = 0
+        exploit_sum = 0.0
+        explore_sum = 0.0
+        steps = 0
+
+        while not node.is_terminal():
+            if self.progressive_widening_enabled:
+                if node.should_expand_pw(self.pw_c, self.pw_alpha):
+                    break
+                if node.children:
+                    # Compute UCT terms for the chosen child
+                    chosen = node.select_child(
+                        exploration_constant=self._effective_exploration_constant,
+                        progressive_bias_weight=pw_bias_w,
+                        progressive_history_weight=ph_w,
+                        history_table=hist,
+                        minimax_alpha=mm_alpha,
+                        rave_enabled=rave_on,
+                        rave_k=rave_k_val,
+                        loss_avoidance=la,
+                    )
+                    if chosen.visits > 0 and node.visits > 0:
+                        exploit_sum += chosen.blended_q(mm_alpha)
+                        explore_sum += self._effective_exploration_constant * math.sqrt(
+                            math.log(node.visits) / chosen.visits
+                        )
+                        steps += 1
+                    node = chosen
+                    depth += 1
+                else:
+                    break
+            else:
+                if not node.is_fully_expanded():
+                    break
+                chosen = node.select_child(
+                    exploration_constant=self._effective_exploration_constant,
+                    progressive_bias_weight=pw_bias_w,
+                    progressive_history_weight=ph_w,
+                    history_table=hist,
+                    minimax_alpha=mm_alpha,
+                    rave_enabled=rave_on,
+                    rave_k=rave_k_val,
+                    loss_avoidance=la,
+                )
+                if chosen.visits > 0 and node.visits > 0:
+                    exploit_sum += chosen.blended_q(mm_alpha)
+                    explore_sum += self._effective_exploration_constant * math.sqrt(
+                        math.log(node.visits) / chosen.visits
+                    )
+                    steps += 1
+                node = chosen
+                depth += 1
+
+        avg_exploit = exploit_sum / steps if steps > 0 else 0.0
+        avg_explore = explore_sum / steps if steps > 0 else 0.0
+        return node, depth, avg_exploit, avg_explore
+
+    def _snapshot_root_children(self, root: MCTSNode, iteration: int) -> None:
+        """Capture root children stats for a search trace checkpoint."""
+        if not self._search_trace or not root.children:
+            return
+        total_visits = sum(c.visits for c in root.children)
+        children = []
+        for c in sorted(root.children, key=lambda x: x.visits, reverse=True)[:20]:
+            if c.move is None or c.visits == 0:
+                continue
+            m = c.move
+            children.append(RootChildSnapshot(
+                action_id=f"{m.piece_id}:{m.orientation}@{m.anchor_row},{m.anchor_col}",
+                piece_id=m.piece_id,
+                orientation=m.orientation,
+                anchor_row=m.anchor_row,
+                anchor_col=m.anchor_col,
+                visits=c.visits,
+                q_value=c.total_reward / c.visits,
+                probability=c.visits / total_visits if total_visits > 0 else 0.0,
+            ))
+        self._search_trace.root_snapshots.append(
+            RootSnapshotCheckpoint(iteration=iteration, children=children)
+        )
+
+    def _finalize_search_trace(self, root: MCTSNode) -> None:
+        """Compute final UCT breakdown and exploration grid for the trace."""
+        trace = self._search_trace
+        if trace is None:
+            return
+
+        # UCT breakdown for root children
+        if root.children and root.visits > 0:
+            mm_alpha = self.minimax_backup_alpha
+            parent_visits = root.visits
+            rave_on = self.rave_enabled
+            rave_k_val = self.rave_k
+
+            r_beta = 0.0
+            if rave_on and parent_visits > 0:
+                r_beta = math.sqrt(rave_k_val / (3.0 * parent_visits + rave_k_val))
+
+            for child in sorted(root.children, key=lambda x: x.visits, reverse=True)[:20]:
+                if child.move is None or child.visits == 0:
+                    continue
+                m = child.move
+                exploitation = child.blended_q(mm_alpha)
+                exploration = self._effective_exploration_constant * math.sqrt(
+                    math.log(parent_visits) / child.visits
+                )
+
+                child_rave_q = 0.0
+                child_rave_beta = 0.0
+                if r_beta > 0.0 and child.move is not None:
+                    akey = move_action_key(child.move)
+                    rv = root.rave_visits.get(akey, 0)
+                    if rv > 0:
+                        child_rave_q = root.rave_total[akey] / rv
+                        child_rave_beta = r_beta
+
+                total = exploitation + exploration
+                if child_rave_beta > 0:
+                    blended_exploit = (1.0 - child_rave_beta) * exploitation + child_rave_beta * child_rave_q
+                    total = blended_exploit + exploration
+
+                trace.uct_breakdown.append(UctChildBreakdown(
+                    action_id=f"{m.piece_id}:{m.orientation}@{m.anchor_row},{m.anchor_col}",
+                    piece_id=m.piece_id,
+                    orientation=m.orientation,
+                    anchor_row=m.anchor_row,
+                    anchor_col=m.anchor_col,
+                    visits=child.visits,
+                    parent_visits=parent_visits,
+                    exploitation=exploitation,
+                    exploration=exploration,
+                    rave_q=child_rave_q,
+                    rave_beta=child_rave_beta,
+                    total=total,
+                ))
+
+        # Attach exploration grid
+        trace.exploration_grid = self._trace_exploration_grid
+
+    def _track_explored_move(self, move: Move) -> None:
+        """Increment exploration grid cells for an expanded move."""
+        grid = self._trace_exploration_grid
+        if grid is None:
+            return
+        orientations = self.move_generator.piece_orientations_cache[move.piece_id]
+        orientation = orientations[move.orientation]
+        rows, cols = orientation.shape
+        for i in range(rows):
+            for j in range(cols):
+                if orientation[i, j] == 1:
+                    r, c = move.anchor_row + i, move.anchor_col + j
+                    if 0 <= r < 20 and 0 <= c < 20:
+                        grid[r][c] += 1
+
+    def _quick_max_depth(self, root: MCTSNode) -> int:
+        """Fast max depth estimate using DFS limited to first few branches."""
+        max_d = 0
+        stack = [(root, 0)]
+        nodes_checked = 0
+        while stack and nodes_checked < 500:
+            node, d = stack.pop()
+            nodes_checked += 1
+            if d > max_d:
+                max_d = d
+            # Only follow the most-visited children to stay fast
+            for child in node.children[:3]:
+                stack.append((child, d + 1))
+        return max_d
+
+    def _quick_tree_size(self, root: MCTSNode) -> int:
+        """Fast tree size estimate using BFS limited to 1000 nodes."""
+        count = 0
+        stack = [root]
+        while stack and count < 1000:
+            node = stack.pop()
+            count += 1
+            stack.extend(node.children)
+        return count
+
+    def _root_best_key(self, root: MCTSNode) -> Optional[str]:
+        """Return action key string for the current best root child."""
+        if not root.children:
+            return None
+        best = max(root.children, key=lambda c: c.visits)
+        if best.move is None:
+            return None
+        m = best.move
+        return f"{m.piece_id}:{m.orientation}@{m.anchor_row},{m.anchor_col}"
+
+    def get_search_trace(self) -> Optional[Dict[str, Any]]:
+        """Return the search trace from the last move as a JSON-serializable dict."""
+        if self._search_trace is None:
+            return None
+        return self._search_trace.to_dict()
+
     def _run_mcts_with_iterations(self, root: MCTSNode):
         """Run MCTS for specified number of iterations."""
         sufficiency_checked = False
         warmup = self.iterations // 3 if self.sufficiency_threshold_enabled else -1
+        trace = self._search_trace
+        sample_rate = self.search_trace_sample_rate if trace else 0
+        # Snapshot checkpoints at 10%, 25%, 50%, 75%, 100%
+        snapshot_iters = set()
+        if trace:
+            for pct in (0.10, 0.25, 0.50, 0.75, 1.0):
+                snapshot_iters.add(max(0, int(self.iterations * pct) - 1))
         for i in range(self.iterations):
-            self._mcts_iteration(root)
+            self._mcts_iteration(root, iteration_idx=i)
             self.stats["iterations_run"] = i + 1
+            # Search trace: snapshot root children at checkpoints
+            if trace and i in snapshot_iters:
+                self._snapshot_root_children(root, i)
             # Layer 9: Sufficiency threshold — after warmup, check if any child
             # Q-value exceeds mean+stddev. If so, switch to pure exploitation.
             if not sufficiency_checked and i == warmup:
                 sufficiency_checked = True
                 self._check_sufficiency_threshold(root)
+        if trace:
+            trace.total_iterations = self.iterations
 
     def _run_mcts_with_time_limit(self, root: MCTSNode):
         """Run MCTS for specified time limit."""
@@ -888,15 +1137,30 @@ class MCTSAgent:
         iteration = 0
         sufficiency_checked = False
         warmup_time = self.time_limit / 3.0 if self.sufficiency_threshold_enabled else float('inf')
+        trace = self._search_trace
+        # For time-limited, snapshot at time fractions
+        next_snapshot_pct_idx = 0
+        snapshot_pcts = [0.10, 0.25, 0.50, 0.75, 1.0]
 
         while time.time() - start_time < self.time_limit:
-            self._mcts_iteration(root)
+            self._mcts_iteration(root, iteration_idx=iteration)
             iteration += 1
+            # Snapshot at time percentage checkpoints
+            if trace and next_snapshot_pct_idx < len(snapshot_pcts):
+                elapsed_frac = (time.time() - start_time) / self.time_limit
+                if elapsed_frac >= snapshot_pcts[next_snapshot_pct_idx]:
+                    self._snapshot_root_children(root, iteration)
+                    next_snapshot_pct_idx += 1
             if not sufficiency_checked and time.time() - start_time >= warmup_time:
                 sufficiency_checked = True
                 self._check_sufficiency_threshold(root)
 
         self.stats["iterations_run"] = iteration
+        if trace:
+            # Final snapshot if not yet taken
+            if next_snapshot_pct_idx < len(snapshot_pcts):
+                self._snapshot_root_children(root, iteration)
+            trace.total_iterations = iteration
 
     def _check_sufficiency_threshold(self, root: MCTSNode) -> None:
         """Layer 9: If any root child Q-value exceeds mean + stddev, switch to C=0."""
@@ -1040,18 +1304,25 @@ class MCTSAgent:
 
         return node, vl_path
 
-    def _mcts_iteration(self, root: MCTSNode):
+    def _mcts_iteration(self, root: MCTSNode, iteration_idx: int = 0):
         """
         Run one MCTS iteration.
 
         Args:
             root: Root node of the search tree
+            iteration_idx: Current iteration index (for trace sampling)
         """
+        trace = self._search_trace
+
         # Selection: traverse tree using UCB1
-        node = self._selection(root)
+        if trace:
+            node, sel_depth, avg_exploit, avg_explore = self._selection_traced(root)
+        else:
+            node = self._selection(root)
 
         # Expansion: expand node if allowed
         expand = False
+        expanded_depth = 0
         if self.progressive_widening_enabled:
             # Progressive widening: expand only if child count < C_pw * N^alpha
             if node.should_expand_pw(self.pw_c, self.pw_alpha):
@@ -1075,11 +1346,50 @@ class MCTSAgent:
                 return
             self._update_progressive_bias(parent, node)
 
+            # Track explored cells for heatmap
+            if trace and self._trace_exploration_grid is not None and node.move is not None:
+                self._track_explored_move(node.move)
+
+            # Count expanded depth
+            if trace:
+                d = node
+                while d.parent is not None:
+                    expanded_depth += 1
+                    d = d.parent
+
         # Simulation: run rollout (returns rollout action keys when RAVE enabled)
         reward, rollout_actions = self._simulation(node)
 
+        # Record rollout result for trace
+        if trace:
+            trace.rollout_results.append(round(reward, 4))
+
         # Backpropagation: update statistics up the tree
         self._backpropagation(node, reward, rollout_actions=rollout_actions)
+
+        # Sample iteration record for time-series
+        if trace and iteration_idx % trace.sample_rate == 0:
+            # Compute quick tree stats
+            max_depth = self._quick_max_depth(root)
+            tree_size = self._quick_tree_size(root)
+            # Check if best move changed
+            best_key = self._root_best_key(root)
+            changed = best_key != self._trace_prev_best_key
+            self._trace_prev_best_key = best_key
+
+            record = IterationRecord(
+                iteration=iteration_idx,
+                selected_depth=sel_depth if trace else 0,
+                expanded_depth=expanded_depth,
+                max_tree_depth=max_depth,
+                tree_size=tree_size,
+                root_children_count=len(root.children),
+                avg_branching=tree_size / max(len(root.children), 1),
+                exploitation_term=avg_exploit if trace else 0.0,
+                exploration_term=avg_explore if trace else 0.0,
+                best_move_changed=changed,
+            )
+            trace.iteration_records.append(record)
 
     def _selection(self, node: MCTSNode) -> MCTSNode:
         """
@@ -1670,6 +1980,9 @@ class MCTSAgent:
 
         if self.transposition_table:
             info["transposition_stats"] = self.transposition_table.get_stats()
+
+        if self._search_trace is not None:
+            info["search_trace"] = self._search_trace.to_dict()
 
         return info
 
