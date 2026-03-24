@@ -1,0 +1,55 @@
+{
+  "agents": [
+    {
+      "name": "realtime_depth_0_500ms",
+      "type": "mcts",
+      "thinking_time_ms": 500,
+      "params": {
+        "deterministic_time_budget": false,
+        "exploration_constant": 1.414,
+        "rollout_cutoff_depth": 0
+      }
+    },
+    {
+      "name": "realtime_depth_5_500ms",
+      "type": "mcts",
+      "thinking_time_ms": 500,
+      "params": {
+        "deterministic_time_budget": false,
+        "exploration_constant": 1.414,
+        "rollout_cutoff_depth": 5
+      }
+    },
+    {
+      "name": "realtime_depth_0_2000ms",
+      "type": "mcts",
+      "thinking_time_ms": 2000,
+      "params": {
+        "deterministic_time_budget": false,
+        "exploration_constant": 1.414,
+        "rollout_cutoff_depth": 0
+      }
+    },
+    {
+      "name": "realtime_depth_5_2000ms",
+      "type": "mcts",
+      "thinking_time_ms": 2000,
+      "params": {
+        "deterministic_time_budget": false,
+        "exploration_constant": 1.414,
+        "rollout_cutoff_depth": 5
+      }
+    }
+  ],
+  "num_games": 16,
+  "seed": 20260324,
+  "seat_policy": "round_robin",
+  "output_root": "arena_runs",
+  "max_turns": 2500,
+  "snapshots": {
+    "enabled": true,
+    "strategy": "fixed_ply",
+    "checkpoints": [8, 16, 24, 32, 40, 48, 56, 64]
+  },
+  "notes": "Layer 10.2: Fixed wall-clock budget, variable depth. At 500ms: depth_0 gets ~160 iter, depth_5 gets ~2-31 iter (phase-dependent). At 2000ms: depth_0 gets ~640 iter, depth_5 gets ~7-124 iter. Tests whether more shallow iterations or fewer deep iterations produce stronger play."
+}
