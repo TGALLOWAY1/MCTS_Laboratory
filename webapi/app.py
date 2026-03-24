@@ -325,7 +325,16 @@ class GameManager:
                         result = think_fn(game.board, player, legal_moves, budget_ms)
                         return result.get('move'), result.get('stats', {})
                     move_result = agent.select_action(game.board, player, legal_moves)
-                    return move_result, {}
+                    agent_stats = {}
+                    if hasattr(agent, 'get_search_trace'):
+                        trace = agent.get_search_trace()
+                        if trace:
+                            agent_stats['searchTrace'] = trace
+                    if hasattr(agent, 'get_action_info'):
+                        info = agent.get_action_info()
+                        if 'stats' in info:
+                            agent_stats.update(info['stats'])
+                    return move_result, agent_stats
 
                 move, think_stats = await asyncio.wait_for(
                     asyncio.get_event_loop().run_in_executor(None, run_think),
@@ -369,6 +378,7 @@ class GameManager:
                 logger.info(f"Player {player_name} placed a piece at {move.anchor_row},{move.anchor_col} (piece_id={move.piece_id}, orientation={move.orientation})")
                 # Store MCTS explainability for next game state fetch
                 game_data['last_mcts_top_moves'] = stats.get('topMoves') or []
+                game_data['last_search_trace'] = stats.get('searchTrace')
                 # Prepare move information for broadcast
                 last_move = {
                     "piece_id": move.piece_id,
@@ -880,6 +890,7 @@ class GameManager:
             "frontierSize": frontier_size,
         }
         mcts_top_moves = game_data.get('last_mcts_top_moves')
+        search_trace = game_data.get('last_search_trace')
 
         return GameState(
             game_id=game_id,
@@ -897,7 +908,8 @@ class GameManager:
             players=[p.dict() for p in game_data['config'].players],
             heatmap=heatmap,
             mobility_metrics=mobility_metrics,
-            mcts_top_moves=mcts_top_moves
+            mcts_top_moves=mcts_top_moves,
+            search_trace=search_trace,
         )
 
     def get_available_agents(self) -> List[AgentInfo]:
