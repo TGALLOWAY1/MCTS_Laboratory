@@ -1,0 +1,59 @@
+{
+  "agents": [
+    {
+      "name": "depth_0_1000iter",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 10.0,
+        "exploration_constant": 1.414,
+        "rollout_cutoff_depth": 0
+      }
+    },
+    {
+      "name": "depth_0_25iter",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 0.25,
+        "exploration_constant": 1.414,
+        "rollout_cutoff_depth": 0
+      }
+    },
+    {
+      "name": "depth_5_25iter",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 0.25,
+        "exploration_constant": 1.414,
+        "rollout_cutoff_depth": 5
+      }
+    },
+    {
+      "name": "depth_10_25iter",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 0.25,
+        "exploration_constant": 1.414,
+        "rollout_cutoff_depth": 10
+      }
+    }
+  ],
+  "num_games": 16,
+  "seed": 20260324,
+  "seat_policy": "round_robin",
+  "output_root": "arena_runs",
+  "max_turns": 2500,
+  "snapshots": {
+    "enabled": true,
+    "strategy": "fixed_ply",
+    "checkpoints": [8, 16, 24, 32, 40, 48, 56, 64]
+  },
+  "notes": "Layer 10.1: Depth strength at equal iterations (25). depth_0_1000iter as strong reference. At 25 iter: depth_5 ~7s/move early, ~0.4s/move late; depth_10 ~3.6s/move early, ~0.1s/move late. Estimated ~2hr total."
+}

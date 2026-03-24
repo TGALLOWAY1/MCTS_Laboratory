@@ -701,6 +701,7 @@ def run_single_game(
     seat_assignment: Mapping[str, str],
     agent_configs: Mapping[str, AgentConfig],
     game_logger: Optional[StrategyLogger] = None,
+    verbose: bool = False,
 ) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
     """Run one game and return game record + snapshot rows."""
     random.seed(game_seed)
@@ -799,6 +800,16 @@ def run_single_game(
             if simulations is not None:
                 stats_entry["total_simulations"] += simulations
                 stats_entry["moves_with_simulations"] += 1
+
+            # Per-move progress reporting for long-running games
+            if verbose and (turn_count <= 3 or turn_count % 4 == 0):
+                game_elapsed = time.perf_counter() - start
+                print(
+                    f"  [game {game_index + 1}/{run_config.num_games}] "
+                    f"turn {turn_count}, {game_elapsed:.1f}s elapsed, "
+                    f"agent={agent_name}, move_ms={elapsed_ms:.0f}",
+                    flush=True,
+                )
 
             if move is None:
                 passes += 1
@@ -1151,6 +1162,16 @@ def run_experiment(
                 }
                 game_logger.on_reset(game_id, game_seed, agent_ids, run_config_payload)
 
+            if verbose:
+                agents_str = ", ".join(
+                    sorted(set(seat_assignment.values()))
+                )
+                print(
+                    f"[{game_index + 1}/{run_config.num_games}] "
+                    f"Starting game (seed={game_seed}, agents={agents_str}) ...",
+                    flush=True,
+                )
+
             record, snapshot_rows = run_single_game(
                 run_id=run_id,
                 game_index=game_index,
@@ -1159,6 +1180,7 @@ def run_experiment(
                 seat_assignment=seat_assignment,
                 agent_configs=agent_configs,
                 game_logger=game_logger,
+                verbose=verbose,
             )
 
             # Log game end
