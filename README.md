@@ -166,12 +166,17 @@ MCTS_Laboratory/
 # Standard arena run
 python scripts/arena.py --config scripts/arena_config.json
 
-# Extended rollout test (4x rollout, fewer games)
+# Rollout cutoff comparison (depth 0 / 5 / 10)
 python scripts/arena.py --config scripts/arena_config_extended_rollout.json
+
+# Layer 4 cutoff sweep (depth 0 / 5 / 10, no full-rollout baseline)
+python scripts/arena.py --config scripts/arena_config_layer4_cutoff.json
 
 # Smoke test
 python scripts/arena.py --config scripts/arena_config_extended_rollout.json --num-games 4
 ```
+
+> **Note on rollout depth**: The default 50-move full rollout (`max_rollout_moves: 50`) was found to exceed 2 hours per game, making iterative experimentation impractical. Arena configs now use `rollout_cutoff_depth` (0, 5, or 10) instead, which cuts rollout short and applies the static evaluator. This gives 3-20x speedup while preserving meaningful rollout signal at depths 5-10.
 
 ## Testing
 

@@ -1,7 +1,7 @@
 {
   "agents": [
     {
-      "name": "mcts_100ms_4x_rollout",
+      "name": "mcts_100ms_cutoff_0",
       "type": "mcts",
       "thinking_time_ms": 100,
       "params": {
@@ -9,23 +9,11 @@
         "iterations": 1000,
         "iterations_per_ms": 10.0,
         "exploration_constant": 1.414,
-        "max_rollout_moves": 200
+        "rollout_cutoff_depth": 0
       }
     },
     {
-      "name": "mcts_200ms_4x_rollout",
-      "type": "mcts",
-      "thinking_time_ms": 200,
-      "params": {
-        "deterministic_time_budget": true,
-        "iterations": 1000,
-        "iterations_per_ms": 10.0,
-        "exploration_constant": 1.414,
-        "max_rollout_moves": 200
-      }
-    },
-    {
-      "name": "mcts_100ms_baseline",
+      "name": "mcts_100ms_cutoff_5",
       "type": "mcts",
       "thinking_time_ms": 100,
       "params": {
@@ -33,11 +21,23 @@
         "iterations": 1000,
         "iterations_per_ms": 10.0,
         "exploration_constant": 1.414,
-        "max_rollout_moves": 50
+        "rollout_cutoff_depth": 5
       }
     },
     {
-      "name": "mcts_200ms_baseline",
+      "name": "mcts_100ms_cutoff_10",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations": 1000,
+        "iterations_per_ms": 10.0,
+        "exploration_constant": 1.414,
+        "rollout_cutoff_depth": 10
+      }
+    },
+    {
+      "name": "mcts_200ms_cutoff_10",
       "type": "mcts",
       "thinking_time_ms": 200,
       "params": {
@@ -45,7 +45,7 @@
         "iterations": 1000,
         "iterations_per_ms": 10.0,
         "exploration_constant": 1.414,
-        "max_rollout_moves": 50
+        "rollout_cutoff_depth": 10
       }
     }
   ],
@@ -59,5 +59,5 @@
     "strategy": "fixed_ply",
     "checkpoints": [8, 16, 24, 32, 40, 48, 56, 64]
   },
-  "notes": "Layer 2 extended rollout test: 4x rollout length (200 vs 50 moves) using full MCTS agent to evaluate impact of longer rollouts on play quality"
+  "notes": "Rollout cutoff comparison: depth 0 (pure eval), 5, 10 at 100ms + depth 10 at 200ms. Replaces 4x rollout config — full 50-move rollouts were >2hr/game, too compute-heavy for iterative experimentation."
 }
