@@ -12,7 +12,7 @@ Aggregated from Layers 0–9 PR reports. Last updated: 2026-03-25.
 | L3 | Action reduction (progressive widening + progressive history) | 8-game smoke test only — +19.2 avg score, needs full validation |
 | L4 | Simulation strategy (two-ply, cutoff, minimax backups) | **None** |
 | L5 | RAVE & NST history heuristics | **None** |
-| L6 | Evaluation function refinement (feature analysis, calibrated weights) | **Partial** — weights done, phase pending |
+| L6 | Evaluation function refinement (feature analysis, calibrated weights) | **Done** — calibrated weights help, phase weights hurt |
 | L7 | Opponent modeling (blocking tracker, alliance, king-maker) | **None** |
 | L8 | Parallelization (root + tree parallelization) | **None** |
 | L9 | Meta-optimization (adaptive C, depth, sufficiency, loss avoidance) | **None** |
@@ -91,14 +91,17 @@ All configs exist in `scripts/` and are verified working.
   python3 scripts/arena.py --config scripts/arena_config_layer5_convergence.json --verbose
   ```
 
-### Layer 6 — Calibrated weights vs defaults ← **IN PROGRESS**
+### Layer 6 — Calibrated weights vs defaults ← **DONE**
 - [x] L6 calibrated vs default weights — **DONE** (run `20260325_021148_78fbdc50`)
   Calibrated eval d0 won 19/25 games (76%), TrueSkill rank #1 (mu=36.02).
   Baseline d0 ranked #2, default eval #3, calibrated d5 (25 iter) last.
   ```bash
   python3 scripts/arena.py --config scripts/arena_config_layer6_weights.json --verbose
   ```
-- [ ] L6 phase-dependent evaluation
+- [x] L6 phase-dependent evaluation — **DONE** (run `20260325_033805_9b3944b6`)
+  Phase weights are HARMFUL: 0 wins in 25 games (mean 69 vs 96 for default).
+  RAVE makes it worse (mean 61). Default and calibrated eval closely matched
+  (48% vs 52% win rate). Phase weights should NOT be used.
   ```bash
   python3 scripts/arena.py --config scripts/arena_config_layer6_phase.json --verbose
   ```
