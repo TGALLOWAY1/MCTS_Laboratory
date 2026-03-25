@@ -1,53 +1,52 @@
 {
   "agents": [
     {
-      "name": "mcts_100ms_baseline",
-      "type": "mcts",
-      "thinking_time_ms": 100,
-      "params": {
-        "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0
-      }
-    },
-    {
-      "name": "mcts_100ms_two_ply_k10_cutoff8",
+      "name": "baseline_d0_1000iter",
       "type": "mcts",
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
         "iterations_per_ms": 10.0,
+        "rollout_cutoff_depth": 0
+      }
+    },
+    {
+      "name": "random_d5_25iter",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 0.25,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5
+      }
+    },
+    {
+      "name": "random_d5_25iter_alpha0.25",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 0.25,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25
+      }
+    },
+    {
+      "name": "two_ply_all_d8_25iter",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 0.25,
         "rollout_policy": "two_ply",
-        "two_ply_top_k": 10,
         "rollout_cutoff_depth": 8
-      }
-    },
-    {
-      "name": "mcts_100ms_cutoff4_minimax0.1",
-      "type": "mcts",
-      "thinking_time_ms": 100,
-      "params": {
-        "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
-        "rollout_cutoff_depth": 4,
-        "minimax_backup_alpha": 0.1
-      }
-    },
-    {
-      "name": "mcts_100ms_two_ply_k10_cutoff8_minimax0.1",
-      "type": "mcts",
-      "thinking_time_ms": 100,
-      "params": {
-        "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
-        "rollout_policy": "two_ply",
-        "two_ply_top_k": 10,
-        "rollout_cutoff_depth": 8,
-        "minimax_backup_alpha": 0.1
       }
     }
   ],
   "num_games": 25,
-  "seed": 20260323,
+  "seed": 20260325,
   "seat_policy": "round_robin",
   "output_root": "arena_runs",
   "max_turns": 2500,
@@ -56,5 +55,5 @@
     "strategy": "fixed_ply",
     "checkpoints": [8, 16, 24, 32, 40, 48, 56, 64]
   },
-  "notes": "Layer 4 combined: Best settings from each sub-task combined vs baseline — two-ply K10 + cutoff 8, cutoff 4 + minimax 0.1, and all three combined"
+  "notes": "Layer 4 combined: Best findings — baseline (d0, 1000 iter) vs random rollout (d5, 25 iter) vs random + minimax alpha=0.25 (d5) vs two-ply full (d8, 25 iter). Tests whether minimax backup helps when rollouts are present."
 }

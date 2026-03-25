@@ -10,7 +10,7 @@ Aggregated from Layers 0–9 PR reports. Last updated: 2026-03-25.
 | L1 | Baseline characterization (571 self-play + 119 heuristic games) | **Invalid** — used `gameplay_fast_mcts` (no real rollout), not full MCTS. Needs re-run. |
 | L2 | Learned evaluation model (GBT on 11,604 snapshots) | Done — zero benefit, inference cost (~26ms) eats 200ms budget |
 | L3 | Action reduction (progressive widening + progressive history) | 8-game smoke test only — +19.2 avg score, needs full validation |
-| L4 | Simulation strategy (two-ply, cutoff, minimax backups) | **None** |
+| L4 | Simulation strategy (two-ply, cutoff, minimax backups) | **Done** — cutoff_5 + random rollout + alpha=0.25 is best |
 | L5 | RAVE & NST history heuristics | **None** |
 | L6 | Evaluation function refinement (feature analysis, calibrated weights) | **Done** — calibrated weights help, phase weights hurt |
 | L7 | Opponent modeling (blocking tracker, alliance, king-maker) | **None** |
@@ -59,23 +59,18 @@ All configs exist in `scripts/` and are verified working.
   python3 scripts/arena.py --config scripts/arena_config_layer3.json --verbose
   ```
 
-### Layer 4 — Simulation strategy (run in order, findings cascade)
-- [ ] L4 two-ply rollout comparison
-  ```bash
-  python3 scripts/arena.py --config scripts/arena_config_layer4_two_ply.json --verbose
-  ```
-- [ ] L4 cutoff depth sweep
-  ```bash
-  python3 scripts/arena.py --config scripts/arena_config_layer4_cutoff.json --verbose
-  ```
-- [ ] L4 minimax alpha sweep
-  ```bash
-  python3 scripts/arena.py --config scripts/arena_config_layer4_minimax.json --verbose
-  ```
-- [ ] L4 combined best settings
-  ```bash
-  python3 scripts/arena.py --config scripts/arena_config_layer4_combined.json --verbose
-  ```
+### Layer 4 — Simulation strategy ← **DONE**
+- [x] L4 cutoff depth sweep — **DONE** (run `20260325_164035_0a7ca009`)
+  cutoff_5@25iter wins 54%, cutoff_0@1000iter wins 0%. Rollout quality > iteration quantity.
+- [x] L4 minimax alpha sweep — **DONE** (run `20260325_164033_3b30eeb2`)
+  ZERO effect at cutoff_depth=0. All alphas produce identical scores (std=0.0).
+- [x] L4 two-ply rollout comparison — **DONE** (run `20260325_165028_feca38f3`)
+  Random rollout wins (36%, TrueSkill #1) and is 10× faster than two_ply_all.
+  Heuristic rollout is the WORST policy (14%). Top-K=10 filtering hurts.
+- [x] L4 combined best settings — **DONE** (run `20260325_182815_f28a2209`)
+  random_d5+alpha0.25 tied for best (36% wins) at 14× less compute than two_ply_all_d8.
+  Minimax backup DOES help with rollouts (beats vanilla random 15:10 pairwise).
+  **Best L4 settings**: `rollout_policy: "random"`, `rollout_cutoff_depth: 5`, `minimax_backup_alpha: 0.25`
 
 ### Layer 5 — RAVE & history heuristics
 - [ ] L5 RAVE k sweep

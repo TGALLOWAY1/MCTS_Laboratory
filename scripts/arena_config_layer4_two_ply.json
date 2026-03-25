@@ -1,43 +1,45 @@
 {
   "agents": [
     {
-      "name": "mcts_100ms_heuristic_baseline",
+      "name": "heuristic_cutoff8_25iter",
       "type": "mcts",
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
-        "rollout_policy": "heuristic"
+        "iterations_per_ms": 0.25,
+        "rollout_policy": "heuristic",
+        "rollout_cutoff_depth": 8
       }
     },
     {
-      "name": "mcts_100ms_random_rollout",
+      "name": "random_cutoff8_25iter",
       "type": "mcts",
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
-        "rollout_policy": "random"
+        "iterations_per_ms": 0.25,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 8
       }
     },
     {
-      "name": "mcts_100ms_two_ply_all_cutoff8",
+      "name": "two_ply_all_cutoff8_25iter",
       "type": "mcts",
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
+        "iterations_per_ms": 0.25,
         "rollout_policy": "two_ply",
         "rollout_cutoff_depth": 8
       }
     },
     {
-      "name": "mcts_100ms_two_ply_k10_cutoff8",
+      "name": "two_ply_k10_cutoff8_25iter",
       "type": "mcts",
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
+        "iterations_per_ms": 0.25,
         "rollout_policy": "two_ply",
         "two_ply_top_k": 10,
         "rollout_cutoff_depth": 8
@@ -54,5 +56,5 @@
     "strategy": "fixed_ply",
     "checkpoints": [8, 16, 24, 32, 40, 48, 56, 64]
   },
-  "notes": "Layer 4.1: Two-ply search-based playout comparison — heuristic baseline, random, two-ply full enumeration with cutoff 8, two-ply top-K=10 with cutoff 8"
+  "notes": "Layer 4.1: Rollout policy comparison at cutoff_8, 25 iterations — heuristic vs random vs two-ply (all moves) vs two-ply (top-K=10). Tests whether two-ply search improves rollout quality."
 }

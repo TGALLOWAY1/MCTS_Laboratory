@@ -1,7 +1,7 @@
 {
   "agents": [
     {
-      "name": "mcts_100ms_cutoff_0",
+      "name": "cutoff_0_1000iter",
       "type": "mcts",
       "thinking_time_ms": 100,
       "params": {
@@ -11,22 +11,32 @@
       }
     },
     {
-      "name": "mcts_100ms_cutoff_5",
+      "name": "cutoff_0_25iter",
       "type": "mcts",
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
+        "iterations_per_ms": 0.25,
+        "rollout_cutoff_depth": 0
+      }
+    },
+    {
+      "name": "cutoff_5_25iter",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 0.25,
         "rollout_cutoff_depth": 5
       }
     },
     {
-      "name": "mcts_100ms_cutoff_10",
+      "name": "cutoff_10_25iter",
       "type": "mcts",
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
+        "iterations_per_ms": 0.25,
         "rollout_cutoff_depth": 10
       }
     }
@@ -41,5 +51,5 @@
     "strategy": "fixed_ply",
     "checkpoints": [8, 16, 24, 32, 40, 48, 56, 64]
   },
-  "notes": "Layer 4.2: Rollout cutoff depth sweep — depth 0 (pure static eval), 5 (short rollout), 10 (medium rollout). Full 50-move rollout dropped due to >2hr/game compute cost."
+  "notes": "Layer 4.2: Rollout cutoff depth sweep. cutoff_0 at 1000 iter as strong reference; cutoff_0/5/10 at 25 iter to test whether deeper rollouts improve per-iteration quality. Dropped cutoff_20 (109s/move too slow)."
 }
