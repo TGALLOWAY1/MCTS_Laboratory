@@ -12,7 +12,7 @@ Aggregated from Layers 0–9 PR reports. Last updated: 2026-03-25.
 | L3 | Action reduction (progressive widening + progressive history) | 8-game smoke test only — +19.2 avg score, needs full validation |
 | L4 | Simulation strategy (two-ply, cutoff, minimax backups) | **None** |
 | L5 | RAVE & NST history heuristics | **None** |
-| L6 | Evaluation function refinement (feature analysis, calibrated weights) | **None** |
+| L6 | Evaluation function refinement (feature analysis, calibrated weights) | **Partial** — weights done, phase pending |
 | L7 | Opponent modeling (blocking tracker, alliance, king-maker) | **None** |
 | L8 | Parallelization (root + tree parallelization) | **None** |
 | L9 | Meta-optimization (adaptive C, depth, sufficiency, loss avoidance) | **None** |
@@ -92,7 +92,9 @@ All configs exist in `scripts/` and are verified working.
   ```
 
 ### Layer 6 — Calibrated weights vs defaults ← **IN PROGRESS**
-- [ ] L6 calibrated vs default weights
+- [x] L6 calibrated vs default weights — **DONE** (run `20260325_021148_78fbdc50`)
+  Calibrated eval d0 won 19/25 games (76%), TrueSkill rank #1 (mu=36.02).
+  Baseline d0 ranked #2, default eval #3, calibrated d5 (25 iter) last.
   ```bash
   python3 scripts/arena.py --config scripts/arena_config_layer6_weights.json --verbose
   ```
