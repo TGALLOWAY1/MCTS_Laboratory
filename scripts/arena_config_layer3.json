@@ -6,7 +6,7 @@
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
+        "iterations_per_ms": 0.25,
         "exploration_constant": 1.414,
         "rollout_policy": "random",
         "rollout_cutoff_depth": 5,
@@ -19,7 +19,7 @@
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
+        "iterations_per_ms": 0.25,
         "exploration_constant": 1.414,
         "rollout_policy": "random",
         "rollout_cutoff_depth": 5,
@@ -35,7 +35,7 @@
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
+        "iterations_per_ms": 0.25,
         "exploration_constant": 1.414,
         "rollout_policy": "random",
         "rollout_cutoff_depth": 5,
@@ -50,7 +50,7 @@
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
+        "iterations_per_ms": 0.25,
         "exploration_constant": 1.414,
         "rollout_policy": "random",
         "rollout_cutoff_depth": 5,
