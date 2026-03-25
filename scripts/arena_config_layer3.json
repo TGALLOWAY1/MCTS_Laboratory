@@ -7,7 +7,10 @@
       "params": {
         "deterministic_time_budget": true,
         "iterations_per_ms": 10.0,
-        "exploration_constant": 1.414
+        "exploration_constant": 1.414,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25
       }
     },
     {
@@ -18,6 +21,9 @@
         "deterministic_time_budget": true,
         "iterations_per_ms": 10.0,
         "exploration_constant": 1.414,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
         "progressive_widening_enabled": true,
         "pw_c": 2.0,
         "pw_alpha": 0.5
@@ -31,6 +37,9 @@
         "deterministic_time_budget": true,
         "iterations_per_ms": 10.0,
         "exploration_constant": 1.414,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
         "progressive_history_enabled": true,
         "progressive_history_weight": 1.0
       }
@@ -43,6 +52,9 @@
         "deterministic_time_budget": true,
         "iterations_per_ms": 10.0,
         "exploration_constant": 1.414,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
         "progressive_widening_enabled": true,
         "pw_c": 2.0,
         "pw_alpha": 0.5,
