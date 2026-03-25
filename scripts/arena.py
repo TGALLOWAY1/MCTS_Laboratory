@@ -122,6 +122,13 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Print per-game progress.",
     )
+    parser.add_argument(
+        "--resume",
+        type=str,
+        default=None,
+        metavar="RUN_DIR",
+        help="Resume an incomplete run from an existing run directory.",
+    )
     return parser.parse_args()
 
 
@@ -135,7 +142,9 @@ def main() -> None:
         print(json.dumps(run_config.to_dict(), indent=2, sort_keys=True))
         return
 
-    result = run_experiment(run_config, verbose=args.verbose)
+    result = run_experiment(
+        run_config, verbose=args.verbose, resume_run_dir=args.resume
+    )
     run_dir = result["run_dir"]
     summary = result["summary"]
     print(f"run_id: {result['run_id']}")
