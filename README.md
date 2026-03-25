@@ -86,7 +86,7 @@ Nine layers of systematic MCTS improvement, each with arena experiments and writ
 | **Layer 3** | Action reduction | Move filtering and pruning to reduce branching factor |
 | **Layer 4** | Simulation strategy | Heuristic/two-ply rollout policies, rollout cutoff depth, minimax backups |
 | **Layer 5** | History heuristics & RAVE | Rapid Action Value Estimation, N-gram Selection Technique |
-| **Layer 6** | Evaluation refinement | Phase-dependent weights calibrated from 13K+ self-play states |
+| **Layer 6** | Evaluation refinement | Phase-dependent weights calibrated from 13K+ self-play states. **Finding:** phase-dependent eval (0% win rate) and RAVE variant both decisively lost to calibrated single-weight and default agents in 25-game arena — inverted early-game weight signs, missing `center_proximity`, and hard phase-transition discontinuities made the tree statistics noisy and unreliable. See [`archive/reports/layer6_phase_arena_results.md`](archive/reports/layer6_phase_arena_results.md). |
 | **Layer 7** | Opponent modeling | Asymmetric rollout policies, alliance detection, king-maker awareness |
 | **Layer 8** | Parallelization | Root-parallel multiprocessing, tree-parallel virtual loss |
 | **Layer 9** | Meta-optimization | Adaptive exploration/depth, UCT sufficiency threshold, loss avoidance |

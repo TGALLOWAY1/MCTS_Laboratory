@@ -1,0 +1,146 @@
+{
+  "agents": [
+    {
+      "name": "mcts_calibrated_d0",
+      "params": {
+        "deterministic_time_budget": true,
+        "exploration_constant": 1.414,
+        "iterations_per_ms": 10.0,
+        "rollout_cutoff_depth": 0,
+        "state_eval_weights": {
+          "accessible_corners": 0.24310302640254203,
+          "center_proximity": 0.0,
+          "largest_remaining_piece_size": -0.23120837257261234,
+          "opponent_avg_mobility": -0.3,
+          "reachable_empty_squares": 0.08109693693246343,
+          "remaining_piece_area": -0.029522477044715147,
+          "squares_placed": 0.029522477044715226,
+          "territory_enclosure_area": 0.0
+        }
+      },
+      "thinking_time_ms": 100,
+      "type": "mcts"
+    },
+    {
+      "name": "mcts_phase_eval_d0",
+      "params": {
+        "deterministic_time_budget": true,
+        "exploration_constant": 1.414,
+        "iterations_per_ms": 10.0,
+        "rollout_cutoff_depth": 0,
+        "state_eval_phase_weights": {
+          "early": {
+            "accessible_corners": 0.3,
+            "center_proximity": 0.0,
+            "largest_remaining_piece_size": 0.0,
+            "opponent_avg_mobility": -0.053,
+            "reachable_empty_squares": 0.0,
+            "remaining_piece_area": 0.176,
+            "squares_placed": -0.176,
+            "territory_enclosure_area": 0.0
+          },
+          "late": {
+            "accessible_corners": 0.176,
+            "center_proximity": 0.0,
+            "largest_remaining_piece_size": -0.085,
+            "opponent_avg_mobility": -0.063,
+            "reachable_empty_squares": 0.134,
+            "remaining_piece_area": -0.3,
+            "squares_placed": 0.3,
+            "territory_enclosure_area": 0.0
+          },
+          "mid": {
+            "accessible_corners": 0.3,
+            "center_proximity": 0.0,
+            "largest_remaining_piece_size": -0.238,
+            "opponent_avg_mobility": -0.203,
+            "reachable_empty_squares": 0.228,
+            "remaining_piece_area": 0.004,
+            "squares_placed": -0.004,
+            "territory_enclosure_area": 0.0
+          }
+        }
+      },
+      "thinking_time_ms": 100,
+      "type": "mcts"
+    },
+    {
+      "name": "mcts_default_eval_d0",
+      "params": {
+        "deterministic_time_budget": true,
+        "exploration_constant": 1.414,
+        "iterations_per_ms": 10.0,
+        "rollout_cutoff_depth": 0
+      },
+      "thinking_time_ms": 100,
+      "type": "mcts"
+    },
+    {
+      "name": "mcts_phase_eval_rave_d0",
+      "params": {
+        "deterministic_time_budget": true,
+        "exploration_constant": 1.414,
+        "iterations_per_ms": 10.0,
+        "rave_enabled": true,
+        "rave_k": 1000,
+        "rollout_cutoff_depth": 0,
+        "state_eval_phase_weights": {
+          "early": {
+            "accessible_corners": 0.3,
+            "center_proximity": 0.0,
+            "largest_remaining_piece_size": 0.0,
+            "opponent_avg_mobility": -0.053,
+            "reachable_empty_squares": 0.0,
+            "remaining_piece_area": 0.176,
+            "squares_placed": -0.176,
+            "territory_enclosure_area": 0.0
+          },
+          "late": {
+            "accessible_corners": 0.176,
+            "center_proximity": 0.0,
+            "largest_remaining_piece_size": -0.085,
+            "opponent_avg_mobility": -0.063,
+            "reachable_empty_squares": 0.134,
+            "remaining_piece_area": -0.3,
+            "squares_placed": 0.3,
+            "territory_enclosure_area": 0.0
+          },
+          "mid": {
+            "accessible_corners": 0.3,
+            "center_proximity": 0.0,
+            "largest_remaining_piece_size": -0.238,
+            "opponent_avg_mobility": -0.203,
+            "reachable_empty_squares": 0.228,
+            "remaining_piece_area": 0.004,
+            "squares_placed": -0.004,
+            "territory_enclosure_area": 0.0
+          }
+        }
+      },
+      "thinking_time_ms": 100,
+      "type": "mcts"
+    }
+  ],
+  "created_at": "2026-03-25T03:38:05",
+  "max_turns": 2500,
+  "notes": "Layer 6.2: Phase-dependent eval vs calibrated single-weight vs default vs phase+RAVE. All at depth_0 with 1000 iter for fast turnaround and fair comparison.",
+  "num_games": 25,
+  "output_root": "arena_runs",
+  "run_id": "20260325_033805_9b3944b6",
+  "seat_policy": "round_robin",
+  "seed": 20260325,
+  "snapshots": {
+    "checkpoints": [
+      8,
+      16,
+      24,
+      32,
+      40,
+      48,
+      56,
+      64
+    ],
+    "enabled": true,
+    "strategy": "fixed_ply"
+  }
+}
