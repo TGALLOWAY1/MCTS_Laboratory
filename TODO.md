@@ -11,7 +11,7 @@ Aggregated from Layers 0–9 PR reports. Last updated: 2026-03-25.
 | L2 | Learned evaluation model (GBT on 11,604 snapshots) | Done — zero benefit, inference cost (~26ms) eats 200ms budget |
 | L3 | Action reduction (progressive widening + progressive history) | **Done** — PW wins 64%, mean score 92.4 vs 76 baseline. PH alone = no benefit. |
 | L4 | Simulation strategy (two-ply, cutoff, minimax backups) | **Done** — cutoff_5 + random rollout + alpha=0.25 is best |
-| L5 | RAVE & NST history heuristics | **None** |
+| L5 | RAVE & NST history heuristics | **Done** — RAVE k=1000 wins, PH hurts with RAVE, 4x convergence speedup |
 | L6 | Evaluation function refinement (feature analysis, calibrated weights) | **Done** — calibrated weights help, phase weights hurt |
 | L7 | Opponent modeling (blocking tracker, alliance, king-maker) | **None** |
 | L8 | Parallelization (root + tree parallelization) | **None** |
@@ -74,19 +74,16 @@ All configs exist in `scripts/` and are verified working.
   Minimax backup DOES help with rollouts (beats vanilla random 15:10 pairwise).
   **Best L4 settings**: `rollout_policy: "random"`, `rollout_cutoff_depth: 5`, `minimax_backup_alpha: 0.25`
 
-### Layer 5 — RAVE & history heuristics
-- [ ] L5 RAVE k sweep
-  ```bash
-  python3 scripts/arena.py --config scripts/arena_config_layer5_rave_k_sweep.json --verbose
-  ```
-- [ ] L5 head-to-head (baseline vs PH vs RAVE vs PH+RAVE)
-  ```bash
-  python3 scripts/arena.py --config scripts/arena_config_layer5_head_to_head.json --verbose
-  ```
-- [ ] L5 convergence validation (50ms RAVE vs 200ms baseline)
-  ```bash
-  python3 scripts/arena.py --config scripts/arena_config_layer5_convergence.json --verbose
-  ```
+### Layer 5 — RAVE & history heuristics ← **DONE**
+- [x] L5 RAVE k sweep — **DONE** (run `20260325_210306_899d97d0`)
+  k=1000 wins (36%, TrueSkill #1). k=100 too aggressive (12%), k=5000 too persistent (24%).
+- [x] L5 head-to-head — **DONE** (run `20260325_210306_ed7ec9aa`)
+  RAVE-only dominates (44.7% wins, TrueSkill mu=30.03). PH+RAVE hurts (26.7%).
+  Progressive history alone helps pairwise but doesn't win games (14%).
+- [x] L5 convergence validation — **DONE** (run `20260325_210306_4024cab3`)
+  RAVE@50ms (12 iter) beats baseline@200ms (50 iter) 15:6 pairwise.
+  4x effective speedup. More iterations without RAVE barely help.
+  **Best L5 settings**: `rave_enabled: true`, `rave_k: 1000`, `progressive_history_enabled: false`
 
 ### Layer 6 — Calibrated weights vs defaults ← **DONE**
 - [x] L6 calibrated vs default weights — **DONE** (run `20260325_021148_78fbdc50`)

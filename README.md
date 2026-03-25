@@ -85,7 +85,7 @@ Nine layers of systematic MCTS improvement, each with arena experiments and writ
 | **Layer 2** | Evaluation model | Learned state evaluator with regression on self-play data |
 | **Layer 3** | Action reduction | Move filtering and pruning to reduce branching factor |
 | **Layer 4** | Simulation strategy | Rollout cutoff depth, random/two-ply/heuristic policies, minimax backups. **Finding:** random rollout + cutoff depth 5 + minimax alpha 0.25 is optimal; default heuristic rollout is the *worst* policy; cutoff_5 at 25 iter beats cutoff_0 at 1000 iter (rollout quality > iteration quantity). See [`archive/reports/layer4_arena_results.md`](archive/reports/layer4_arena_results.md). |
-| **Layer 5** | History heuristics & RAVE | Rapid Action Value Estimation, N-gram Selection Technique |
+| **Layer 5** | History heuristics & RAVE | RAVE with k=1000 provides 4x convergence speedup; progressive history hurts when combined with RAVE. **Finding:** RAVE-only dominates (44.7% win rate vs 14.7% baseline) and outperforms 4x higher-budget vanilla MCTS (50ms RAVE > 200ms baseline, 15:6 pairwise). See [`archive/reports/layer5_arena_results.md`](archive/reports/layer5_arena_results.md). |
 | **Layer 6** | Evaluation refinement | Phase-dependent weights calibrated from 13K+ self-play states. **Finding:** phase-dependent eval (0% win rate) and RAVE variant both decisively lost to calibrated single-weight and default agents in 25-game arena — inverted early-game weight signs, missing `center_proximity`, and hard phase-transition discontinuities made the tree statistics noisy and unreliable. See [`archive/reports/layer6_phase_arena_results.md`](archive/reports/layer6_phase_arena_results.md). |
 | **Layer 7** | Opponent modeling | Asymmetric rollout policies, alliance detection, king-maker awareness |
 | **Layer 8** | Parallelization | Root-parallel multiprocessing, tree-parallel virtual loss |
@@ -146,6 +146,7 @@ MCTS_Laboratory/
 - Configurable rollout policies: random (recommended), heuristic, two-ply
 - Phase-dependent state evaluation with calibrated weights
 - Minimax backup blending (alpha=0.25 recommended with rollout depth ≥ 5)
+- RAVE blending (k=1000 recommended; provides 4x convergence speedup over vanilla MCTS)
 - Opponent modeling: asymmetric rollouts, alliance/targeting detection, king-maker awareness
 - Parallelization: root-parallel (multiprocessing) or tree-parallel (virtual loss)
 - Adaptive meta-optimization: branching-factor-driven C and depth, sufficiency threshold, loss avoidance
@@ -176,6 +177,11 @@ python scripts/arena.py --config scripts/arena_config_layer4_combined.json --ver
 # Layer 6 experiments (evaluation weights)
 python scripts/arena.py --config scripts/arena_config_layer6_weights.json --verbose
 python scripts/arena.py --config scripts/arena_config_layer6_phase.json --verbose
+
+# Layer 5 experiments (RAVE & history heuristics)
+python scripts/arena.py --config scripts/arena_config_layer5_rave_k_sweep.json --verbose
+python scripts/arena.py --config scripts/arena_config_layer5_head_to_head.json --verbose
+python scripts/arena.py --config scripts/arena_config_layer5_convergence.json --verbose
 
 # Smoke test (reduced game count)
 python scripts/arena.py --config scripts/arena_config_layer4_cutoff.json --num-games 4 --verbose
