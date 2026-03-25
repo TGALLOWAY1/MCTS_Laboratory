@@ -1,43 +1,45 @@
 {
   "agents": [
     {
-      "name": "mcts_100ms_heuristic_baseline",
+      "name": "mcts_heuristic_cutoff8",
       "type": "mcts",
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
-        "rollout_policy": "heuristic"
+        "iterations_per_ms": 1.0,
+        "rollout_policy": "heuristic",
+        "rollout_cutoff_depth": 8
       }
     },
     {
-      "name": "mcts_100ms_random_rollout",
+      "name": "mcts_random_cutoff8",
       "type": "mcts",
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
-        "rollout_policy": "random"
+        "iterations_per_ms": 1.0,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 8
       }
     },
     {
-      "name": "mcts_100ms_two_ply_all_cutoff8",
+      "name": "mcts_two_ply_all_cutoff8",
       "type": "mcts",
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
+        "iterations_per_ms": 1.0,
         "rollout_policy": "two_ply",
         "rollout_cutoff_depth": 8
       }
     },
     {
-      "name": "mcts_100ms_two_ply_k10_cutoff8",
+      "name": "mcts_two_ply_k10_cutoff8",
       "type": "mcts",
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
+        "iterations_per_ms": 1.0,
         "rollout_policy": "two_ply",
         "two_ply_top_k": 10,
         "rollout_cutoff_depth": 8
@@ -54,5 +56,5 @@
     "strategy": "fixed_ply",
     "checkpoints": [8, 16, 24, 32, 40, 48, 56, 64]
   },
-  "notes": "Layer 4.1: Two-ply search-based playout comparison — heuristic baseline, random, two-ply full enumeration with cutoff 8, two-ply top-K=10 with cutoff 8"
+  "notes": "Layer 4.1: Rollout policy comparison at equal cutoff depth 8 and 100 iterations — heuristic, random, two-ply full, two-ply top-K=10. All agents use same cutoff for fair comparison."
 }
