@@ -3,56 +3,56 @@
 ## Overview
 - Seed: `20260323`
 - Seat policy: `round_robin`
-- Games: `15/15` completed
+- Games: `20/20` completed
 - Error games: `0`
 
 ## Win Rates by Agent
-- `mcts_baseline`: win_rate=0.000, win_points=0.00, outright=0, shared=0
+- `mcts_baseline`: win_rate=0.050, win_points=1.00, outright=1, shared=0
 - `mcts_progressive_history`: win_rate=0.000, win_points=0.00, outright=0, shared=0
-- `mcts_progressive_widening`: win_rate=0.667, win_points=10.00, outright=10, shared=0
-- `mcts_pw_plus_ph`: win_rate=0.333, win_points=5.00, outright=5, shared=0
+- `mcts_progressive_widening`: win_rate=0.650, win_points=13.00, outright=13, shared=0
+- `mcts_pw_plus_ph`: win_rate=0.300, win_points=6.00, outright=6, shared=0
 
 ## Win Rates by Seat
-- `mcts_baseline`: seat0: 0.000 (4 games), seat1: 0.000 (3 games), seat2: 0.000 (4 games), seat3: 0.000 (4 games)
-- `mcts_progressive_history`: seat0: 0.000 (4 games), seat1: 0.000 (4 games), seat2: 0.000 (4 games), seat3: 0.000 (3 games)
-- `mcts_progressive_widening`: seat0: 0.750 (4 games), seat1: 1.000 (4 games), seat2: 0.667 (3 games), seat3: 0.250 (4 games)
-- `mcts_pw_plus_ph`: seat0: 0.333 (3 games), seat1: 0.750 (4 games), seat2: 0.250 (4 games), seat3: 0.000 (4 games)
+- `mcts_baseline`: seat0: 0.000 (5 games), seat1: 0.000 (5 games), seat2: 0.200 (5 games), seat3: 0.000 (5 games)
+- `mcts_progressive_history`: seat0: 0.000 (5 games), seat1: 0.000 (5 games), seat2: 0.000 (5 games), seat3: 0.000 (5 games)
+- `mcts_progressive_widening`: seat0: 0.800 (5 games), seat1: 0.800 (5 games), seat2: 0.800 (5 games), seat3: 0.200 (5 games)
+- `mcts_pw_plus_ph`: seat0: 0.200 (5 games), seat1: 0.600 (5 games), seat2: 0.200 (5 games), seat3: 0.200 (5 games)
 
 ## Score Stats
-- `mcts_baseline`: mean=73.86666666666666, median=73.0, std=7.6756469144662685, p25=70.5, p75=75.0, min=61.0, max=88.0
-- `mcts_progressive_history`: mean=77.53333333333333, median=78.0, std=6.042810236599818, p25=75.5, p75=80.5, min=64.0, max=89.0
-- `mcts_progressive_widening`: mean=92.4, median=94.0, std=6.9550940563973205, p25=88.0, p75=97.0, min=79.0, max=103.0
-- `mcts_pw_plus_ph`: mean=86.86666666666666, median=91.0, std=9.076465293396005, p25=77.5, p75=94.0, min=73.0, max=99.0
+- `mcts_baseline`: mean=76.3, median=73.0, std=10.91833320612629, p25=70.75, p75=79.75, min=61.0, max=112.0
+- `mcts_progressive_history`: mean=76.55, median=77.5, std=6.336205489092032, p25=74.5, p75=80.0, min=64.0, max=89.0
+- `mcts_progressive_widening`: mean=92.8, median=94.0, std=6.297618597533516, p25=89.0, p75=96.5, min=79.0, max=103.0
+- `mcts_pw_plus_ph`: mean=87.15, median=89.0, std=8.020442631176909, p25=80.25, p75=93.25, min=73.0, max=99.0
 
 ## Pairwise Matchups
-- `mcts_baseline__vs__mcts_progressive_history`: mcts_baseline>mcts_progressive_history=5, mcts_progressive_history>mcts_baseline=10, tie=0 (total=15)
-- `mcts_baseline__vs__mcts_progressive_widening`: mcts_baseline>mcts_progressive_widening=2, mcts_progressive_widening>mcts_baseline=13, tie=0 (total=15)
-- `mcts_baseline__vs__mcts_pw_plus_ph`: mcts_baseline>mcts_pw_plus_ph=1, mcts_pw_plus_ph>mcts_baseline=13, tie=1 (total=15)
-- `mcts_progressive_history__vs__mcts_progressive_widening`: mcts_progressive_history>mcts_progressive_widening=0, mcts_progressive_widening>mcts_progressive_history=15, tie=0 (total=15)
-- `mcts_progressive_history__vs__mcts_pw_plus_ph`: mcts_progressive_history>mcts_pw_plus_ph=4, mcts_pw_plus_ph>mcts_progressive_history=11, tie=0 (total=15)
-- `mcts_progressive_widening__vs__mcts_pw_plus_ph`: mcts_progressive_widening>mcts_pw_plus_ph=10, mcts_pw_plus_ph>mcts_progressive_widening=5, tie=0 (total=15)
+- `mcts_baseline__vs__mcts_progressive_history`: mcts_baseline>mcts_progressive_history=8, mcts_progressive_history>mcts_baseline=12, tie=0 (total=20)
+- `mcts_baseline__vs__mcts_progressive_widening`: mcts_baseline>mcts_progressive_widening=3, mcts_progressive_widening>mcts_baseline=17, tie=0 (total=20)
+- `mcts_baseline__vs__mcts_pw_plus_ph`: mcts_baseline>mcts_pw_plus_ph=2, mcts_pw_plus_ph>mcts_baseline=17, tie=1 (total=20)
+- `mcts_progressive_history__vs__mcts_progressive_widening`: mcts_progressive_history>mcts_progressive_widening=0, mcts_progressive_widening>mcts_progressive_history=20, tie=0 (total=20)
+- `mcts_progressive_history__vs__mcts_pw_plus_ph`: mcts_progressive_history>mcts_pw_plus_ph=4, mcts_pw_plus_ph>mcts_progressive_history=16, tie=0 (total=20)
+- `mcts_progressive_widening__vs__mcts_pw_plus_ph`: mcts_progressive_widening>mcts_pw_plus_ph=14, mcts_pw_plus_ph>mcts_progressive_widening=6, tie=0 (total=20)
 
 ## Time and Simulation Efficiency
-- `mcts_baseline`: avg_time_ms=593.9609724542369, avg_sims_per_move=25.0, sims_per_sec=42.090307544450965, win_rate_per_sec=0.0, score_per_sec=124.36282869133778
-- `mcts_progressive_history`: avg_time_ms=553.2853949454523, avg_sims_per_move=25.0, sims_per_sec=45.18463749158735, win_rate_per_sec=0.0, score_per_sec=140.1326224072429
-- `mcts_progressive_widening`: avg_time_ms=560.2432781795286, avg_sims_per_move=25.0, sims_per_sec=44.62347157691165, win_rate_per_sec=1.1899592420509773, score_per_sec=164.92835094826546
-- `mcts_pw_plus_ph`: avg_time_ms=588.6147098847662, avg_sims_per_move=25.0, sims_per_sec=42.47260488086389, win_rate_per_sec=0.5663013984115185, score_per_sec=147.57814442604172
+- `mcts_baseline`: avg_time_ms=574.2022901211145, avg_sims_per_move=25.0, sims_per_sec=43.53866299405883, win_rate_per_sec=0.08707732598811765, score_per_sec=132.87999945786754
+- `mcts_progressive_history`: avg_time_ms=561.979546868728, avg_sims_per_move=25.0, sims_per_sec=44.48560475073609, win_rate_per_sec=0.0, score_per_sec=136.2149217467539
+- `mcts_progressive_widening`: avg_time_ms=552.012586060849, avg_sims_per_move=25.0, sims_per_sec=45.28882244950158, win_rate_per_sec=1.177509383687041, score_per_sec=168.11210893254986
+- `mcts_pw_plus_ph`: avg_time_ms=590.6943901475654, avg_sims_per_move=25.0, sims_per_sec=42.3230699613629, win_rate_per_sec=0.5078768395363548, score_per_sec=147.53822188531106
 
 ## TrueSkill Ratings
 - Converged: `False`
 
 | Rank | Agent | mu | sigma | Conservative (mu-3sigma) | Games |
 |------|-------|----|-------|-------------------------|-------|
-| 1 | `mcts_progressive_widening` | 40.13 | 7.97 | **16.21** | 15 |
-| 2 | `mcts_pw_plus_ph` | 31.38 | 7.88 | **7.75** | 15 |
-| 3 | `mcts_progressive_history` | 17.78 | 7.72 | **-5.39** | 15 |
-| 4 | `mcts_baseline` | 11.34 | 7.71 | **-11.78** | 15 |
+| 1 | `mcts_progressive_widening` | 44.31 | 7.86 | **20.73** | 20 |
+| 2 | `mcts_pw_plus_ph` | 33.57 | 7.73 | **10.36** | 20 |
+| 3 | `mcts_progressive_history` | 12.74 | 7.55 | **-9.92** | 20 |
+| 4 | `mcts_baseline` | 10.38 | 7.57 | **-12.34** | 20 |
 
 ## Score Margins (winner - last place)
-- Mean: `24.0`, Median: `25.0`, Std: `7.75`, Range: `[13.0, 37.0]`
+- Mean: `24.7`, Median: `24.0`, Std: `8.79`, Range: `[13.0, 48.0]`
 
 ## Score by Seat Position
-- `mcts_baseline`: P1: 73.5±1.26 (n=4), P2: 72.0±0.58 (n=3), P3: 83.75±3.61 (n=4), P4: 65.75±1.84 (n=4)
-- `mcts_progressive_history`: P1: 78.5±2.47 (n=4), P2: 78.5±1.66 (n=4), P3: 81.25±3.2 (n=4), P4: 70.0±3.79 (n=3)
-- `mcts_progressive_widening`: P1: 96.5±2.25 (n=4), P2: 93.75±3.07 (n=4), P3: 97.0±1.53 (n=3), P4: 83.5±2.63 (n=4)
-- `mcts_pw_plus_ph`: P1: 92.33±2.96 (n=3), P2: 88.5±3.57 (n=4), P3: 92.0±5.12 (n=4), P4: 76.0±1.78 (n=4)
+- `mcts_baseline`: P1: 72.6±1.33 (n=5), P2: 73.6±1.21 (n=5), P3: 89.4±6.31 (n=5), P4: 69.6±4.11 (n=5)
+- `mcts_progressive_history`: P1: 75.6±3.47 (n=5), P2: 77.8±1.46 (n=5), P3: 81.0±2.49 (n=5), P4: 71.8±2.92 (n=5)
+- `mcts_progressive_widening`: P1: 95.6±1.96 (n=5), P2: 92.8±2.56 (n=5), P3: 97.2±0.97 (n=5), P4: 85.6±2.93 (n=5)
+- `mcts_pw_plus_ph`: P1: 91.2±2.08 (n=5), P2: 87.8±2.85 (n=5), P3: 90.8±4.14 (n=5), P4: 78.8±3.12 (n=5)
