@@ -2,78 +2,89 @@
   "agents": [
     {
       "name": "mcts_default_eval_d0",
-      "type": "mcts",
-      "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
         "exploration_constant": 1.414,
+        "iterations_per_ms": 10.0,
         "rollout_cutoff_depth": 0
-      }
+      },
+      "thinking_time_ms": 100,
+      "type": "mcts"
     },
     {
       "name": "mcts_calibrated_eval_d0",
-      "type": "mcts",
-      "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
         "exploration_constant": 1.414,
+        "iterations_per_ms": 10.0,
         "rollout_cutoff_depth": 0,
         "state_eval_weights": {
-          "squares_placed": 0.029522477044715226,
-          "remaining_piece_area": -0.029522477044715147,
           "accessible_corners": 0.24310302640254203,
-          "reachable_empty_squares": 0.08109693693246343,
+          "center_proximity": 0.0,
           "largest_remaining_piece_size": -0.23120837257261234,
           "opponent_avg_mobility": -0.3,
-          "center_proximity": 0.0,
+          "reachable_empty_squares": 0.08109693693246343,
+          "remaining_piece_area": -0.029522477044715147,
+          "squares_placed": 0.029522477044715226,
           "territory_enclosure_area": 0.0
         }
-      }
+      },
+      "thinking_time_ms": 100,
+      "type": "mcts"
     },
     {
       "name": "mcts_calibrated_eval_d5",
-      "type": "mcts",
-      "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 0.25,
         "exploration_constant": 1.414,
+        "iterations_per_ms": 0.25,
         "rollout_cutoff_depth": 5,
         "state_eval_weights": {
-          "squares_placed": 0.029522477044715226,
-          "remaining_piece_area": -0.029522477044715147,
           "accessible_corners": 0.24310302640254203,
-          "reachable_empty_squares": 0.08109693693246343,
+          "center_proximity": 0.0,
           "largest_remaining_piece_size": -0.23120837257261234,
           "opponent_avg_mobility": -0.3,
-          "center_proximity": 0.0,
+          "reachable_empty_squares": 0.08109693693246343,
+          "remaining_piece_area": -0.029522477044715147,
+          "squares_placed": 0.029522477044715226,
           "territory_enclosure_area": 0.0
         }
-      }
+      },
+      "thinking_time_ms": 100,
+      "type": "mcts"
     },
     {
       "name": "mcts_baseline_d0",
-      "type": "mcts",
-      "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
         "exploration_constant": 1.414,
+        "iterations_per_ms": 10.0,
         "rollout_cutoff_depth": 0
-      }
+      },
+      "thinking_time_ms": 100,
+      "type": "mcts"
     }
   ],
-  "num_games": 25,
-  "seed": 20260325,
-  "seat_policy": "round_robin",
-  "output_root": "arena_runs",
+  "created_at": "2026-03-25T02:11:48",
   "max_turns": 2500,
+  "notes": "Layer 6.1: Calibrated weights vs default weights. depth_0 at 1000 iter (fast), depth_5 at 25 iter (calibrated). Tests whether calibrated eval weights improve play quality.",
+  "num_games": 25,
+  "output_root": "arena_runs",
+  "run_id": "20260325_021148_78fbdc50",
+  "seat_policy": "round_robin",
+  "seed": 20260325,
   "snapshots": {
+    "checkpoints": [
+      8,
+      16,
+      24,
+      32,
+      40,
+      48,
+      56,
+      64
+    ],
     "enabled": true,
-    "strategy": "fixed_ply",
-    "checkpoints": [8, 16, 24, 32, 40, 48, 56, 64]
-  },
-  "notes": "Layer 6.1: Calibrated weights vs default weights. depth_0 at 1000 iter (fast), depth_5 at 25 iter (calibrated). Tests whether calibrated eval weights improve play quality."
+    "strategy": "fixed_ply"
+  }
 }

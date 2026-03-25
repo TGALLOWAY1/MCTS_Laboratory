@@ -1,14 +1,14 @@
 {
   "agents": [
     {
-      "name": "mcts_single_weight",
+      "name": "mcts_calibrated_d0",
       "type": "mcts",
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
         "iterations_per_ms": 10.0,
-        "rollout_policy": "two_ply",
-        "rollout_cutoff_depth": 8,
+        "exploration_constant": 1.414,
+        "rollout_cutoff_depth": 0,
         "state_eval_weights": {
           "squares_placed": 0.029522477044715226,
           "remaining_piece_area": -0.029522477044715147,
@@ -22,42 +22,42 @@
       }
     },
     {
-      "name": "mcts_phase_eval",
+      "name": "mcts_phase_eval_d0",
       "type": "mcts",
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
         "iterations_per_ms": 10.0,
-        "rollout_policy": "two_ply",
-        "rollout_cutoff_depth": 8,
+        "exploration_constant": 1.414,
+        "rollout_cutoff_depth": 0,
         "state_eval_phase_weights": {
           "early": {
-            "squares_placed": -0.17599664484103847,
-            "remaining_piece_area": 0.17599664484103822,
+            "squares_placed": -0.176,
+            "remaining_piece_area": 0.176,
             "accessible_corners": 0.3,
             "reachable_empty_squares": 0.0,
             "largest_remaining_piece_size": 0.0,
-            "opponent_avg_mobility": -0.05287834609528694,
+            "opponent_avg_mobility": -0.053,
             "center_proximity": 0.0,
             "territory_enclosure_area": 0.0
           },
           "mid": {
-            "squares_placed": -0.00387502185581506,
-            "remaining_piece_area": 0.0038750218558150614,
+            "squares_placed": -0.004,
+            "remaining_piece_area": 0.004,
             "accessible_corners": 0.3,
-            "reachable_empty_squares": 0.22774497158891033,
-            "largest_remaining_piece_size": -0.238473591231953,
-            "opponent_avg_mobility": -0.20277351241243552,
+            "reachable_empty_squares": 0.228,
+            "largest_remaining_piece_size": -0.238,
+            "opponent_avg_mobility": -0.203,
             "center_proximity": 0.0,
             "territory_enclosure_area": 0.0
           },
           "late": {
             "squares_placed": 0.3,
             "remaining_piece_area": -0.3,
-            "accessible_corners": 0.17573409689186584,
-            "reachable_empty_squares": 0.13361753070802862,
-            "largest_remaining_piece_size": -0.08518919739412929,
-            "opponent_avg_mobility": -0.06278383996091268,
+            "accessible_corners": 0.176,
+            "reachable_empty_squares": 0.134,
+            "largest_remaining_piece_size": -0.085,
+            "opponent_avg_mobility": -0.063,
             "center_proximity": 0.0,
             "territory_enclosure_area": 0.0
           }
@@ -65,64 +65,64 @@
       }
     },
     {
-      "name": "mcts_default_eval",
+      "name": "mcts_default_eval_d0",
       "type": "mcts",
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
         "iterations_per_ms": 10.0,
-        "rollout_policy": "two_ply",
-        "rollout_cutoff_depth": 8
+        "exploration_constant": 1.414,
+        "rollout_cutoff_depth": 0
       }
     },
     {
-      "name": "mcts_phase_eval_with_rave",
+      "name": "mcts_phase_eval_rave_d0",
       "type": "mcts",
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
         "iterations_per_ms": 10.0,
-        "rollout_policy": "two_ply",
-        "rollout_cutoff_depth": 8,
+        "exploration_constant": 1.414,
+        "rollout_cutoff_depth": 0,
+        "rave_enabled": true,
+        "rave_k": 1000,
         "state_eval_phase_weights": {
           "early": {
-            "squares_placed": -0.17599664484103847,
-            "remaining_piece_area": 0.17599664484103822,
+            "squares_placed": -0.176,
+            "remaining_piece_area": 0.176,
             "accessible_corners": 0.3,
             "reachable_empty_squares": 0.0,
             "largest_remaining_piece_size": 0.0,
-            "opponent_avg_mobility": -0.05287834609528694,
+            "opponent_avg_mobility": -0.053,
             "center_proximity": 0.0,
             "territory_enclosure_area": 0.0
           },
           "mid": {
-            "squares_placed": -0.00387502185581506,
-            "remaining_piece_area": 0.0038750218558150614,
+            "squares_placed": -0.004,
+            "remaining_piece_area": 0.004,
             "accessible_corners": 0.3,
-            "reachable_empty_squares": 0.22774497158891033,
-            "largest_remaining_piece_size": -0.238473591231953,
-            "opponent_avg_mobility": -0.20277351241243552,
+            "reachable_empty_squares": 0.228,
+            "largest_remaining_piece_size": -0.238,
+            "opponent_avg_mobility": -0.203,
             "center_proximity": 0.0,
             "territory_enclosure_area": 0.0
           },
           "late": {
             "squares_placed": 0.3,
             "remaining_piece_area": -0.3,
-            "accessible_corners": 0.17573409689186584,
-            "reachable_empty_squares": 0.13361753070802862,
-            "largest_remaining_piece_size": -0.08518919739412929,
-            "opponent_avg_mobility": -0.06278383996091268,
+            "accessible_corners": 0.176,
+            "reachable_empty_squares": 0.134,
+            "largest_remaining_piece_size": -0.085,
+            "opponent_avg_mobility": -0.063,
             "center_proximity": 0.0,
             "territory_enclosure_area": 0.0
           }
-        },
-        "rave_enabled": true,
-        "rave_k": 1000
+        }
       }
     }
   ],
   "num_games": 25,
-  "seed": 20260323,
+  "seed": 20260325,
   "seat_policy": "round_robin",
   "output_root": "arena_runs",
   "max_turns": 2500,
@@ -131,5 +131,5 @@
     "strategy": "fixed_ply",
     "checkpoints": [8, 16, 24, 32, 40, 48, 56, 64]
   },
-  "notes": "Layer 6.2: Phase-dependent eval vs single-weight eval vs default"
+  "notes": "Layer 6.2: Phase-dependent eval vs calibrated single-weight vs default vs phase+RAVE. All at depth_0 with 1000 iter for fast turnaround and fair comparison."
 }

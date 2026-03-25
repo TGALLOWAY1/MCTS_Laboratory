@@ -198,7 +198,7 @@ TD-UCT implementation is deferred to a dedicated follow-up (Layer 6.3 stub provi
 - [x] Phase-dependent weight vectors calibrated and tested
 - [x] Arena configs ready for phase-dependent vs single-weight benchmarking
 - [x] R² computed and TD learning decision made (implement — R² < 0.5)
-- [ ] Arena benchmarks completed (phase vs single vs default)
+- [x] Arena benchmarks completed (phase vs single vs default) — see `layer6_phase_arena_results.md`
 - [ ] If R² < 0.5: TD-UCT implemented and tested (deferred to Layer 6.3)
 - [x] Updated weights available for Layer 3 heuristic feedback
 - [x] 15 unit tests passing
