@@ -11,44 +11,42 @@
       }
     },
     {
-      "name": "two_ply_k10_d8_25iter",
+      "name": "random_d5_25iter",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 0.25,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5
+      }
+    },
+    {
+      "name": "random_d5_25iter_alpha0.25",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 0.25,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25
+      }
+    },
+    {
+      "name": "two_ply_all_d8_25iter",
       "type": "mcts",
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
         "iterations_per_ms": 0.25,
         "rollout_policy": "two_ply",
-        "two_ply_top_k": 10,
         "rollout_cutoff_depth": 8
-      }
-    },
-    {
-      "name": "d0_1000iter_minimax0.1",
-      "type": "mcts",
-      "thinking_time_ms": 100,
-      "params": {
-        "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
-        "rollout_cutoff_depth": 0,
-        "minimax_backup_alpha": 0.1
-      }
-    },
-    {
-      "name": "two_ply_k10_d8_25iter_minimax0.1",
-      "type": "mcts",
-      "thinking_time_ms": 100,
-      "params": {
-        "deterministic_time_budget": true,
-        "iterations_per_ms": 0.25,
-        "rollout_policy": "two_ply",
-        "two_ply_top_k": 10,
-        "rollout_cutoff_depth": 8,
-        "minimax_backup_alpha": 0.1
       }
     }
   ],
   "num_games": 25,
-  "seed": 20260323,
+  "seed": 20260325,
   "seat_policy": "round_robin",
   "output_root": "arena_runs",
   "max_turns": 2500,
@@ -57,5 +55,5 @@
     "strategy": "fixed_ply",
     "checkpoints": [8, 16, 24, 32, 40, 48, 56, 64]
   },
-  "notes": "Layer 4 combined: Baseline (d0, 1000 iter) vs two-ply (k10, d8, 25 iter) vs minimax (d0, 1000 iter, alpha=0.1) vs all combined. Tests best L4 settings against each other."
+  "notes": "Layer 4 combined: Best findings — baseline (d0, 1000 iter) vs random rollout (d5, 25 iter) vs random + minimax alpha=0.25 (d5) vs two-ply full (d8, 25 iter). Tests whether minimax backup helps when rollouts are present."
 }
