@@ -1,4 +1,4 @@
-# Layer 4 Arena Progress Log
+# Layer 4 Arena — Final Results
 
 ## Config Calibration Notes
 
@@ -9,45 +9,69 @@ All L4 configs recalibrated from original design:
 - Minimax agents all use cutoff_0 + 1000 iter (fast pure-eval comparison)
 - Dropped cutoff_20 (impractical at any iteration count)
 
-## Mid-Tournament Results
+## L4.2 Cutoff Depth Sweep (25 games) — run `20260325_164035_0a7ca009`
 
-### L4.2 Cutoff Depth Sweep (14/25 games)
+| Agent | Win Rate | Mean Score | TrueSkill mu |
+|-------|----------|-----------|-------------|
+| cutoff_5_25iter | **54%** | **75.2** | 29.43 |
+| cutoff_10_25iter | 28% | 73.4 | 13.46 |
+| cutoff_0_25iter | 18% | 70.8 | 29.72 |
+| cutoff_0_1000iter | **0%** | 70.8 | 27.20 |
 
-| Agent | Solo Wins | Tie Wins | Total | Win Rate |
-|-------|-----------|----------|-------|----------|
-| cutoff_5_25iter | 6 | 3 | 9 | 64% |
-| cutoff_10_25iter | 4 | 0 | 4 | 29% |
-| cutoff_0_25iter | 1 | 3 | 4 | 29% |
-| cutoff_0_1000iter | 0 | 0 | 0 | 0% |
+**Key finding**: Rollout quality > iteration quantity. cutoff_5 at 25 iter dominates. cutoff_0 at 1000 iter has ZERO wins despite 40× more tree-search iterations. A 5-move heuristic rollout per iteration provides more useful information than pure static evaluation with massive tree exploration.
 
-**Key finding**: Rollout quality > iteration quantity. cutoff_5 at 25 iter dominates; cutoff_0 at 1000 iter has ZERO wins despite 40× more tree-search iterations. A 5-move heuristic rollout per iteration provides more useful information than pure static evaluation with 40× more tree exploration.
+Pairwise: cutoff_5 beats cutoff_10 18:7, cutoff_5 beats cutoff_0@1000iter 16:7.
 
-**Note**: Results repeat on a 4-game cycle (round_robin × 4 seats). With deterministic time budget and seeded agents, MCTS behavior is reproducible. Games 1-4 ≈ games 5-8 ≈ games 9-12 (minor variation in some games). Effective unique games ≈ 4.
+## L4.3 Minimax Alpha Sweep (25 games) — run `20260325_164033_3b30eeb2`
 
-### L4.3 Minimax Alpha Sweep (13/25 games — essentially complete)
+| Agent | Win Rate | Mean Score |
+|-------|----------|-----------|
+| alpha_0.0 | 24% | 69.32 |
+| alpha_0.1 | 28% | 69.40 |
+| alpha_0.25 | 24% | 69.20 |
+| alpha_0.5 | 24% | 69.08 |
 
-All alpha values produce **identical results**. Score distribution is always {73, 71, 68, 65} with winner determined solely by seat position. Games repeat on a perfect 4-game cycle.
+**Key finding**: Minimax backup alpha has ZERO effect at cutoff_depth=0. All agents produce identical scores at every seat position (std=0.0). Score margins are constant 8.0±0.0. The MCTS tree search is fully deterministic with pure static evaluation — alpha only matters when rollouts provide variance.
 
-**Key finding**: Minimax backup alpha has ZERO effect with cutoff_depth=0 (pure static eval). With no rollout stochasticity, the MCTS tree search is fully deterministic regardless of alpha. The backup strategy only matters when rollouts introduce variance.
+## L4.1 Two-Ply Rollout Policy (25 games) — run `20260325_165028_feca38f3`
 
-**Implication**: To test minimax backup properly, need cutoff_depth ≥ 5 (with rollouts). The current config is conclusive but shows a methodological gap.
+| Agent | Win Rate | Mean Score | TrueSkill mu | ms/move |
+|-------|----------|-----------|-------------|---------|
+| random_cutoff8 | **36%** | 73.4 | **27.16** | **604ms** |
+| two_ply_all_cutoff8 | 34% | **74.9** | 26.67 | 6075ms |
+| two_ply_k10_cutoff8 | 16% | 73.0 | 23.62 | 1816ms |
+| heuristic_cutoff8 | **14%** | 71.6 | 22.24 | 5355ms |
 
-### L4.1 Two-Ply Rollout Policy (11/25 games)
+**Key finding**: Heuristic rollout is the weakest policy (14% win rate). Random and two_ply_all are competitive leaders, but random is **10× faster** per move (604ms vs 6075ms). Top-K=10 filtering hurts two-ply performance (16% vs 34%).
 
-| Agent | Wins | Mean Score | Notable |
-|-------|------|-----------|---------|
-| random_cutoff8_25iter | 4.5 | ~74 | Surprising leader — random rollouts beat heuristic |
-| two_ply_all_cutoff8_25iter | 4 | ~76 | Strong, highest peak scores (86) |
-| two_ply_k10_cutoff8_25iter | 1.5 | ~72 | K=10 filtering hurts vs full enumeration |
-| heuristic_cutoff8_25iter | 1 | ~69 | Weakest — heuristic rollout policy is the worst |
+Pairwise: random beats two_ply_all 15:10. two_ply_all beats k10 19:6.
 
-**Key finding**: Heuristic rollout is the worst policy at cutoff_depth=8. Random and two-ply full enumeration are competitive leaders. The heuristic may introduce systematic biases that hurt evaluation quality.
+## L4 Combined (25 games) — run `20260325_182815_f28a2209`
 
-**Top-K filtering hurts**: two_ply_k10 significantly underperforms two_ply_all, suggesting that limiting the move set to top-10 during two-ply evaluation loses important information.
+| Agent | Win Rate | Mean Score | TrueSkill mu | ms/move |
+|-------|----------|-----------|-------------|---------|
+| random_d5 + alpha=0.25 | **36%** | 70.9 | 26.89 | **441ms** |
+| two_ply_all_d8 | **36%** | 72.8 | 16.98 | 6295ms |
+| random_d5 | 24% | 72.2 | 24.63 | 433ms |
+| baseline_d0 @1000iter | 4% | 70.9 | 31.22* | 3504ms |
 
-## Emerging Conclusions
+*Baseline TrueSkill is high because it consistently places mid-table (std=1.47) but rarely wins outright.
 
-1. **Rollout depth matters**: Even 5 moves of rollout at 25 iterations beats 1000 iterations of pure static eval
-2. **Heuristic rollout is the worst policy**: At equal depth and iterations, random and two-ply beat heuristic
-3. **Minimax backup is irrelevant with static eval**: Needs rollout variance to have any effect
-4. **Top-K filtering hurts two-ply**: Full move enumeration > K=10 filtering
+**Key finding**: Minimax alpha DOES help with rollouts — random_d5+alpha0.25 beats vanilla random_d5 15:10 pairwise. Combined, random_d5+alpha0.25 is the best practical strategy: tied for highest win rate (36%) and 14× faster per move than two_ply_all.
+
+---
+
+## Layer 4 Conclusions
+
+### Recommended Settings
+- **Rollout cutoff depth**: 5 (massive improvement over depth 0)
+- **Rollout policy**: `"random"` (fastest, competitive quality) or `"two_ply"` without K filtering (highest raw quality but 10× slower)
+- **Minimax backup alpha**: 0.25 (helps when rollouts are enabled, no effect without)
+- **Best overall**: random rollout + cutoff 5 + alpha 0.25
+
+### Key Insights
+1. **Rollout quality > iteration quantity**: 25 iterations with 5-move rollout beats 1000 iterations with pure static eval
+2. **Heuristic rollout is harmful**: The default heuristic policy is the worst. Random is better, likely because it avoids systematic biases
+3. **Top-K filtering hurts**: Restricting two-ply to K=10 loses important information
+4. **Minimax backup needs variance**: Has zero effect with deterministic evaluation, but helps when rollouts provide stochastic signals
+5. **Time efficiency matters**: random_d5 + alpha0.25 achieves the same win rate as two_ply_all_d8 at 14× lower compute cost
