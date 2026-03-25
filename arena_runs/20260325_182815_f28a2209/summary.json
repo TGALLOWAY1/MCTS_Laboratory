@@ -1,0 +1,1193 @@
+{
+  "completed_games": 25,
+  "error_games": 0,
+  "game_duration_sec": {
+    "count": 25,
+    "max": 182.75314617799995,
+    "mean": 172.33255863880032,
+    "median": 171.74299279800107,
+    "min": 166.1926645980002,
+    "p25": 170.18931760799933,
+    "p75": 174.04268722300003,
+    "std": 3.7953521562663193
+  },
+  "num_games": 25,
+  "pairwise_matchups": {
+    "baseline_d0_1000iter__vs__random_d5_25iter": {
+      "a_beats_b": 14,
+      "agent_a": "baseline_d0_1000iter",
+      "agent_b": "random_d5_25iter",
+      "b_beats_a": 11,
+      "tie": 0,
+      "total": 25
+    },
+    "baseline_d0_1000iter__vs__random_d5_25iter_alpha0.25": {
+      "a_beats_b": 12,
+      "agent_a": "baseline_d0_1000iter",
+      "agent_b": "random_d5_25iter_alpha0.25",
+      "b_beats_a": 13,
+      "tie": 0,
+      "total": 25
+    },
+    "baseline_d0_1000iter__vs__two_ply_all_d8_25iter": {
+      "a_beats_b": 14,
+      "agent_a": "baseline_d0_1000iter",
+      "agent_b": "two_ply_all_d8_25iter",
+      "b_beats_a": 11,
+      "tie": 0,
+      "total": 25
+    },
+    "random_d5_25iter__vs__random_d5_25iter_alpha0.25": {
+      "a_beats_b": 10,
+      "agent_a": "random_d5_25iter",
+      "agent_b": "random_d5_25iter_alpha0.25",
+      "b_beats_a": 15,
+      "tie": 0,
+      "total": 25
+    },
+    "random_d5_25iter__vs__two_ply_all_d8_25iter": {
+      "a_beats_b": 15,
+      "agent_a": "random_d5_25iter",
+      "agent_b": "two_ply_all_d8_25iter",
+      "b_beats_a": 9,
+      "tie": 1,
+      "total": 25
+    },
+    "random_d5_25iter_alpha0.25__vs__two_ply_all_d8_25iter": {
+      "a_beats_b": 13,
+      "agent_a": "random_d5_25iter_alpha0.25",
+      "agent_b": "two_ply_all_d8_25iter",
+      "b_beats_a": 12,
+      "tie": 0,
+      "total": 25
+    }
+  },
+  "pairwise_total_comparisons": 150,
+  "run_config": {
+    "agents": [
+      {
+        "name": "baseline_d0_1000iter",
+        "params": {
+          "deterministic_time_budget": true,
+          "iterations_per_ms": 10.0,
+          "rollout_cutoff_depth": 0
+        },
+        "thinking_time_ms": 100,
+        "type": "mcts"
+      },
+      {
+        "name": "random_d5_25iter",
+        "params": {
+          "deterministic_time_budget": true,
+          "iterations_per_ms": 0.25,
+          "rollout_cutoff_depth": 5,
+          "rollout_policy": "random"
+        },
+        "thinking_time_ms": 100,
+        "type": "mcts"
+      },
+      {
+        "name": "random_d5_25iter_alpha0.25",
+        "params": {
+          "deterministic_time_budget": true,
+          "iterations_per_ms": 0.25,
+          "minimax_backup_alpha": 0.25,
+          "rollout_cutoff_depth": 5,
+          "rollout_policy": "random"
+        },
+        "thinking_time_ms": 100,
+        "type": "mcts"
+      },
+      {
+        "name": "two_ply_all_d8_25iter",
+        "params": {
+          "deterministic_time_budget": true,
+          "iterations_per_ms": 0.25,
+          "rollout_cutoff_depth": 8,
+          "rollout_policy": "two_ply"
+        },
+        "thinking_time_ms": 100,
+        "type": "mcts"
+      }
+    ],
+    "created_at": "2026-03-25T18:28:15",
+    "max_turns": 2500,
+    "notes": "Layer 4 combined: Best findings \u2014 baseline (d0, 1000 iter) vs random rollout (d5, 25 iter) vs random + minimax alpha=0.25 (d5) vs two-ply full (d8, 25 iter). Tests whether minimax backup helps when rollouts are present.",
+    "num_games": 25,
+    "output_root": "arena_runs",
+    "run_id": "20260325_182815_f28a2209",
+    "seat_policy": "round_robin",
+    "seed": 20260325,
+    "snapshots": {
+      "checkpoints": [
+        8,
+        16,
+        24,
+        32,
+        40,
+        48,
+        56,
+        64
+      ],
+      "enabled": true,
+      "strategy": "fixed_ply"
+    }
+  },
+  "run_id": "20260325_182815_f28a2209",
+  "score_by_seat_position": {
+    "baseline_d0_1000iter": {
+      "P1": {
+        "mean": 71.0,
+        "n": 7,
+        "se": 0.0,
+        "std": 0.0
+      },
+      "P2": {
+        "mean": 69.67,
+        "n": 6,
+        "se": 0.67,
+        "std": 1.63
+      },
+      "P3": {
+        "mean": 73.0,
+        "n": 6,
+        "se": 0.0,
+        "std": 0.0
+      },
+      "P4": {
+        "mean": 70.0,
+        "n": 6,
+        "se": 0.0,
+        "std": 0.0
+      }
+    },
+    "random_d5_25iter": {
+      "P1": {
+        "mean": 82.67,
+        "n": 6,
+        "se": 3.46,
+        "std": 8.48
+      },
+      "P2": {
+        "mean": 69.0,
+        "n": 7,
+        "se": 0.0,
+        "std": 0.0
+      },
+      "P3": {
+        "mean": 72.33,
+        "n": 6,
+        "se": 0.42,
+        "std": 1.03
+      },
+      "P4": {
+        "mean": 65.33,
+        "n": 6,
+        "se": 0.67,
+        "std": 1.63
+      }
+    },
+    "random_d5_25iter_alpha0.25": {
+      "P1": {
+        "mean": 71.0,
+        "n": 6,
+        "se": 0.0,
+        "std": 0.0
+      },
+      "P2": {
+        "mean": 73.5,
+        "n": 6,
+        "se": 0.5,
+        "std": 1.22
+      },
+      "P3": {
+        "mean": 73.0,
+        "n": 7,
+        "se": 0.0,
+        "std": 0.0
+      },
+      "P4": {
+        "mean": 65.67,
+        "n": 6,
+        "se": 0.21,
+        "std": 0.52
+      }
+    },
+    "two_ply_all_d8_25iter": {
+      "P1": {
+        "mean": 82.5,
+        "n": 6,
+        "se": 5.14,
+        "std": 12.6
+      },
+      "P2": {
+        "mean": 76.0,
+        "n": 6,
+        "se": 0.0,
+        "std": 0.0
+      },
+      "P3": {
+        "mean": 68.0,
+        "n": 6,
+        "se": 0.0,
+        "std": 0.0
+      },
+      "P4": {
+        "mean": 66.0,
+        "n": 7,
+        "se": 0.0,
+        "std": 0.0
+      }
+    }
+  },
+  "score_margins": {
+    "max_margin": 29.0,
+    "mean_margin": 12.52,
+    "median_margin": 10.0,
+    "min_margin": 5.0,
+    "n_games": 25,
+    "std_margin": 7.58
+  },
+  "score_stats": {
+    "baseline_d0_1000iter": {
+      "count": 25,
+      "max": 73.0,
+      "mean": 70.92,
+      "median": 71.0,
+      "min": 69.0,
+      "p25": 70.0,
+      "p75": 73.0,
+      "std": 1.4675149062275312
+    },
+    "random_d5_25iter": {
+      "count": 25,
+      "max": 90.0,
+      "mean": 72.2,
+      "median": 69.0,
+      "min": 62.0,
+      "p25": 69.0,
+      "p75": 73.0,
+      "std": 7.4565407529229
+    },
+    "random_d5_25iter_alpha0.25": {
+      "count": 25,
+      "max": 76.0,
+      "mean": 70.88,
+      "median": 73.0,
+      "min": 65.0,
+      "p25": 71.0,
+      "p75": 73.0,
+      "std": 3.1281943673627435
+    },
+    "two_ply_all_d8_25iter": {
+      "count": 25,
+      "max": 94.0,
+      "mean": 72.84,
+      "median": 68.0,
+      "min": 66.0,
+      "p25": 66.0,
+      "p75": 76.0,
+      "std": 8.674929394525353
+    }
+  },
+  "seat_policy": "round_robin",
+  "seed": 20260325,
+  "snapshot_diagnostics": {
+    "feature_distributions": {
+      "blocking_exposure_legal_moves_opp_sum": {
+        "max": 1570.0,
+        "mean": 665.8021472392638,
+        "min": 0.0,
+        "p25": 88.0,
+        "p75": 1196.0,
+        "std": 583.0575894129811
+      },
+      "center_proximity": {
+        "max": 9.0,
+        "mean": 3.2622699386503067,
+        "min": 0.0,
+        "p25": 1.0,
+        "p75": 6.0,
+        "std": 3.1608591284966514
+      },
+      "corner_differential": {
+        "max": -7.0,
+        "mean": -21.846625766871167,
+        "min": -36.0,
+        "p25": -27.0,
+        "p75": -17.0,
+        "std": 6.8534911815283595
+      },
+      "deadzone_count": {
+        "max": 115.0,
+        "mean": 36.61963190184049,
+        "min": 4.0,
+        "p25": 8.0,
+        "p75": 62.0,
+        "std": 34.240436144260286
+      },
+      "deadzone_fraction": {
+        "max": 0.2875,
+        "mean": 0.09154907975460122,
+        "min": 0.01,
+        "p25": 0.02,
+        "p75": 0.155,
+        "std": 0.08560109036065072
+      },
+      "frontier_size": {
+        "max": 16.0,
+        "mean": 10.923312883435583,
+        "min": 5.0,
+        "p25": 8.0,
+        "p75": 14.0,
+        "std": 3.4267455907641797
+      },
+      "mobility_bucket_1": {
+        "max": 15.0,
+        "mean": 8.680981595092025,
+        "min": 0.0,
+        "p25": 6.0,
+        "p75": 11.0,
+        "std": 4.305019928233009
+      },
+      "mobility_bucket_2": {
+        "max": 24.0,
+        "mean": 10.60122699386503,
+        "min": 0.0,
+        "p25": 4.0,
+        "p75": 17.0,
+        "std": 6.712583072157917
+      },
+      "mobility_bucket_3": {
+        "max": 59.25,
+        "mean": 22.850843558282207,
+        "min": 0.0,
+        "p25": 8.25,
+        "p75": 36.0,
+        "std": 17.001756136109066
+      },
+      "mobility_bucket_4": {
+        "max": 216.0,
+        "mean": 76.3489263803681,
+        "min": 0.0,
+        "p25": 4.5,
+        "p75": 133.5,
+        "std": 68.03668003463783
+      },
+      "mobility_bucket_5": {
+        "max": 235.0,
+        "mean": 83.93021472392638,
+        "min": 0.0,
+        "p25": 0.0,
+        "p75": 183.75,
+        "std": 94.39913237974693
+      },
+      "mobility_total_cell_weighted": {
+        "max": 493.0,
+        "mean": 202.41219325153375,
+        "min": 0.0,
+        "p25": 24.25,
+        "p75": 370.25,
+        "std": 180.3041693057577
+      },
+      "mobility_total_orientation_normalized": {
+        "max": 136.5,
+        "mean": 57.47181748466258,
+        "min": 0.0,
+        "p25": 13.75,
+        "p75": 102.375,
+        "std": 44.75979363427568
+      },
+      "mobility_total_placements": {
+        "max": 566.0,
+        "mean": 221.9340490797546,
+        "min": 0.0,
+        "p25": 21.0,
+        "p75": 426.0,
+        "std": 201.52977890486918
+      },
+      "opponent_adjacency": {
+        "max": 35.0,
+        "mean": 8.035276073619633,
+        "min": 0.0,
+        "p25": 0.0,
+        "p75": 15.0,
+        "std": 9.35153514597256
+      },
+      "phase_board_occupancy": {
+        "max": 0.635,
+        "mean": 0.36676380368098166,
+        "min": 0.1,
+        "p25": 0.2,
+        "p75": 0.4975,
+        "std": 0.17391335118529955
+      },
+      "phase_piece_usage_ratio": {
+        "max": 0.7619047619047619,
+        "mean": 0.35991820040899797,
+        "min": 0.09523809523809523,
+        "p25": 0.19047619047619047,
+        "p75": 0.47619047619047616,
+        "std": 0.18075916922561647
+      },
+      "phase_ply": {
+        "max": 56.0,
+        "mean": 30.233128834355828,
+        "min": 8.0,
+        "p25": 16.0,
+        "p75": 40.0,
+        "std": 15.143311529365903
+      },
+      "phase_progress_placement_ratio": {
+        "max": 0.0224,
+        "mean": 0.012093251533742331,
+        "min": 0.0032,
+        "p25": 0.0064,
+        "p75": 0.016,
+        "std": 0.00605732461174636
+      },
+      "phase_progress_turn_ratio": {
+        "max": 0.0244,
+        "mean": 0.012184049079754601,
+        "min": 0.0032,
+        "p25": 0.0064,
+        "p75": 0.016,
+        "std": 0.006219264809492944
+      },
+      "phase_turn_index": {
+        "max": 61.0,
+        "mean": 30.460122699386503,
+        "min": 8.0,
+        "p25": 16.0,
+        "p75": 40.0,
+        "std": 15.548162023732363
+      },
+      "pieces_remaining_count": {
+        "max": 19.0,
+        "mean": 13.441717791411042,
+        "min": 5.0,
+        "p25": 11.0,
+        "p75": 17.0,
+        "std": 3.795942553737946
+      },
+      "pieces_used_count": {
+        "max": 16.0,
+        "mean": 7.558282208588957,
+        "min": 2.0,
+        "p25": 4.0,
+        "p75": 10.0,
+        "std": 3.795942553737946
+      },
+      "player_board_occupancy": {
+        "max": 0.185,
+        "mean": 0.09169095092024541,
+        "min": 0.025,
+        "p25": 0.05,
+        "p75": 0.125,
+        "std": 0.04361918614221553
+      },
+      "remaining_key_piece_17": {
+        "max": 1.0,
+        "mean": 0.3067484662576687,
+        "min": 0.0,
+        "p25": 0.0,
+        "p75": 1.0,
+        "std": 0.46114406068628555
+      },
+      "remaining_key_piece_19": {
+        "max": 1.0,
+        "mean": 0.15337423312883436,
+        "min": 0.0,
+        "p25": 0.0,
+        "p75": 0.0,
+        "std": 0.36034785657885676
+      },
+      "remaining_key_piece_20": {
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0,
+        "p25": 0.0,
+        "p75": 0.0,
+        "std": 0.0
+      },
+      "remaining_size_1_count": {
+        "max": 1.0,
+        "mean": 0.9003067484662577,
+        "min": 0.0,
+        "p25": 1.0,
+        "p75": 1.0,
+        "std": 0.2995905658267168
+      },
+      "remaining_size_2_count": {
+        "max": 1.0,
+        "mean": 0.9493865030674846,
+        "min": 0.0,
+        "p25": 1.0,
+        "p75": 1.0,
+        "std": 0.21920714144566003
+      },
+      "remaining_size_3_count": {
+        "max": 2.0,
+        "mean": 1.9570552147239264,
+        "min": 1.0,
+        "p25": 2.0,
+        "p75": 2.0,
+        "std": 0.20273265818231054
+      },
+      "remaining_size_4_count": {
+        "max": 6.0,
+        "mean": 5.521472392638037,
+        "min": 0.0,
+        "p25": 5.0,
+        "p75": 6.0,
+        "std": 0.9372157127271281
+      },
+      "remaining_size_5_count": {
+        "max": 9.0,
+        "mean": 4.113496932515337,
+        "min": 0.0,
+        "p25": 1.0,
+        "p75": 7.0,
+        "std": 2.9788624529833987
+      },
+      "remaining_squares": {
+        "max": 78.0,
+        "mean": 51.32361963190184,
+        "min": 14.0,
+        "p25": 38.0,
+        "p75": 68.0,
+        "std": 17.44767445688621
+      },
+      "utility_frontier_plus_mobility": {
+        "max": 509.0,
+        "mean": 213.33550613496934,
+        "min": 5.0,
+        "p25": 34.25,
+        "p75": 384.25,
+        "std": 180.11208625380422
+      }
+    },
+    "high_correlation_pairs": [
+      {
+        "correlation": 1.0,
+        "feature_a": "deadzone_count",
+        "feature_b": "deadzone_fraction"
+      },
+      {
+        "correlation": -1.0,
+        "feature_a": "pieces_used_count",
+        "feature_b": "pieces_remaining_count"
+      },
+      {
+        "correlation": 1.0,
+        "feature_a": "pieces_used_count",
+        "feature_b": "phase_piece_usage_ratio"
+      },
+      {
+        "correlation": -1.0,
+        "feature_a": "pieces_remaining_count",
+        "feature_b": "phase_piece_usage_ratio"
+      },
+      {
+        "correlation": 0.9999999999999998,
+        "feature_a": "phase_ply",
+        "feature_b": "phase_progress_placement_ratio"
+      },
+      {
+        "correlation": 0.9999999999999998,
+        "feature_a": "phase_turn_index",
+        "feature_b": "phase_progress_turn_ratio"
+      },
+      {
+        "correlation": -0.9999999999999994,
+        "feature_a": "remaining_squares",
+        "feature_b": "player_board_occupancy"
+      },
+      {
+        "correlation": 0.9998197736130989,
+        "feature_a": "mobility_total_cell_weighted",
+        "feature_b": "utility_frontier_plus_mobility"
+      },
+      {
+        "correlation": 0.9992170227783285,
+        "feature_a": "mobility_total_placements",
+        "feature_b": "utility_frontier_plus_mobility"
+      },
+      {
+        "correlation": 0.9990299870474144,
+        "feature_a": "mobility_total_placements",
+        "feature_b": "mobility_total_cell_weighted"
+      },
+      {
+        "correlation": 0.9988029106314913,
+        "feature_a": "phase_ply",
+        "feature_b": "phase_turn_index"
+      },
+      {
+        "correlation": 0.9988029106314913,
+        "feature_a": "phase_progress_turn_ratio",
+        "feature_b": "phase_progress_placement_ratio"
+      },
+      {
+        "correlation": 0.9988029106314908,
+        "feature_a": "phase_turn_index",
+        "feature_b": "phase_progress_placement_ratio"
+      },
+      {
+        "correlation": 0.9988029106314902,
+        "feature_a": "phase_ply",
+        "feature_b": "phase_progress_turn_ratio"
+      },
+      {
+        "correlation": 0.9973353992445155,
+        "feature_a": "phase_ply",
+        "feature_b": "phase_piece_usage_ratio"
+      },
+      {
+        "correlation": 0.9973353992445152,
+        "feature_a": "phase_piece_usage_ratio",
+        "feature_b": "phase_progress_placement_ratio"
+      },
+      {
+        "correlation": 0.9973353992445145,
+        "feature_a": "pieces_used_count",
+        "feature_b": "phase_ply"
+      },
+      {
+        "correlation": -0.9973353992445145,
+        "feature_a": "pieces_remaining_count",
+        "feature_b": "phase_ply"
+      },
+      {
+        "correlation": -0.9973353992445144,
+        "feature_a": "pieces_remaining_count",
+        "feature_b": "phase_progress_placement_ratio"
+      },
+      {
+        "correlation": 0.9973353992445143,
+        "feature_a": "pieces_used_count",
+        "feature_b": "phase_progress_placement_ratio"
+      },
+      {
+        "correlation": 0.9967709542898989,
+        "feature_a": "phase_board_occupancy",
+        "feature_b": "player_board_occupancy"
+      },
+      {
+        "correlation": -0.9967709542898985,
+        "feature_a": "remaining_squares",
+        "feature_b": "phase_board_occupancy"
+      },
+      {
+        "correlation": 0.9961965548271956,
+        "feature_a": "phase_ply",
+        "feature_b": "phase_board_occupancy"
+      },
+      {
+        "correlation": 0.9961965548271948,
+        "feature_a": "phase_board_occupancy",
+        "feature_b": "phase_progress_placement_ratio"
+      },
+      {
+        "correlation": 0.9961414996412412,
+        "feature_a": "pieces_used_count",
+        "feature_b": "phase_turn_index"
+      },
+      {
+        "correlation": -0.9961414996412407,
+        "feature_a": "pieces_remaining_count",
+        "feature_b": "phase_turn_index"
+      },
+      {
+        "correlation": 0.9961414996412405,
+        "feature_a": "phase_turn_index",
+        "feature_b": "phase_piece_usage_ratio"
+      },
+      {
+        "correlation": -0.9961414996412403,
+        "feature_a": "pieces_remaining_count",
+        "feature_b": "phase_progress_turn_ratio"
+      },
+      {
+        "correlation": 0.9961414996412402,
+        "feature_a": "pieces_used_count",
+        "feature_b": "phase_progress_turn_ratio"
+      },
+      {
+        "correlation": 0.9961414996412401,
+        "feature_a": "phase_piece_usage_ratio",
+        "feature_b": "phase_progress_turn_ratio"
+      },
+      {
+        "correlation": -0.9953127991215309,
+        "feature_a": "pieces_remaining_count",
+        "feature_b": "player_board_occupancy"
+      },
+      {
+        "correlation": 0.9953127991215308,
+        "feature_a": "pieces_used_count",
+        "feature_b": "player_board_occupancy"
+      },
+      {
+        "correlation": 0.9953127991215307,
+        "feature_a": "pieces_remaining_count",
+        "feature_b": "remaining_squares"
+      },
+      {
+        "correlation": -0.9953127991215304,
+        "feature_a": "pieces_used_count",
+        "feature_b": "remaining_squares"
+      },
+      {
+        "correlation": -0.9953127991215296,
+        "feature_a": "remaining_squares",
+        "feature_b": "phase_piece_usage_ratio"
+      },
+      {
+        "correlation": 0.9953127991215296,
+        "feature_a": "phase_piece_usage_ratio",
+        "feature_b": "player_board_occupancy"
+      },
+      {
+        "correlation": 0.9941942505340159,
+        "feature_a": "mobility_total_orientation_normalized",
+        "feature_b": "utility_frontier_plus_mobility"
+      },
+      {
+        "correlation": 0.993542088734591,
+        "feature_a": "pieces_used_count",
+        "feature_b": "phase_board_occupancy"
+      },
+      {
+        "correlation": -0.9935420887345909,
+        "feature_a": "pieces_remaining_count",
+        "feature_b": "phase_board_occupancy"
+      },
+      {
+        "correlation": 0.9935420887345905,
+        "feature_a": "phase_board_occupancy",
+        "feature_b": "phase_piece_usage_ratio"
+      },
+      {
+        "correlation": 0.9932359281663136,
+        "feature_a": "mobility_total_placements",
+        "feature_b": "mobility_total_orientation_normalized"
+      },
+      {
+        "correlation": 0.9929797906154133,
+        "feature_a": "phase_ply",
+        "feature_b": "player_board_occupancy"
+      },
+      {
+        "correlation": 0.9929797906154126,
+        "feature_a": "phase_progress_placement_ratio",
+        "feature_b": "player_board_occupancy"
+      },
+      {
+        "correlation": -0.9929797906154121,
+        "feature_a": "remaining_squares",
+        "feature_b": "phase_ply"
+      },
+      {
+        "correlation": -0.9929797906154109,
+        "feature_a": "remaining_squares",
+        "feature_b": "phase_progress_placement_ratio"
+      },
+      {
+        "correlation": 0.9924119236369007,
+        "feature_a": "mobility_total_orientation_normalized",
+        "feature_b": "mobility_bucket_4"
+      },
+      {
+        "correlation": 0.9921854309643856,
+        "feature_a": "mobility_total_orientation_normalized",
+        "feature_b": "mobility_total_cell_weighted"
+      },
+      {
+        "correlation": 0.9920201944409619,
+        "feature_a": "phase_board_occupancy",
+        "feature_b": "phase_progress_turn_ratio"
+      },
+      {
+        "correlation": 0.9920201944409609,
+        "feature_a": "phase_turn_index",
+        "feature_b": "phase_board_occupancy"
+      },
+      {
+        "correlation": 0.9888169158877674,
+        "feature_a": "phase_turn_index",
+        "feature_b": "player_board_occupancy"
+      },
+      {
+        "correlation": 0.988816915887767,
+        "feature_a": "phase_progress_turn_ratio",
+        "feature_b": "player_board_occupancy"
+      },
+      {
+        "correlation": -0.9888169158877668,
+        "feature_a": "remaining_squares",
+        "feature_b": "phase_progress_turn_ratio"
+      },
+      {
+        "correlation": -0.9888169158877665,
+        "feature_a": "remaining_squares",
+        "feature_b": "phase_turn_index"
+      },
+      {
+        "correlation": 0.9869569943000897,
+        "feature_a": "mobility_total_placements",
+        "feature_b": "mobility_bucket_4"
+      },
+      {
+        "correlation": 0.9841098909835261,
+        "feature_a": "mobility_bucket_4",
+        "feature_b": "utility_frontier_plus_mobility"
+      },
+      {
+        "correlation": 0.9815216665189354,
+        "feature_a": "mobility_total_cell_weighted",
+        "feature_b": "mobility_bucket_4"
+      },
+      {
+        "correlation": -0.9780111379017855,
+        "feature_a": "remaining_size_5_count",
+        "feature_b": "player_board_occupancy"
+      },
+      {
+        "correlation": 0.9780111379017842,
+        "feature_a": "remaining_squares",
+        "feature_b": "remaining_size_5_count"
+      },
+      {
+        "correlation": -0.9774639496512507,
+        "feature_a": "remaining_size_5_count",
+        "feature_b": "phase_board_occupancy"
+      },
+      {
+        "correlation": 0.9767876722993944,
+        "feature_a": "mobility_bucket_3",
+        "feature_b": "mobility_bucket_4"
+      },
+      {
+        "correlation": 0.9678795436066806,
+        "feature_a": "mobility_total_orientation_normalized",
+        "feature_b": "mobility_bucket_3"
+      },
+      {
+        "correlation": 0.9624769364735813,
+        "feature_a": "mobility_total_cell_weighted",
+        "feature_b": "mobility_bucket_5"
+      },
+      {
+        "correlation": -0.96007137140972,
+        "feature_a": "remaining_size_5_count",
+        "feature_b": "phase_progress_placement_ratio"
+      },
+      {
+        "correlation": -0.9600713714097199,
+        "feature_a": "remaining_size_5_count",
+        "feature_b": "phase_ply"
+      },
+      {
+        "correlation": -0.9585982708694192,
+        "feature_a": "pieces_used_count",
+        "feature_b": "remaining_size_5_count"
+      },
+      {
+        "correlation": 0.9585982708694191,
+        "feature_a": "pieces_remaining_count",
+        "feature_b": "remaining_size_5_count"
+      },
+      {
+        "correlation": -0.9585982708694185,
+        "feature_a": "remaining_size_5_count",
+        "feature_b": "phase_piece_usage_ratio"
+      },
+      {
+        "correlation": 0.9577813906337679,
+        "feature_a": "mobility_bucket_5",
+        "feature_b": "utility_frontier_plus_mobility"
+      },
+      {
+        "correlation": 0.9546078753779738,
+        "feature_a": "mobility_total_placements",
+        "feature_b": "mobility_bucket_5"
+      },
+      {
+        "correlation": -0.9510934599222071,
+        "feature_a": "remaining_size_5_count",
+        "feature_b": "phase_turn_index"
+      },
+      {
+        "correlation": -0.9510934599222061,
+        "feature_a": "remaining_size_5_count",
+        "feature_b": "phase_progress_turn_ratio"
+      }
+    ],
+    "winner_lead_by_checkpoint": {
+      "0": {
+        "gap": -28.523333333333312,
+        "non_winner_mean": 371.5683333333333,
+        "winner_mean": 343.045
+      },
+      "1": {
+        "gap": -10.443333333333328,
+        "non_winner_mean": 461.92333333333335,
+        "winner_mean": 451.48
+      },
+      "2": {
+        "gap": 74.07,
+        "non_winner_mean": 338.17,
+        "winner_mean": 412.24
+      },
+      "3": {
+        "gap": 11.313333333333361,
+        "non_winner_mean": 128.29666666666665,
+        "winner_mean": 139.61
+      },
+      "4": {
+        "gap": 6.4666666666666615,
+        "non_winner_mean": 55.04333333333334,
+        "winner_mean": 61.51
+      },
+      "5": {
+        "gap": 3.650000000000002,
+        "non_winner_mean": 16.36,
+        "winner_mean": 20.01
+      },
+      "6": {
+        "gap": 8.814102564102564,
+        "non_winner_mean": 8.282051282051283,
+        "winner_mean": 17.096153846153847
+      }
+    }
+  },
+  "snapshots": {
+    "enabled": true,
+    "expected_rows_max": 800,
+    "parquet_error": null,
+    "parquet_written": true,
+    "path_csv": "arena_runs/20260325_182815_f28a2209/snapshots.csv",
+    "path_parquet": "arena_runs/20260325_182815_f28a2209/snapshots.parquet",
+    "rows": 652
+  },
+  "time_sim_efficiency": {
+    "baseline_d0_1000iter": {
+      "avg_budget_utilization": 35.03828806075615,
+      "avg_simulations_per_move": 1000.0,
+      "avg_time_ms_per_move": 3503.828806075615,
+      "configured_thinking_time_ms": 100.0,
+      "move_time_ms_max": 8071.492910385132,
+      "move_time_ms_p50": 3071.943759918213,
+      "move_time_ms_p95": 6657.241106033325,
+      "moves": 351.0,
+      "score_per_second": 20.240714922208873,
+      "simulations_per_second": 285.40207166115164,
+      "total_simulations": 351000.0,
+      "total_time_ms": 1229843.910932541,
+      "win_rate_per_second": 0.011416082866446065
+    },
+    "random_d5_25iter": {
+      "avg_budget_utilization": 4.325552139868283,
+      "avg_simulations_per_move": 25.0,
+      "avg_time_ms_per_move": 432.55521398682833,
+      "configured_thinking_time_ms": 100.0,
+      "move_time_ms_max": 1108.903169631958,
+      "move_time_ms_p50": 401.5519618988037,
+      "move_time_ms_p95": 817.8899407386776,
+      "moves": 358.0,
+      "score_per_second": 166.91510740221605,
+      "simulations_per_second": 57.79608982071193,
+      "total_simulations": 8950.0,
+      "total_time_ms": 154854.76660728455,
+      "win_rate_per_second": 0.5548424622788345
+    },
+    "random_d5_25iter_alpha0.25": {
+      "avg_budget_utilization": 4.4085277612658516,
+      "avg_simulations_per_move": 25.0,
+      "avg_time_ms_per_move": 440.8527761265851,
+      "configured_thinking_time_ms": 100.0,
+      "move_time_ms_max": 1138.5505199432373,
+      "move_time_ms_p50": 421.19836807250977,
+      "move_time_ms_p95": 810.2672100067139,
+      "moves": 345.0,
+      "score_per_second": 160.7792983017254,
+      "simulations_per_second": 56.70827394953633,
+      "total_simulations": 8625.0,
+      "total_time_ms": 152094.20776367188,
+      "win_rate_per_second": 0.8165991448733232
+    },
+    "two_ply_all_d8_25iter": {
+      "avg_budget_utilization": 62.94832693937734,
+      "avg_simulations_per_move": 25.0,
+      "avg_time_ms_per_move": 6294.832693937734,
+      "configured_thinking_time_ms": 100.0,
+      "move_time_ms_max": 16507.6904296875,
+      "move_time_ms_p50": 4351.1375188827515,
+      "move_time_ms_p95": 15448.336911201477,
+      "moves": 362.0,
+      "score_per_second": 11.571395705266145,
+      "simulations_per_second": 3.9715114309672375,
+      "total_simulations": 9050.0,
+      "total_time_ms": 2278729.4352054596,
+      "win_rate_per_second": 0.05718976460592822
+    }
+  },
+  "trueskill_ratings": {
+    "converged": false,
+    "leaderboard": [
+      {
+        "agent_id": "baseline_d0_1000iter",
+        "conservative": 8.921348554458977,
+        "games_played": 25,
+        "mu": 31.218116700139813,
+        "rank": 1,
+        "sigma": 7.432256048560279
+      },
+      {
+        "agent_id": "random_d5_25iter_alpha0.25",
+        "conservative": 4.24797028963588,
+        "games_played": 25,
+        "mu": 26.891962767565612,
+        "rank": 2,
+        "sigma": 7.547997492643244
+      },
+      {
+        "agent_id": "random_d5_25iter",
+        "conservative": 2.113329792251239,
+        "games_played": 25,
+        "mu": 24.63094388593659,
+        "rank": 3,
+        "sigma": 7.505871364561783
+      },
+      {
+        "agent_id": "two_ply_all_d8_25iter",
+        "conservative": -5.836515235438625,
+        "games_played": 25,
+        "mu": 16.982816394961922,
+        "rank": 4,
+        "sigma": 7.606443876800182
+      }
+    ]
+  },
+  "win_stats": {
+    "baseline_d0_1000iter": {
+      "games_played": 25.0,
+      "outright_wins": 1.0,
+      "shared_wins": 0.0,
+      "win_points": 1.0,
+      "win_rate": 0.04
+    },
+    "random_d5_25iter": {
+      "games_played": 25.0,
+      "outright_wins": 6.0,
+      "shared_wins": 0.0,
+      "win_points": 6.0,
+      "win_rate": 0.24
+    },
+    "random_d5_25iter_alpha0.25": {
+      "games_played": 25.0,
+      "outright_wins": 9.0,
+      "shared_wins": 0.0,
+      "win_points": 9.0,
+      "win_rate": 0.36
+    },
+    "two_ply_all_d8_25iter": {
+      "games_played": 25.0,
+      "outright_wins": 9.0,
+      "shared_wins": 0.0,
+      "win_points": 9.0,
+      "win_rate": 0.36
+    }
+  },
+  "wins_by_seat": {
+    "baseline_d0_1000iter": {
+      "0": {
+        "games": 7,
+        "win_points": 0.0,
+        "win_rate": 0.0
+      },
+      "1": {
+        "games": 6,
+        "win_points": 1.0,
+        "win_rate": 0.16666666666666666
+      },
+      "2": {
+        "games": 6,
+        "win_points": 0.0,
+        "win_rate": 0.0
+      },
+      "3": {
+        "games": 6,
+        "win_points": 0.0,
+        "win_rate": 0.0
+      }
+    },
+    "random_d5_25iter": {
+      "0": {
+        "games": 6,
+        "win_points": 4.0,
+        "win_rate": 0.6666666666666666
+      },
+      "1": {
+        "games": 7,
+        "win_points": 0.0,
+        "win_rate": 0.0
+      },
+      "2": {
+        "games": 6,
+        "win_points": 2.0,
+        "win_rate": 0.3333333333333333
+      },
+      "3": {
+        "games": 6,
+        "win_points": 0.0,
+        "win_rate": 0.0
+      }
+    },
+    "random_d5_25iter_alpha0.25": {
+      "0": {
+        "games": 6,
+        "win_points": 0.0,
+        "win_rate": 0.0
+      },
+      "1": {
+        "games": 6,
+        "win_points": 2.0,
+        "win_rate": 0.3333333333333333
+      },
+      "2": {
+        "games": 7,
+        "win_points": 7.0,
+        "win_rate": 1.0
+      },
+      "3": {
+        "games": 6,
+        "win_points": 0.0,
+        "win_rate": 0.0
+      }
+    },
+    "two_ply_all_d8_25iter": {
+      "0": {
+        "games": 6,
+        "win_points": 3.0,
+        "win_rate": 0.5
+      },
+      "1": {
+        "games": 6,
+        "win_points": 6.0,
+        "win_rate": 1.0
+      },
+      "2": {
+        "games": 6,
+        "win_points": 0.0,
+        "win_rate": 0.0
+      },
+      "3": {
+        "games": 7,
+        "win_points": 0.0,
+        "win_rate": 0.0
+      }
+    }
+  }
+}
