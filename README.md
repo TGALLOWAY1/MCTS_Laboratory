@@ -84,7 +84,7 @@ Nine layers of systematic MCTS improvement, each with arena experiments and writ
 | **Layer 1** | Baseline characterization | Profiling, TrueSkill evaluation, rollout cost analysis |
 | **Layer 2** | Evaluation model | Learned state evaluator with regression on self-play data |
 | **Layer 3** | Action reduction | Move filtering and pruning to reduce branching factor |
-| **Layer 4** | Simulation strategy | Heuristic/two-ply rollout policies, rollout cutoff depth, minimax backups |
+| **Layer 4** | Simulation strategy | Rollout cutoff depth, random/two-ply/heuristic policies, minimax backups. **Finding:** random rollout + cutoff depth 5 + minimax alpha 0.25 is optimal; default heuristic rollout is the *worst* policy; cutoff_5 at 25 iter beats cutoff_0 at 1000 iter (rollout quality > iteration quantity). See [`archive/reports/layer4_arena_results.md`](archive/reports/layer4_arena_results.md). |
 | **Layer 5** | History heuristics & RAVE | Rapid Action Value Estimation, N-gram Selection Technique |
 | **Layer 6** | Evaluation refinement | Phase-dependent weights calibrated from 13K+ self-play states. **Finding:** phase-dependent eval (0% win rate) and RAVE variant both decisively lost to calibrated single-weight and default agents in 25-game arena — inverted early-game weight signs, missing `center_proximity`, and hard phase-transition discontinuities made the tree statistics noisy and unreliable. See [`archive/reports/layer6_phase_arena_results.md`](archive/reports/layer6_phase_arena_results.md). |
 | **Layer 7** | Opponent modeling | Asymmetric rollout policies, alliance detection, king-maker awareness |
@@ -143,8 +143,9 @@ MCTS_Laboratory/
 
 ### MCTS Agent (`mcts/`)
 - UCB1 selection with RAVE blending and progressive history
-- Configurable rollout policies: heuristic, random, two-ply
+- Configurable rollout policies: random (recommended), heuristic, two-ply
 - Phase-dependent state evaluation with calibrated weights
+- Minimax backup blending (alpha=0.25 recommended with rollout depth ≥ 5)
 - Opponent modeling: asymmetric rollouts, alliance/targeting detection, king-maker awareness
 - Parallelization: root-parallel (multiprocessing) or tree-parallel (virtual loss)
 - Adaptive meta-optimization: branching-factor-driven C and depth, sufficiency threshold, loss avoidance
@@ -166,17 +167,21 @@ MCTS_Laboratory/
 # Standard arena run
 python scripts/arena.py --config scripts/arena_config.json
 
-# Rollout cutoff comparison (depth 0 / 5 / 10)
-python scripts/arena.py --config scripts/arena_config_extended_rollout.json
+# Layer 4 experiments (simulation strategy)
+python scripts/arena.py --config scripts/arena_config_layer4_cutoff.json --verbose
+python scripts/arena.py --config scripts/arena_config_layer4_two_ply.json --verbose
+python scripts/arena.py --config scripts/arena_config_layer4_minimax.json --verbose
+python scripts/arena.py --config scripts/arena_config_layer4_combined.json --verbose
 
-# Layer 4 cutoff sweep (depth 0 / 5 / 10, no full-rollout baseline)
-python scripts/arena.py --config scripts/arena_config_layer4_cutoff.json
+# Layer 6 experiments (evaluation weights)
+python scripts/arena.py --config scripts/arena_config_layer6_weights.json --verbose
+python scripts/arena.py --config scripts/arena_config_layer6_phase.json --verbose
 
-# Smoke test
-python scripts/arena.py --config scripts/arena_config_extended_rollout.json --num-games 4
+# Smoke test (reduced game count)
+python scripts/arena.py --config scripts/arena_config_layer4_cutoff.json --num-games 4 --verbose
 ```
 
-> **Note on rollout depth**: The default 50-move full rollout (`max_rollout_moves: 50`) was found to exceed 2 hours per game, making iterative experimentation impractical. Arena configs now use `rollout_cutoff_depth` (0, 5, or 10) instead, which cuts rollout short and applies the static evaluator. This gives 3-20x speedup while preserving meaningful rollout signal at depths 5-10.
+> **Note on rollout depth**: The default 50-move full rollout (`max_rollout_moves: 50`) was found to exceed 2 hours per game. Arena configs now use `rollout_cutoff_depth` (0, 5, or 10) instead. Layer 4 experiments showed cutoff depth 5 is optimal — deeper rollouts have diminishing returns, and depth 0 (pure static eval) underperforms even with 40× more MCTS iterations.
 
 ## Testing
 
