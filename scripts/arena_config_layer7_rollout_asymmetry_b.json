@@ -1,0 +1,104 @@
+{
+  "agents": [
+    {
+      "name": "L6_baseline_symmetric",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 0.25,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
+        "state_eval_weights": {
+          "squares_placed": 0.029522477044715226,
+          "remaining_piece_area": -0.029522477044715147,
+          "accessible_corners": 0.24310302640254203,
+          "reachable_empty_squares": 0.08109693693246343,
+          "largest_remaining_piece_size": -0.23120837257261234,
+          "opponent_avg_mobility": -0.3,
+          "center_proximity": 0.0,
+          "territory_enclosure_area": 0.0
+        },
+        "opponent_rollout_policy": "same"
+      }
+    },
+    {
+      "name": "L7_self_heuristic_opp_random",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 0.25,
+        "rollout_policy": "heuristic",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
+        "state_eval_weights": {
+          "squares_placed": 0.029522477044715226,
+          "remaining_piece_area": -0.029522477044715147,
+          "accessible_corners": 0.24310302640254203,
+          "reachable_empty_squares": 0.08109693693246343,
+          "largest_remaining_piece_size": -0.23120837257261234,
+          "opponent_avg_mobility": -0.3,
+          "center_proximity": 0.0,
+          "territory_enclosure_area": 0.0
+        },
+        "opponent_rollout_policy": "random"
+      }
+    },
+    {
+      "name": "L7_self_random_opp_heuristic",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 0.25,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
+        "state_eval_weights": {
+          "squares_placed": 0.029522477044715226,
+          "remaining_piece_area": -0.029522477044715147,
+          "accessible_corners": 0.24310302640254203,
+          "reachable_empty_squares": 0.08109693693246343,
+          "largest_remaining_piece_size": -0.23120837257261234,
+          "opponent_avg_mobility": -0.3,
+          "center_proximity": 0.0,
+          "territory_enclosure_area": 0.0
+        },
+        "opponent_rollout_policy": "heuristic"
+      }
+    },
+    {
+      "name": "L6_baseline_no_asymmetry",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 0.25,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
+        "state_eval_weights": {
+          "squares_placed": 0.029522477044715226,
+          "remaining_piece_area": -0.029522477044715147,
+          "accessible_corners": 0.24310302640254203,
+          "reachable_empty_squares": 0.08109693693246343,
+          "largest_remaining_piece_size": -0.23120837257261234,
+          "opponent_avg_mobility": -0.3,
+          "center_proximity": 0.0,
+          "territory_enclosure_area": 0.0
+        }
+      }
+    }
+  ],
+  "num_games": 25,
+  "seed": 20260325,
+  "seat_policy": "round_robin",
+  "output_root": "arena_runs",
+  "max_turns": 2500,
+  "snapshots": {
+    "enabled": false,
+    "checkpoints": []
+  }
+}
