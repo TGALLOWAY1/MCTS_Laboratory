@@ -1,45 +1,45 @@
 {
   "agents": [
     {
-      "name": "mcts_alpha_0.0",
+      "name": "alpha_0.0_d0_1000iter",
       "type": "mcts",
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 1.0,
+        "iterations_per_ms": 10.0,
         "rollout_cutoff_depth": 0,
         "minimax_backup_alpha": 0.0
       }
     },
     {
-      "name": "mcts_alpha_0.1",
+      "name": "alpha_0.1_d0_1000iter",
       "type": "mcts",
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 1.0,
+        "iterations_per_ms": 10.0,
         "rollout_cutoff_depth": 0,
         "minimax_backup_alpha": 0.1
       }
     },
     {
-      "name": "mcts_alpha_0.25",
+      "name": "alpha_0.25_d0_1000iter",
       "type": "mcts",
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 1.0,
+        "iterations_per_ms": 10.0,
         "rollout_cutoff_depth": 0,
         "minimax_backup_alpha": 0.25
       }
     },
     {
-      "name": "mcts_alpha_0.5",
+      "name": "alpha_0.5_d0_1000iter",
       "type": "mcts",
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 1.0,
+        "iterations_per_ms": 10.0,
         "rollout_cutoff_depth": 0,
         "minimax_backup_alpha": 0.5
       }
@@ -55,5 +55,5 @@
     "strategy": "fixed_ply",
     "checkpoints": [8, 16, 24, 32, 40, 48, 56, 64]
   },
-  "notes": "Layer 4.3: Implicit minimax backup alpha sweep with cutoff_depth=0 (pure static eval) and 100 iterations — pure averaging (0.0) vs blended at 0.1, 0.25, 0.5."
+  "notes": "Layer 4.3: Implicit minimax backup alpha sweep at cutoff_depth=0 (pure static eval), 1000 iterations. Tests whether minimax tree backups improve over pure averaging."
 }
