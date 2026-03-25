@@ -6,7 +6,10 @@
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
+        "iterations_per_ms": 0.25,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
         "rave_enabled": true,
         "rave_k": 100
       }
@@ -17,7 +20,10 @@
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
+        "iterations_per_ms": 0.25,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
         "rave_enabled": true,
         "rave_k": 500
       }
@@ -28,7 +34,10 @@
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
+        "iterations_per_ms": 0.25,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
         "rave_enabled": true,
         "rave_k": 1000
       }
@@ -39,7 +48,10 @@
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
+        "iterations_per_ms": 0.25,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
         "rave_enabled": true,
         "rave_k": 5000
       }
@@ -55,5 +67,5 @@
     "strategy": "fixed_ply",
     "checkpoints": [8, 16, 24, 32, 40, 48, 56, 64]
   },
-  "notes": "Layer 5.1: RAVE equivalence constant k sweep — tests k=100, 500, 1000, 5000 to determine spatial grounding reliability in Blokus"
+  "notes": "Layer 5.1: RAVE equivalence constant k sweep — tests k=100, 500, 1000, 5000 on top of best L4 settings (random rollout, cutoff_depth=5, minimax_alpha=0.25)"
 }

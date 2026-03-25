@@ -6,7 +6,10 @@
       "thinking_time_ms": 50,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
+        "iterations_per_ms": 0.25,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
         "progressive_history_enabled": false,
         "rave_enabled": false
       }
@@ -17,7 +20,10 @@
       "thinking_time_ms": 50,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
+        "iterations_per_ms": 0.25,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
         "rave_enabled": true,
         "rave_k": 1000
       }
@@ -28,7 +34,10 @@
       "thinking_time_ms": 200,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
+        "iterations_per_ms": 0.25,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
         "progressive_history_enabled": false,
         "rave_enabled": false
       }
@@ -39,7 +48,10 @@
       "thinking_time_ms": 200,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
+        "iterations_per_ms": 0.25,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
         "rave_enabled": true,
         "rave_k": 1000
       }
@@ -55,5 +67,5 @@
     "strategy": "fixed_ply",
     "checkpoints": [8, 16, 24, 32, 40, 48, 56, 64]
   },
-  "notes": "Layer 5 convergence validation: baseline vs RAVE at 50ms and 200ms budgets — tests whether RAVE accelerates Q-value convergence at lower iteration counts"
+  "notes": "Layer 5.3: Convergence validation — baseline vs RAVE at 50ms (12 iter) and 200ms (50 iter) on best L4 settings. Tests whether RAVE accelerates Q-value convergence at low iteration counts."
 }

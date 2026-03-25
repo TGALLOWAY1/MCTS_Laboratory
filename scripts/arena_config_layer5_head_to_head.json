@@ -6,7 +6,10 @@
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
+        "iterations_per_ms": 0.25,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
         "progressive_history_enabled": false,
         "rave_enabled": false
       }
@@ -17,7 +20,10 @@
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
+        "iterations_per_ms": 0.25,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
         "progressive_history_enabled": true,
         "progressive_history_weight": 1.0,
         "rave_enabled": false
@@ -29,7 +35,10 @@
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
+        "iterations_per_ms": 0.25,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
         "progressive_history_enabled": false,
         "rave_enabled": true,
         "rave_k": 1000
@@ -41,7 +50,10 @@
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
+        "iterations_per_ms": 0.25,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
         "progressive_history_enabled": true,
         "progressive_history_weight": 1.0,
         "rave_enabled": true,
@@ -59,5 +71,5 @@
     "strategy": "fixed_ply",
     "checkpoints": [8, 16, 24, 32, 40, 48, 56, 64]
   },
-  "notes": "Layer 5.1: Head-to-head — Baseline vs Progressive History vs RAVE vs PH+RAVE combined"
+  "notes": "Layer 5.2: Head-to-head — Baseline vs Progressive History vs RAVE vs PH+RAVE, all on best L4 settings (random rollout, cutoff_depth=5, minimax_alpha=0.25)"
 }
