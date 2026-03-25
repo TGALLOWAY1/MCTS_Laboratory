@@ -132,6 +132,7 @@
         "deterministic_time_budget": true,
         "iterations_per_ms": 10.0,
         "rollout_policy": "heuristic",
+        "rollout_cutoff_depth": 8,
         "state_eval_phase_weights": {
           "early": {
             "squares_placed": -0.176,
