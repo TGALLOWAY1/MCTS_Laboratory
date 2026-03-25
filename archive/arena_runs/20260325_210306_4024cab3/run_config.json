@@ -1,0 +1,82 @@
+{
+  "agents": [
+    {
+      "name": "mcts_baseline_50ms",
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 0.25,
+        "minimax_backup_alpha": 0.25,
+        "progressive_history_enabled": false,
+        "rave_enabled": false,
+        "rollout_cutoff_depth": 5,
+        "rollout_policy": "random"
+      },
+      "thinking_time_ms": 50,
+      "type": "mcts"
+    },
+    {
+      "name": "mcts_rave_50ms",
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 0.25,
+        "minimax_backup_alpha": 0.25,
+        "rave_enabled": true,
+        "rave_k": 1000,
+        "rollout_cutoff_depth": 5,
+        "rollout_policy": "random"
+      },
+      "thinking_time_ms": 50,
+      "type": "mcts"
+    },
+    {
+      "name": "mcts_baseline_200ms",
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 0.25,
+        "minimax_backup_alpha": 0.25,
+        "progressive_history_enabled": false,
+        "rave_enabled": false,
+        "rollout_cutoff_depth": 5,
+        "rollout_policy": "random"
+      },
+      "thinking_time_ms": 200,
+      "type": "mcts"
+    },
+    {
+      "name": "mcts_rave_200ms",
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 0.25,
+        "minimax_backup_alpha": 0.25,
+        "rave_enabled": true,
+        "rave_k": 1000,
+        "rollout_cutoff_depth": 5,
+        "rollout_policy": "random"
+      },
+      "thinking_time_ms": 200,
+      "type": "mcts"
+    }
+  ],
+  "created_at": "2026-03-25T21:03:06",
+  "max_turns": 2500,
+  "notes": "Layer 5.3: Convergence validation \u2014 baseline vs RAVE at 50ms (12 iter) and 200ms (50 iter) on best L4 settings. Tests whether RAVE accelerates Q-value convergence at low iteration counts.",
+  "num_games": 25,
+  "output_root": "arena_runs",
+  "run_id": "20260325_210306_4024cab3",
+  "seat_policy": "round_robin",
+  "seed": 20260323,
+  "snapshots": {
+    "checkpoints": [
+      8,
+      16,
+      24,
+      32,
+      40,
+      48,
+      56,
+      64
+    ],
+    "enabled": true,
+    "strategy": "fixed_ply"
+  }
+}
