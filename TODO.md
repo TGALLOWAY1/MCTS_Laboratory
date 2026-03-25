@@ -9,7 +9,7 @@ Aggregated from Layers 0–9 PR reports. Last updated: 2026-03-25.
 | L0 | Measurement infrastructure (profiler, TrueSkill, tournament runner) | N/A (foundation) |
 | L1 | Baseline characterization (571 self-play + 119 heuristic games) | **Invalid** — used `gameplay_fast_mcts` (no real rollout), not full MCTS. Needs re-run. |
 | L2 | Learned evaluation model (GBT on 11,604 snapshots) | Done — zero benefit, inference cost (~26ms) eats 200ms budget |
-| L3 | Action reduction (progressive widening + progressive history) | 8-game smoke test only — +19.2 avg score, needs full validation |
+| L3 | Action reduction (progressive widening + progressive history) | **Done** — PW wins 64%, mean score 92.4 vs 76 baseline. PH alone = no benefit. |
 | L4 | Simulation strategy (two-ply, cutoff, minimax backups) | **Done** — cutoff_5 + random rollout + alpha=0.25 is best |
 | L5 | RAVE & NST history heuristics | **None** |
 | L6 | Evaluation function refinement (feature analysis, calibrated weights) | **Done** — calibrated weights help, phase weights hurt |
@@ -53,11 +53,13 @@ These affect all subsequent experiments — fix before running arena benchmarks.
 
 All configs exist in `scripts/` and are verified working.
 
-### Layer 3 — Full validation (8-game smoke test is not enough)
-- [ ] Run full L3 validation tournament
-  ```bash
-  python3 scripts/arena.py --config scripts/arena_config_layer3.json --verbose
-  ```
+### Layer 3 — Full validation ← **DONE**
+- [x] L3 full validation — **DONE** (run `20260325_201856_32cf0875`)
+  PW wins 64% (16/25), TrueSkill #1 (mu=47.5). PW+PH wins 32%, TrueSkill #2.
+  PH alone = 0% wins, statistically tied with baseline.
+  PW beats PH 25-0 pairwise. PW beats PW+PH 17-8.
+  **Best L3 settings**: `progressive_widening_enabled: true`, `pw_c: 2.0`, `pw_alpha: 0.5`.
+  Progressive history should NOT be used (adds overhead, no benefit).
 
 ### Layer 4 — Simulation strategy ← **DONE**
 - [x] L4 cutoff depth sweep — **DONE** (run `20260325_164035_0a7ca009`)
