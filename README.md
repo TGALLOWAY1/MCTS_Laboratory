@@ -89,7 +89,7 @@ Nine layers of systematic MCTS improvement, each with arena experiments and writ
 | **Layer 6** | Evaluation refinement | Phase-dependent weights calibrated from 13K+ self-play states. **Finding:** phase-dependent eval (0% win rate) and RAVE variant both decisively lost to calibrated single-weight and default agents in 25-game arena — inverted early-game weight signs, missing `center_proximity`, and hard phase-transition discontinuities made the tree statistics noisy and unreliable. See [`archive/reports/layer6_phase_arena_results.md`](archive/reports/layer6_phase_arena_results.md). |
 | **Layer 7** | Opponent modeling | Asymmetric rollout policies, alliance detection, king-maker awareness. **Status: needs re-implementation.** Initial arena testing showed zero effect — all agents produced identical play. Investigation revealed: activation thresholds too strict (alliance needs 3+ moves, kingmaker needs 55% occupancy), defensive weight shift is dead code (never called), and opponent rollout differentiation too weak at low iteration counts. The Blokus research literature models all opponents as a single combined adversary for alliance/kingmaker triggers; current implementation tracks opponents individually with overly conservative thresholds. Requires debugging before re-testing. |
 | **Layer 8** | Parallelization | Root-parallel multiprocessing, tree-parallel virtual loss. **Finding:** Root parallelization is the clear winner — root_2w wins 46% of games (TrueSkill #1), root_4w wins 40% (#2), while baseline_1w and tree_2w each win <10%. Tree parallelization is *slower* than single-threaded (GIL contention) and provides zero strength benefit. Throughput scales near-linearly: 1.84x at 2 workers, 3.13x at 4 workers on 4 cores; 8 workers oversubscribes. **Best setting:** `num_workers: 2, parallel_strategy: "root"`. |
-| **Layer 9** | Meta-optimization | Adaptive exploration/depth, UCT sufficiency threshold, loss avoidance |
+| **Layer 9** | Meta-optimization | Adaptive exploration/depth, UCT sufficiency threshold, loss avoidance. **Finding:** Adaptive rollout depth is the only beneficial mechanism -- wins 36% (TrueSkill #1) and is 1.64x faster than baseline by allocating shallow rollouts to high-BF early game and deep rollouts to low-BF late game. Adaptive exploration constant is harmful (8% wins) because it over-explores on top of RAVE. Combined "full" agent loses to baseline. See [`archive/reports/layer9_arena_results.md`](archive/reports/layer9_arena_results.md). |
 
 All layer reports are preserved in [`archive/reports/`](archive/reports/).
 
@@ -149,7 +149,7 @@ MCTS_Laboratory/
 - RAVE blending (k=1000 recommended; provides 4x convergence speedup over vanilla MCTS)
 - Opponent modeling: asymmetric rollouts, alliance/targeting detection, king-maker awareness
 - Parallelization: root-parallel (multiprocessing) or tree-parallel (virtual loss)
-- Adaptive meta-optimization: branching-factor-driven C and depth, sufficiency threshold, loss avoidance
+- Adaptive meta-optimization: branching-factor-adaptive rollout depth (1.64x speedup, recommended), sufficiency threshold, loss avoidance
 
 ### Arena System (`scripts/arena.py`)
 - Round-robin tournaments with deterministic seeding
@@ -182,6 +182,9 @@ python scripts/arena.py --config scripts/arena_config_layer6_phase.json --verbos
 python scripts/arena.py --config scripts/arena_config_layer5_rave_k_sweep.json --verbose
 python scripts/arena.py --config scripts/arena_config_layer5_head_to_head.json --verbose
 python scripts/arena.py --config scripts/arena_config_layer5_convergence.json --verbose
+
+# Layer 9 experiments (meta-optimization)
+python scripts/arena.py --config scripts/arena_config_layer9_adaptive.json --verbose
 
 # Smoke test (reduced game count)
 python scripts/arena.py --config scripts/arena_config_layer4_cutoff.json --num-games 4 --verbose
