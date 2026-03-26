@@ -1,60 +1,113 @@
 {
   "agents": [
     {
-      "name": "mcts_baseline",
+      "name": "L9_baseline",
       "type": "mcts",
-      "thinking_time_ms": 100,
+      "thinking_time_ms": 200,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
+        "iterations_per_ms": 0.5,
         "exploration_constant": 1.414,
-        "rollout_cutoff_depth": 20,
-        "heuristic_move_ordering": true
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
+        "rave_enabled": true,
+        "rave_k": 1000,
+        "state_eval_weights": {
+          "squares_placed": 0.0295,
+          "remaining_piece_area": -0.0295,
+          "accessible_corners": 0.243,
+          "reachable_empty_squares": 0.081,
+          "largest_remaining_piece_size": -0.231,
+          "opponent_avg_mobility": -0.3,
+          "center_proximity": 0.0,
+          "territory_enclosure_area": 0.0
+        }
       }
     },
     {
-      "name": "mcts_adaptive_c",
+      "name": "L9_adaptive_c",
       "type": "mcts",
-      "thinking_time_ms": 100,
+      "thinking_time_ms": 200,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
+        "iterations_per_ms": 0.5,
         "exploration_constant": 1.414,
-        "rollout_cutoff_depth": 20,
-        "heuristic_move_ordering": true,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
+        "rave_enabled": true,
+        "rave_k": 1000,
+        "state_eval_weights": {
+          "squares_placed": 0.0295,
+          "remaining_piece_area": -0.0295,
+          "accessible_corners": 0.243,
+          "reachable_empty_squares": 0.081,
+          "largest_remaining_piece_size": -0.231,
+          "opponent_avg_mobility": -0.3,
+          "center_proximity": 0.0,
+          "territory_enclosure_area": 0.0
+        },
         "adaptive_exploration_enabled": true,
         "adaptive_exploration_base": 1.414,
         "adaptive_exploration_avg_bf": 80.0
       }
     },
     {
-      "name": "mcts_adaptive_depth",
+      "name": "L9_adaptive_depth",
       "type": "mcts",
-      "thinking_time_ms": 100,
+      "thinking_time_ms": 200,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
+        "iterations_per_ms": 0.5,
         "exploration_constant": 1.414,
-        "heuristic_move_ordering": true,
+        "rollout_policy": "random",
+        "minimax_backup_alpha": 0.25,
+        "rave_enabled": true,
+        "rave_k": 1000,
+        "state_eval_weights": {
+          "squares_placed": 0.0295,
+          "remaining_piece_area": -0.0295,
+          "accessible_corners": 0.243,
+          "reachable_empty_squares": 0.081,
+          "largest_remaining_piece_size": -0.231,
+          "opponent_avg_mobility": -0.3,
+          "center_proximity": 0.0,
+          "territory_enclosure_area": 0.0
+        },
         "adaptive_rollout_depth_enabled": true,
-        "adaptive_rollout_depth_base": 20,
+        "adaptive_rollout_depth_base": 5,
         "adaptive_rollout_depth_avg_bf": 80.0
       }
     },
     {
-      "name": "mcts_adaptive_full",
+      "name": "L9_full",
       "type": "mcts",
-      "thinking_time_ms": 100,
+      "thinking_time_ms": 200,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
+        "iterations_per_ms": 0.5,
         "exploration_constant": 1.414,
-        "heuristic_move_ordering": true,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
+        "rave_enabled": true,
+        "rave_k": 1000,
+        "state_eval_weights": {
+          "squares_placed": 0.0295,
+          "remaining_piece_area": -0.0295,
+          "accessible_corners": 0.243,
+          "reachable_empty_squares": 0.081,
+          "largest_remaining_piece_size": -0.231,
+          "opponent_avg_mobility": -0.3,
+          "center_proximity": 0.0,
+          "territory_enclosure_area": 0.0
+        },
         "adaptive_exploration_enabled": true,
         "adaptive_exploration_base": 1.414,
         "adaptive_exploration_avg_bf": 80.0,
         "adaptive_rollout_depth_enabled": true,
-        "adaptive_rollout_depth_base": 20,
+        "adaptive_rollout_depth_base": 5,
         "adaptive_rollout_depth_avg_bf": 80.0,
         "sufficiency_threshold_enabled": true,
         "loss_avoidance_enabled": true,
@@ -62,10 +115,14 @@
       }
     }
   ],
-  "num_games": 100,
+  "num_games": 25,
   "seed": 20260323,
   "seat_policy": "round_robin",
   "output_root": "arena_runs",
   "max_turns": 2500,
-  "notes": "Layer 9: Meta-optimization — adaptive C, adaptive rollout depth, sufficiency threshold, and loss avoidance vs baseline"
+  "snapshots": {
+    "enabled": false,
+    "checkpoints": []
+  },
+  "notes": "Layer 9: Meta-optimization — adaptive C, adaptive rollout depth, sufficiency threshold + loss avoidance vs baseline. Uses best L4-L6 settings (random rollout, cutoff 5, minimax alpha 0.25, RAVE k=1000, calibrated weights). 100 iterations per move (0.5 iter/ms × 200ms)."
 }
