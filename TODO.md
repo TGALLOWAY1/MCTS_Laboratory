@@ -13,7 +13,7 @@ Aggregated from Layers 0–9 PR reports. Last updated: 2026-03-25.
 | L4 | Simulation strategy (two-ply, cutoff, minimax backups) | **Done** — cutoff_5 + random rollout + alpha=0.25 is best |
 | L5 | RAVE & NST history heuristics | **Done** — RAVE k=1000 wins, PH hurts with RAVE, 4x convergence speedup |
 | L6 | Evaluation function refinement (feature analysis, calibrated weights) | **Done** — calibrated weights help, phase weights hurt |
-| L7 | Opponent modeling (blocking tracker, alliance, king-maker) | **None** |
+| L7 | Opponent modeling (blocking tracker, alliance, king-maker) | **Done** — zero effect, all features inactive or dead code |
 | L8 | Parallelization (root + tree parallelization) | **None** |
 | L9 | Meta-optimization (adaptive C, depth, sufficiency, loss avoidance) | **None** |
 | L10 | Throughput calibration, progress reporting, calibrated arena configs | Done — infrastructure only, no competitive results yet |
@@ -100,15 +100,19 @@ All configs exist in `scripts/` and are verified working.
   python3 scripts/arena.py --config scripts/arena_config_layer6_phase.json --verbose
   ```
 
-### Layer 7 — Opponent modeling
-- [ ] L7 rollout asymmetry
-  ```bash
-  python3 scripts/arena.py --config scripts/arena_config_layer7_rollout_asymmetry.json --verbose
-  ```
-- [ ] L7 alliance detection
-  ```bash
-  python3 scripts/arena.py --config scripts/arena_config_layer7_alliance.json --verbose
-  ```
+### Layer 7 — Opponent modeling ← **DONE**
+- [x] L7 rollout asymmetry — **DONE** (50+ games across multiple runs, 2026-03-26)
+  ZERO effect. All agents produce identical scores per seat position.
+  `opponent_rollout_policy` does not change behavior at 25 iterations + cutoff depth 5.
+- [x] L7 alliance detection — **DONE** (50+ games across multiple runs, 2026-03-26)
+  ZERO effect. All agents produce identical scores per seat position.
+  Alliance detection needs 3+ opponent moves to activate (barely triggers).
+  Kingmaker detection needs 55% board occupancy (never triggers in normal games).
+  `defensive_weight_shift` is dead code — `get_defensive_eval_adjustment()` is never called.
+  **L7 conclusion**: No opponent modeling features provide measurable benefit.
+  Rollout asymmetry, alliance detection, and kingmaker detection all have zero impact.
+  Root causes: insufficient iterations for rollout differentiation, activation thresholds
+  too high for typical games, and dead code for defensive weight adjustment.
 
 ### Layer 8 — Parallelization
 - [ ] L8 throughput scaling (1/2/4/8 workers)
