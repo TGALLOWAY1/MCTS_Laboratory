@@ -194,8 +194,20 @@ class BlokusStateEvaluator:
     # Evaluation
     # ------------------------------------------------------------------
 
-    def evaluate(self, board: Board, player: Player) -> float:
-        """Evaluate a board state for *player*.  Returns a value in [0, 1]."""
+    def evaluate(
+        self,
+        board: Board,
+        player: Player,
+        weight_adjustments: Optional[Dict[str, float]] = None,
+    ) -> float:
+        """Evaluate a board state for *player*.  Returns a value in [0, 1].
+
+        Args:
+            board: Current board state.
+            player: Player to evaluate for.
+            weight_adjustments: Optional dict of weight deltas (from Layer 7
+                opponent modeling) to add to the base weight vector.
+        """
         features = self.extract_features(board, player)
 
         # Select weight vector: phase-dependent if available, else global
@@ -204,6 +216,11 @@ class BlokusStateEvaluator:
             w = self.phase_weights[phase]
         else:
             w = self.weights
+
+        # Apply Layer 7 defensive weight adjustments if provided
+        if weight_adjustments:
+            w = {k: w.get(k, 0.0) + weight_adjustments.get(k, 0.0) for k in
+                 set(w) | set(weight_adjustments)}
 
         raw = sum(w.get(k, 0.0) * v for k, v in features.items())
 
