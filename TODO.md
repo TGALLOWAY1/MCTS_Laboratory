@@ -14,7 +14,7 @@ Aggregated from Layers 0–9 PR reports. Last updated: 2026-03-26.
 | L5 | RAVE & NST history heuristics | **Done** — RAVE k=1000 wins, PH hurts with RAVE, 4x convergence speedup |
 | L6 | Evaluation function refinement (feature analysis, calibrated weights) | **Done** — calibrated weights help, phase weights hurt |
 | L7 | Opponent modeling (blocking tracker, alliance, king-maker) | **Needs re-do** — zero effect due to implementation bugs, not technique failure |
-| L8 | Parallelization (root + tree parallelization) | **Throughput done** — 3.1x speedup at 4w, strength test pending |
+| L8 | Parallelization (root + tree parallelization) | **Done** — root_2w wins 46%, tree parallelization useless (GIL), 3.1x throughput at 4w |
 | L9 | Meta-optimization (adaptive C, depth, sufficiency, loss avoidance) | **None** |
 | L10 | Throughput calibration, progress reporting, calibrated arena configs | Done — infrastructure only, no competitive results yet |
 
@@ -147,7 +147,23 @@ All configs exist in `scripts/` and are verified working.
   ```bash
   python3 scripts/arena.py --config scripts/arena_config_layer8_throughput.json --verbose
   ```
-- [ ] L8 playing strength (root vs tree vs baseline)
+- [x] L8 playing strength (root vs tree vs baseline) — **DONE** (run `20260326_181949_e68f75b5`)
+  Root parallelization dominates; tree parallelization is useless (GIL-limited):
+  | Agent | Win Rate | TrueSkill mu | Mean Score | ms/move | iter/s |
+  |-------|----------|-------------|------------|---------|--------|
+  | root_2w | **46.0%** | **32.97 (#1)** | 75.4 | 918ms | 108.9 |
+  | root_4w | 40.0% | 27.60 (#2) | 74.4 | 505ms | 197.9 |
+  | baseline_1w | 6.0% | 20.17 (#3) | 69.9 | 1929ms | 51.8 |
+  | tree_2w | 8.0% | 19.26 (#4) | 69.9 | 2033ms | 49.2 |
+
+  Key findings:
+  - Root parallelization wins 86% of games (root_2w + root_4w combined).
+  - Tree parallelization is SLOWER than single-threaded baseline (GIL contention).
+  - root_2w beats root_4w 12:9 pairwise — process spawning overhead hurts at 100 iterations.
+  - root_2w beats baseline 16:7 pairwise; root_4w beats baseline 18:7.
+  - Tree diversity from root parallelization improves play quality, not just speed.
+  - **Best L8 settings**: `num_workers: 2`, `parallel_strategy: "root"`.
+    Use 4 workers only when iteration budget is large enough to amortize spawn overhead.
   ```bash
   python3 scripts/arena.py --config scripts/arena_config_layer8_strength.json --verbose
   ```
