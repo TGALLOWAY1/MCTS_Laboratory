@@ -13,7 +13,7 @@ Aggregated from Layers 0–9 PR reports. Last updated: 2026-03-25.
 | L4 | Simulation strategy (two-ply, cutoff, minimax backups) | **Done** — cutoff_5 + random rollout + alpha=0.25 is best |
 | L5 | RAVE & NST history heuristics | **Done** — RAVE k=1000 wins, PH hurts with RAVE, 4x convergence speedup |
 | L6 | Evaluation function refinement (feature analysis, calibrated weights) | **Done** — calibrated weights help, phase weights hurt |
-| L7 | Opponent modeling (blocking tracker, alliance, king-maker) | **Done** — zero effect, all features inactive or dead code |
+| L7 | Opponent modeling (blocking tracker, alliance, king-maker) | **Needs re-do** — zero effect due to implementation bugs, not technique failure |
 | L8 | Parallelization (root + tree parallelization) | **None** |
 | L9 | Meta-optimization (adaptive C, depth, sufficiency, loss avoidance) | **None** |
 | L10 | Throughput calibration, progress reporting, calibrated arena configs | Done — infrastructure only, no competitive results yet |
@@ -109,10 +109,20 @@ All configs exist in `scripts/` and are verified working.
   Alliance detection needs 3+ opponent moves to activate (barely triggers).
   Kingmaker detection needs 55% board occupancy (never triggers in normal games).
   `defensive_weight_shift` is dead code — `get_defensive_eval_adjustment()` is never called.
-  **L7 conclusion**: No opponent modeling features provide measurable benefit.
-  Rollout asymmetry, alliance detection, and kingmaker detection all have zero impact.
-  Root causes: insufficient iterations for rollout differentiation, activation thresholds
-  too high for typical games, and dead code for defensive weight adjustment.
+  **L7 conclusion**: Zero effect observed, but likely due to implementation bugs, not
+  technique failure. Needs debugging and re-testing before drawing conclusions.
+  **Known implementation issues to fix before re-run:**
+  1. `get_defensive_eval_adjustment()` is dead code — defined in `opponent_model.py` but never
+     called from `mcts_agent.py` during MCTS iterations. Must be wired into the evaluation path.
+  2. Alliance detection threshold too strict — tracks opponents individually and requires 3+
+     moves per opponent. Blokus research literature (e.g. Stankiewicz et al.) models all
+     opponents as a single combined adversary; current per-opponent tracking is too conservative.
+  3. Kingmaker detection requires 55% board occupancy — unreachable in many games, especially
+     with cutoff-based rollouts. Threshold should be revisited or made adaptive.
+  4. `opponent_rollout_policy` may need higher iteration budgets to produce meaningful
+     differentiation — at 25 iterations the tree is too shallow for rollout policy to matter.
+  5. Consider treating the 3-opponent coalition as a unified adversary (1-vs-all framing)
+     rather than tracking individual opponent blocking rates independently.
 
 ### Layer 8 — Parallelization
 - [ ] L8 throughput scaling (1/2/4/8 workers)
