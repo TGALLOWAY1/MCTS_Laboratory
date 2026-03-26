@@ -15,7 +15,7 @@ Aggregated from Layers 0–9 PR reports. Last updated: 2026-03-26.
 | L6 | Evaluation function refinement (feature analysis, calibrated weights) | **Done** — calibrated weights help, phase weights hurt |
 | L7 | Opponent modeling (blocking tracker, alliance, king-maker) | **Needs re-do** — zero effect due to implementation bugs, not technique failure |
 | L8 | Parallelization (root + tree parallelization) | **Done** — root_2w wins 46%, tree parallelization useless (GIL), 3.1x throughput at 4w |
-| L9 | Meta-optimization (adaptive C, depth, sufficiency, loss avoidance) | **None** |
+| L9 | Meta-optimization (adaptive C, depth, sufficiency, loss avoidance) | **Done** — adaptive depth wins 36%, adaptive C harmful (8%), full combo loses to baseline |
 | L10 | Throughput calibration, progress reporting, calibrated arena configs | Done — infrastructure only, no competitive results yet |
 
 ## Timing Expectations
@@ -168,8 +168,25 @@ All configs exist in `scripts/` and are verified working.
   python3 scripts/arena.py --config scripts/arena_config_layer8_strength.json --verbose
   ```
 
-### Layer 9 — Meta-optimization
-- [ ] L9 adaptive mechanisms comparison
+### Layer 9 — Meta-optimization ← **DONE**
+- [x] L9 adaptive mechanisms comparison — **DONE** (run `20260326_202636_3c2cc7c8`)
+  Adaptive rollout depth is the only beneficial mechanism. Adaptive C is harmful with RAVE:
+  | Agent | Win Rate | TrueSkill mu | Mean Score | avg ms/move | Speedup |
+  |-------|----------|-------------|------------|------------|---------|
+  | L9_adaptive_depth | **36.0%** | **29.22 (#1)** | 72.96 | 1,315ms | **1.64x faster** |
+  | L9_baseline | 32.0% | 29.09 (#2) | **75.76** | 2,162ms | 1.00x |
+  | L9_full | 24.0% | 23.80 (#3) | 71.72 | 1,348ms | 1.60x faster |
+  | L9_adaptive_c | 8.0% | 17.75 (#4) | 69.92 | 2,432ms | 0.89x (slower) |
+
+  Key findings:
+  - Adaptive rollout depth wins 36% of games (TrueSkill #1) AND is 1.64x faster than baseline.
+    Allocates shallow rollouts to high-BF early game, deep rollouts to low-BF late game.
+  - Adaptive C is actively harmful (8% wins) — over-explores on top of RAVE, which already
+    provides adaptive exploration. RAVE + adaptive C = double-exploration problem.
+  - Full combo (all L9 features) loses to baseline 9:13 pairwise — adaptive C drags it down.
+  - Sufficiency threshold and loss avoidance effects are inconclusive (confounded by adaptive C).
+  - **Best L9 settings**: `adaptive_rollout_depth_enabled: true`, `adaptive_rollout_depth_base: 5`,
+    `adaptive_rollout_depth_avg_bf: 80.0`. Do NOT use `adaptive_exploration_enabled`.
   ```bash
   python3 scripts/arena.py --config scripts/arena_config_layer9_adaptive.json --verbose
   ```
