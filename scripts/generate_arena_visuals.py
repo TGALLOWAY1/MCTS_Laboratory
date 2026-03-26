@@ -44,6 +44,7 @@ def load_summary(run_dir: Path) -> Dict[str, Any]:
 LAYER_COLORS = {
     "L1": "#636363",
     "L2": "#9e9ac8",
+    "L3": "#8c6d31",
     "L4": "#4c72b0",
     "L5": "#55a868",
     "L6": "#dd8452",
@@ -125,6 +126,7 @@ def fig1_layer_progression():
     """Show the best agent win rate from each layer experiment."""
     # Data extracted from arena reports
     layers = [
+        "L3: Progressive Widening\n(pw_alpha=0.5, pw_c=2.0)",
         "L4: Cutoff Depth\n(depth=5, 25 iter)",
         "L4: Rollout Policy\n(random)",
         "L4: Combined\n(random+d5+α=0.25)",
@@ -135,8 +137,8 @@ def fig1_layer_progression():
         "L6: Calibrated\n(calib eval d0)",
         "L9: Adaptive Depth",
     ]
-    win_rates = [0.54, 0.36, 0.36, 0.36, 0.447, 0.36, 0.48, 0.76, 0.36]
-    layer_tags = ["L4", "L4", "L4", "L5", "L5", "L5", "L6", "L6", "L9"]
+    win_rates = [0.64, 0.54, 0.36, 0.36, 0.36, 0.447, 0.36, 0.48, 0.76, 0.36]
+    layer_tags = ["L3", "L4", "L4", "L4", "L5", "L5", "L5", "L6", "L6", "L9"]
     colors = [LAYER_COLORS[t] for t in layer_tags]
 
     setup_plot_style()
@@ -161,19 +163,85 @@ def fig1_layer_progression():
     ax.set_xlim(0, 0.85)
 
     # Legend
-    handles = [mpatches.Patch(color=LAYER_COLORS[k], label=k) for k in ["L4", "L5", "L6", "L9"]]
+    handles = [mpatches.Patch(color=LAYER_COLORS[k], label=k) for k in ["L3", "L4", "L5", "L6", "L9"]]
     ax.legend(handles=handles, loc="lower right", fontsize=9)
 
     fig.tight_layout()
     save_plot(fig, OUTPUT_DIR / "01_layer_progression.png")
-    print("  [1/8] Layer progression chart")
+    print("  [1/9] Layer progression chart")
 
 
 # ===========================================================================
-# FIGURE 2: L4 — Rollout Quality vs Iteration Quantity
+# FIGURE 2: L3 — Progressive Widening Dominance
 # ===========================================================================
 
-def fig2_quality_vs_quantity():
+def fig2_progressive_widening():
+    """L3: Progressive Widening dominates baseline, PH, and PW+PH."""
+    run = load_summary(ARENA_RUNS / "20260325_201856_32cf0875")
+    agents_order = ["mcts_progressive_widening", "mcts_pw_plus_ph",
+                    "mcts_baseline", "mcts_progressive_history"]
+    labels = [
+        "Progressive Widening",
+        "PW + PH (combined)",
+        "Baseline",
+        "Progressive History",
+    ]
+
+    win_rates = [run["win_stats"][a]["win_rate"] for a in agents_order]
+    mean_scores = [run["score_stats"][a]["mean"] for a in agents_order]
+
+    # Pairwise: PW beats everyone convincingly
+    pw_pairwise = {
+        "vs Baseline": "22-3",
+        "vs PH": "25-0",
+        "vs PW+PH": "17-8",
+    }
+
+    setup_plot_style()
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+    colors = ["#2ca02c", "#ff7f0e", "#7f7f7f", "#9467bd"]
+
+    # Win rate
+    bars1 = ax1.bar(range(len(labels)), win_rates, color=colors, edgecolor="black", linewidth=0.5)
+    for bar, val in zip(bars1, win_rates):
+        ax1.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.01,
+                 f"{val:.0%}", ha="center", fontsize=11, fontweight="bold")
+    ax1.set_xticks(range(len(labels)))
+    ax1.set_xticklabels(labels, fontsize=9, rotation=15, ha="right")
+    ax1.set_ylabel("Win Rate")
+    ax1.set_title("Win Rate", fontweight="bold")
+    ax1.axhline(y=0.25, color="gray", linestyle="--", alpha=0.5)
+    ax1.set_ylim(0, 0.8)
+
+    # Mean score
+    bars2 = ax2.bar(range(len(labels)), mean_scores, color=colors, edgecolor="black", linewidth=0.5)
+    for bar, val in zip(bars2, mean_scores):
+        ax2.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.5,
+                 f"{val:.1f}", ha="center", fontsize=10)
+    ax2.set_xticks(range(len(labels)))
+    ax2.set_xticklabels(labels, fontsize=9, rotation=15, ha="right")
+    ax2.set_ylabel("Mean Score")
+    ax2.set_title("Mean Score", fontweight="bold")
+
+    # Add pairwise annotation
+    pairwise_text = "\n".join(f"PW {k}: {v}" for k, v in pw_pairwise.items())
+    ax2.text(0.97, 0.95, f"Pairwise H2H:\n{pairwise_text}",
+             transform=ax2.transAxes, fontsize=8.5, va="top", ha="right",
+             bbox=dict(boxstyle="round,pad=0.4", facecolor="#e8f5e9", alpha=0.9))
+
+    fig.suptitle("Layer 3: Progressive Widening Dominates Action Reduction",
+                 fontsize=14, fontweight="bold", y=1.02)
+    fig.tight_layout()
+    save_plot(fig, OUTPUT_DIR / "02_L3_progressive_widening.png")
+    print("  [2/9] L3 progressive widening")
+
+
+# ===========================================================================
+# FIGURE 3: L4 — Rollout Quality vs Iteration Quantity
+# ===========================================================================
+
+def fig3_quality_vs_quantity():
     """L4 headline: cutoff_5@25iter (54%) vs cutoff_0@1000iter (0%)."""
     run = load_summary(ARENA_RUNS / "20260325_164035_0a7ca009")
     agents_order = ["cutoff_5_25iter", "cutoff_0_1000iter", "cutoff_10_25iter", "cutoff_0_25iter"]
@@ -216,15 +284,15 @@ def fig2_quality_vs_quantity():
 
     fig.suptitle("Layer 4: Rollout Simulation Strategy", fontsize=14, fontweight="bold", y=1.02)
     fig.tight_layout()
-    save_plot(fig, OUTPUT_DIR / "02_L4_quality_vs_quantity.png")
-    print("  [2/8] L4 quality vs quantity")
+    save_plot(fig, OUTPUT_DIR / "03_L4_quality_vs_quantity.png")
+    print("  [3/9] L4 quality vs quantity")
 
 
 # ===========================================================================
-# FIGURE 3: L4 — Rollout Policy Comparison
+# FIGURE 4: L4 — Rollout Policy Comparison
 # ===========================================================================
 
-def fig3_rollout_policy():
+def fig4_rollout_policy():
     """Compare heuristic vs random vs two-ply rollout policies."""
     run = load_summary(ARENA_RUNS / "20260325_165028_feca38f3")
     agents_order = ["random_cutoff8_25iter", "two_ply_all_cutoff8_25iter",
@@ -274,15 +342,15 @@ def fig3_rollout_policy():
     fig.suptitle("Layer 4: Rollout Policy — Random Wins on Quality AND Efficiency",
                  fontsize=13, fontweight="bold", y=1.02)
     fig.tight_layout()
-    save_plot(fig, OUTPUT_DIR / "03_L4_rollout_policy.png")
-    print("  [3/8] L4 rollout policy comparison")
+    save_plot(fig, OUTPUT_DIR / "04_L4_rollout_policy.png")
+    print("  [4/9] L4 rollout policy comparison")
 
 
 # ===========================================================================
-# FIGURE 4: L5 — RAVE Convergence Speedup
+# FIGURE 5: L5 — RAVE Convergence Speedup
 # ===========================================================================
 
-def fig4_rave_convergence():
+def fig5_rave_convergence():
     """RAVE@50ms beats baseline@200ms — 4x effective speedup."""
     run = load_summary(ARCHIVE_RUNS / "20260325_210306_4024cab3")
     agents_order = ["mcts_rave_50ms", "mcts_rave_200ms", "mcts_baseline_50ms", "mcts_baseline_200ms"]
@@ -328,15 +396,15 @@ def fig4_rave_convergence():
     fig.suptitle("Layer 5: RAVE Provides 4x Effective Convergence Speedup",
                  fontsize=14, fontweight="bold", y=1.02)
     fig.tight_layout()
-    save_plot(fig, OUTPUT_DIR / "04_L5_rave_convergence.png")
-    print("  [4/8] L5 RAVE convergence")
+    save_plot(fig, OUTPUT_DIR / "05_L5_rave_convergence.png")
+    print("  [5/9] L5 RAVE convergence")
 
 
 # ===========================================================================
-# FIGURE 5: L5 — RAVE vs Progressive History
+# FIGURE 6: L5 — RAVE vs Progressive History
 # ===========================================================================
 
-def fig5_rave_vs_ph():
+def fig6_rave_vs_ph():
     """RAVE alone (44.7%) vs PH+RAVE (26.7%) — PH hurts when combined with RAVE."""
     run = load_summary(ARCHIVE_RUNS / "20260325_210306_ed7ec9aa")
     agents_order = ["mcts_rave_only", "mcts_ph_plus_rave", "mcts_ph_only", "mcts_baseline"]
@@ -386,15 +454,15 @@ def fig5_rave_vs_ph():
     fig.suptitle("Layer 5: RAVE Alone Dominates — Progressive History Hurts",
                  fontsize=14, fontweight="bold", y=1.02)
     fig.tight_layout()
-    save_plot(fig, OUTPUT_DIR / "05_L5_rave_vs_ph.png")
-    print("  [5/8] L5 RAVE vs Progressive History")
+    save_plot(fig, OUTPUT_DIR / "06_L5_rave_vs_ph.png")
+    print("  [6/9] L5 RAVE vs Progressive History")
 
 
 # ===========================================================================
-# FIGURE 6: L6 — Phase Eval Failure + Calibrated Weights
+# FIGURE 7: L6 — Phase Eval Failure + Calibrated Weights
 # ===========================================================================
 
-def fig6_evaluation_refinement():
+def fig7_evaluation_refinement():
     """Phase-dependent eval scores 0% wins; calibrated vs default are tied."""
     run = load_summary(ARENA_RUNS / "20260325_033805_9b3944b6")
     agents_order = ["mcts_default_eval_d0", "mcts_calibrated_d0",
@@ -441,15 +509,15 @@ def fig6_evaluation_refinement():
     fig.suptitle("Layer 6: Evaluation Refinement — Phase Weights Catastrophically Fail",
                  fontsize=13, fontweight="bold", y=1.02)
     fig.tight_layout()
-    save_plot(fig, OUTPUT_DIR / "06_L6_evaluation.png")
-    print("  [6/8] L6 evaluation refinement")
+    save_plot(fig, OUTPUT_DIR / "07_L6_evaluation.png")
+    print("  [7/9] L6 evaluation refinement")
 
 
 # ===========================================================================
-# FIGURE 7: L9 — Meta-Optimization: Adaptive Depth vs Adaptive C
+# FIGURE 8: L9 — Meta-Optimization: Adaptive Depth vs Adaptive C
 # ===========================================================================
 
-def fig7_meta_optimization():
+def fig8_meta_optimization():
     """Adaptive depth helps (36%, 1.64x faster); adaptive C is harmful (8%)."""
     # Data from layer9 report (run not in local arena_runs)
     agents = ["L9_adaptive_depth", "L9_baseline", "L9_full", "L9_adaptive_c"]
@@ -513,21 +581,22 @@ def fig7_meta_optimization():
     fig.suptitle("Layer 9: Meta-Optimization — Adaptive Depth Wins, Adaptive C Harms",
                  fontsize=13, fontweight="bold", y=1.02)
     fig.tight_layout()
-    save_plot(fig, OUTPUT_DIR / "07_L9_meta_optimization.png")
-    print("  [7/8] L9 meta-optimization")
+    save_plot(fig, OUTPUT_DIR / "08_L9_meta_optimization.png")
+    print("  [8/9] L9 meta-optimization")
 
 
 # ===========================================================================
-# FIGURE 8: Grand Summary — Pairwise Heatmap & Key Insights
+# FIGURE 9: Grand Summary — Key Insights
 # ===========================================================================
 
-def fig8_grand_summary():
+def fig9_grand_summary():
     """Multi-panel summary: key discoveries, recommended config, TrueSkill progression."""
     setup_plot_style()
     fig, axes = plt.subplots(1, 2, figsize=(15, 7))
 
     # Panel 1: Key findings as annotated bar chart
     findings = [
+        ("Prog. Widening dominates\n(64% win rate, 92.4 mean score)", 0.64, LAYER_COLORS["L3"]),
         ("Rollout depth 5 > depth 0\n@ 40x fewer iterations", 0.54, LAYER_COLORS["L4"]),
         ("Random rollout > heuristic\n(10x faster, higher win rate)", 0.36, LAYER_COLORS["L4"]),
         ("RAVE alone > RAVE + PH\n(PH dilutes RAVE signal)", 0.447, LAYER_COLORS["L5"]),
@@ -553,19 +622,19 @@ def fig8_grand_summary():
     axes[0].set_title("Key Findings Across All Layers", fontweight="bold")
     axes[0].invert_yaxis()
     axes[0].axvline(x=0.25, color="gray", linestyle="--", alpha=0.5)
-    axes[0].set_xlim(0, 0.65)
+    axes[0].set_xlim(0, 0.75)
 
     # Panel 2: Recommended configuration evolution
     config_labels = [
         "Baseline\n(L1)",
+        "After L3\n(Prog. Widen)",
         "After L4\n(Simulation)",
         "After L5\n(RAVE)",
         "After L9\n(Meta-Opt)",
     ]
-    # Approximate relative improvement (normalized TrueSkill or composite metric)
     # Using score_per_second as efficiency metric
-    efficiency = [20.0, 121.6, 386.1, 55.5]  # score/sec from reports
-    win_improvement = [0.25, 0.54, 0.447, 0.36]
+    efficiency = [20.0, 166.9, 121.6, 386.1, 55.5]  # score/sec from reports
+    win_improvement = [0.25, 0.64, 0.54, 0.447, 0.36]
 
     x = np.arange(len(config_labels))
     width = 0.35
@@ -591,8 +660,8 @@ def fig8_grand_summary():
     fig.suptitle("MCTS Laboratory: 10-Layer Optimization Summary",
                  fontsize=14, fontweight="bold", y=1.02)
     fig.tight_layout()
-    save_plot(fig, OUTPUT_DIR / "08_grand_summary.png")
-    print("  [8/8] Grand summary")
+    save_plot(fig, OUTPUT_DIR / "09_grand_summary.png")
+    print("  [9/9] Grand summary")
 
 
 # ===========================================================================
@@ -602,14 +671,15 @@ def fig8_grand_summary():
 def main():
     print(f"Generating arena visualizations in {OUTPUT_DIR}/\n")
     fig1_layer_progression()
-    fig2_quality_vs_quantity()
-    fig3_rollout_policy()
-    fig4_rave_convergence()
-    fig5_rave_vs_ph()
-    fig6_evaluation_refinement()
-    fig7_meta_optimization()
-    fig8_grand_summary()
-    print(f"\nDone! {8} figures saved to {OUTPUT_DIR}/")
+    fig2_progressive_widening()
+    fig3_quality_vs_quantity()
+    fig4_rollout_policy()
+    fig5_rave_convergence()
+    fig6_rave_vs_ph()
+    fig7_evaluation_refinement()
+    fig8_meta_optimization()
+    fig9_grand_summary()
+    print(f"\nDone! 9 figures saved to {OUTPUT_DIR}/")
 
 
 if __name__ == "__main__":
