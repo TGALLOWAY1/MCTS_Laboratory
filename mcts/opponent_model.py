@@ -131,7 +131,7 @@ class KingMakerDetector:
     def __init__(
         self,
         score_gap_threshold: int = 15,
-        occupancy_threshold: float = 0.55,
+        occupancy_threshold: float = 0.40,
     ) -> None:
         self.score_gap_threshold = score_gap_threshold
         self.occupancy_threshold = occupancy_threshold
