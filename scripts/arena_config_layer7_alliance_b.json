@@ -109,7 +109,7 @@
     }
   ],
   "num_games": 25,
-  "seed": 20260323,
+  "seed": 20260325,
   "seat_policy": "round_robin",
   "output_root": "arena_runs",
   "max_turns": 2500,
