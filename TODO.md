@@ -1,6 +1,6 @@
 # MCTS Laboratory — TODO
 
-Aggregated from Layers 0–9 PR reports. Last updated: 2026-03-25.
+Aggregated from Layers 0–9 PR reports. Last updated: 2026-03-26.
 
 ## Status Summary
 
@@ -14,7 +14,7 @@ Aggregated from Layers 0–9 PR reports. Last updated: 2026-03-25.
 | L5 | RAVE & NST history heuristics | **Done** — RAVE k=1000 wins, PH hurts with RAVE, 4x convergence speedup |
 | L6 | Evaluation function refinement (feature analysis, calibrated weights) | **Done** — calibrated weights help, phase weights hurt |
 | L7 | Opponent modeling (blocking tracker, alliance, king-maker) | **Needs re-do** — zero effect due to implementation bugs, not technique failure |
-| L8 | Parallelization (root + tree parallelization) | **None** |
+| L8 | Parallelization (root + tree parallelization) | **Throughput done** — 3.1x speedup at 4w, strength test pending |
 | L9 | Meta-optimization (adaptive C, depth, sufficiency, loss avoidance) | **None** |
 | L10 | Throughput calibration, progress reporting, calibrated arena configs | Done — infrastructure only, no competitive results yet |
 
@@ -125,7 +125,25 @@ All configs exist in `scripts/` and are verified working.
      rather than tracking individual opponent blocking rates independently.
 
 ### Layer 8 — Parallelization
-- [ ] L8 throughput scaling (1/2/4/8 workers)
+- [x] L8 throughput scaling (1/2/4/8 workers) — **DONE** (run `20260326_173624_6a95d900`)
+  Near-linear throughput scaling up to core count on 4-core machine:
+  | Agent | iter/s | avg ms/move | Speedup | Win Rate | TrueSkill mu |
+  |-------|--------|------------|---------|----------|-------------|
+  | 1w baseline | 59.0 | 847ms | 1.00x | 21.3% | 25.44 |
+  | 2w root | 108.5 | 461ms | 1.84x (92% eff) | 23.3% | 23.60 |
+  | 4w root | 184.8 | 260ms | 3.13x (78% eff) | 19.3% | 23.70 |
+  | 8w root | 175.8 | 273ms | 2.98x (oversubscribed) | 36.0% | 26.98 |
+
+  Key findings:
+  - Root parallelization delivers near-linear speedup up to physical core count.
+  - 8 workers on 4 cores is SLOWER than 4 workers (context switching overhead).
+  - Playing strength is flat with same iteration budget — mean scores 72–75 for all agents.
+  - 8w has highest win rate (36%) but this appears driven by tree diversity bonus
+    from root parallelization, not throughput advantage.
+  - TrueSkill not converged (sigma ~7.5) — more games needed for statistical significance.
+  - Original config was miscalibrated (heuristic rollout + phase weights + 10.0 iter/ms
+    → 220s/move). Recalibrated with best L4–L6 settings (random rollout, cutoff 5,
+    RAVE k=1000, calibrated weights, 0.5 iter/ms → ~47s/game).
   ```bash
   python3 scripts/arena.py --config scripts/arena_config_layer8_throughput.json --verbose
   ```
