@@ -1,42 +1,26 @@
 {
   "agents": [
     {
-      "name": "L7_baseline_1w",
+      "name": "L8_baseline_1w",
       "type": "mcts",
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
-        "rollout_policy": "heuristic",
-        "rollout_cutoff_depth": 8,
-        "state_eval_phase_weights": {
-          "early": {
-            "squares_placed": -0.176,
-            "remaining_piece_area": 0.176,
-            "accessible_corners": 0.3,
-            "reachable_empty_squares": 0.0,
-            "largest_remaining_piece_size": 0.0,
-            "opponent_avg_mobility": -0.053,
-            "territory_enclosure_area": 0.0
-          },
-          "mid": {
-            "squares_placed": -0.004,
-            "remaining_piece_area": 0.004,
-            "accessible_corners": 0.3,
-            "reachable_empty_squares": 0.228,
-            "largest_remaining_piece_size": -0.238,
-            "opponent_avg_mobility": -0.203,
-            "territory_enclosure_area": 0.0
-          },
-          "late": {
-            "squares_placed": 0.3,
-            "remaining_piece_area": -0.3,
-            "accessible_corners": 0.176,
-            "reachable_empty_squares": 0.134,
-            "largest_remaining_piece_size": -0.085,
-            "opponent_avg_mobility": -0.063,
-            "territory_enclosure_area": 0.0
-          }
+        "iterations_per_ms": 0.5,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
+        "rave_enabled": true,
+        "rave_k": 1000,
+        "state_eval_weights": {
+          "squares_placed": 0.0295,
+          "remaining_piece_area": -0.0295,
+          "accessible_corners": 0.243,
+          "reachable_empty_squares": 0.081,
+          "largest_remaining_piece_size": -0.231,
+          "opponent_avg_mobility": -0.3,
+          "center_proximity": 0.0,
+          "territory_enclosure_area": 0.0
         },
         "num_workers": 1
       }
@@ -47,37 +31,21 @@
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
-        "rollout_policy": "heuristic",
-        "rollout_cutoff_depth": 8,
-        "state_eval_phase_weights": {
-          "early": {
-            "squares_placed": -0.176,
-            "remaining_piece_area": 0.176,
-            "accessible_corners": 0.3,
-            "reachable_empty_squares": 0.0,
-            "largest_remaining_piece_size": 0.0,
-            "opponent_avg_mobility": -0.053,
-            "territory_enclosure_area": 0.0
-          },
-          "mid": {
-            "squares_placed": -0.004,
-            "remaining_piece_area": 0.004,
-            "accessible_corners": 0.3,
-            "reachable_empty_squares": 0.228,
-            "largest_remaining_piece_size": -0.238,
-            "opponent_avg_mobility": -0.203,
-            "territory_enclosure_area": 0.0
-          },
-          "late": {
-            "squares_placed": 0.3,
-            "remaining_piece_area": -0.3,
-            "accessible_corners": 0.176,
-            "reachable_empty_squares": 0.134,
-            "largest_remaining_piece_size": -0.085,
-            "opponent_avg_mobility": -0.063,
-            "territory_enclosure_area": 0.0
-          }
+        "iterations_per_ms": 0.5,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
+        "rave_enabled": true,
+        "rave_k": 1000,
+        "state_eval_weights": {
+          "squares_placed": 0.0295,
+          "remaining_piece_area": -0.0295,
+          "accessible_corners": 0.243,
+          "reachable_empty_squares": 0.081,
+          "largest_remaining_piece_size": -0.231,
+          "opponent_avg_mobility": -0.3,
+          "center_proximity": 0.0,
+          "territory_enclosure_area": 0.0
         },
         "num_workers": 2,
         "parallel_strategy": "root"
@@ -89,37 +57,21 @@
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
-        "rollout_policy": "heuristic",
-        "rollout_cutoff_depth": 8,
-        "state_eval_phase_weights": {
-          "early": {
-            "squares_placed": -0.176,
-            "remaining_piece_area": 0.176,
-            "accessible_corners": 0.3,
-            "reachable_empty_squares": 0.0,
-            "largest_remaining_piece_size": 0.0,
-            "opponent_avg_mobility": -0.053,
-            "territory_enclosure_area": 0.0
-          },
-          "mid": {
-            "squares_placed": -0.004,
-            "remaining_piece_area": 0.004,
-            "accessible_corners": 0.3,
-            "reachable_empty_squares": 0.228,
-            "largest_remaining_piece_size": -0.238,
-            "opponent_avg_mobility": -0.203,
-            "territory_enclosure_area": 0.0
-          },
-          "late": {
-            "squares_placed": 0.3,
-            "remaining_piece_area": -0.3,
-            "accessible_corners": 0.176,
-            "reachable_empty_squares": 0.134,
-            "largest_remaining_piece_size": -0.085,
-            "opponent_avg_mobility": -0.063,
-            "territory_enclosure_area": 0.0
-          }
+        "iterations_per_ms": 0.5,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
+        "rave_enabled": true,
+        "rave_k": 1000,
+        "state_eval_weights": {
+          "squares_placed": 0.0295,
+          "remaining_piece_area": -0.0295,
+          "accessible_corners": 0.243,
+          "reachable_empty_squares": 0.081,
+          "largest_remaining_piece_size": -0.231,
+          "opponent_avg_mobility": -0.3,
+          "center_proximity": 0.0,
+          "territory_enclosure_area": 0.0
         },
         "num_workers": 4,
         "parallel_strategy": "root"
@@ -131,44 +83,28 @@
       "thinking_time_ms": 100,
       "params": {
         "deterministic_time_budget": true,
-        "iterations_per_ms": 10.0,
-        "rollout_policy": "heuristic",
-        "rollout_cutoff_depth": 8,
-        "state_eval_phase_weights": {
-          "early": {
-            "squares_placed": -0.176,
-            "remaining_piece_area": 0.176,
-            "accessible_corners": 0.3,
-            "reachable_empty_squares": 0.0,
-            "largest_remaining_piece_size": 0.0,
-            "opponent_avg_mobility": -0.053,
-            "territory_enclosure_area": 0.0
-          },
-          "mid": {
-            "squares_placed": -0.004,
-            "remaining_piece_area": 0.004,
-            "accessible_corners": 0.3,
-            "reachable_empty_squares": 0.228,
-            "largest_remaining_piece_size": -0.238,
-            "opponent_avg_mobility": -0.203,
-            "territory_enclosure_area": 0.0
-          },
-          "late": {
-            "squares_placed": 0.3,
-            "remaining_piece_area": -0.3,
-            "accessible_corners": 0.176,
-            "reachable_empty_squares": 0.134,
-            "largest_remaining_piece_size": -0.085,
-            "opponent_avg_mobility": -0.063,
-            "territory_enclosure_area": 0.0
-          }
+        "iterations_per_ms": 0.5,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
+        "rave_enabled": true,
+        "rave_k": 1000,
+        "state_eval_weights": {
+          "squares_placed": 0.0295,
+          "remaining_piece_area": -0.0295,
+          "accessible_corners": 0.243,
+          "reachable_empty_squares": 0.081,
+          "largest_remaining_piece_size": -0.231,
+          "opponent_avg_mobility": -0.3,
+          "center_proximity": 0.0,
+          "territory_enclosure_area": 0.0
         },
         "num_workers": 8,
         "parallel_strategy": "root"
       }
     }
   ],
-  "num_games": 50,
+  "num_games": 25,
   "seed": 20260323,
   "seat_policy": "round_robin",
   "output_root": "arena_runs",
@@ -177,5 +113,5 @@
     "enabled": false,
     "checkpoints": []
   },
-  "notes": "Layer 8 throughput scaling: root parallelization with 1/2/4/8 workers. Same base config (L7 phase weights, cutoff 8). Measures iterations/sec and time-per-move at each worker count."
+  "notes": "Layer 8 throughput scaling: root parallelization with 1/2/4/8 workers. Uses best settings from L4 (random rollout, cutoff 5, alpha 0.25), L5 (RAVE k=1000), L6 (calibrated weights). 50 iterations per move (0.5 iter/ms × 100ms). Measures wall-clock time per move and parallelization efficiency."
 }
