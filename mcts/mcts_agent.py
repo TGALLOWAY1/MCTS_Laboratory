@@ -681,6 +681,7 @@ class MCTSAgent:
             "opponent_random_rollouts": 0,
             "opponent_heuristic_rollouts": 0,
             "opponent_upgraded_rollouts": 0,
+            "defensive_eval_adjustments": 0,
             # Layer 8: Parallelization stats
             "parallel_workers": 0,
             "parallel_strategy": "none",
@@ -1531,10 +1532,13 @@ class MCTSAgent:
         Returns:
             Tuple of (reward, rollout_action_keys)
         """
+        # Layer 7: Get defensive weight adjustments from opponent model
+        defensive_adj = self._get_defensive_adjustments(board)
+
         # Layer 4: depth-0 cutoff — pure static evaluation, no rollout at all
         if self._effective_rollout_cutoff_depth is not None and self._effective_rollout_cutoff_depth <= 0:
             self.stats["cutoff_evals"] += 1
-            return self.state_evaluator.evaluate(board, player) * self._eval_reward_scale, []
+            return self.state_evaluator.evaluate(board, player, defensive_adj) * self._eval_reward_scale, []
 
         # Create copy for simulation
         sim_board = board.copy()
@@ -1569,7 +1573,7 @@ class MCTSAgent:
             ):
                 self.stats["cutoff_evals"] += 1
                 return (
-                    self.state_evaluator.evaluate(sim_board, player) * self._eval_reward_scale,
+                    self.state_evaluator.evaluate(sim_board, player, defensive_adj) * self._eval_reward_scale,
                     rollout_actions,
                 )
 
@@ -1587,8 +1591,8 @@ class MCTSAgent:
                 and len(legal_moves) > 1
             ):
                 move = self._nst_biased_select(legal_moves, nst_prev_own_key)
-            elif current_player == root_player or self.opponent_rollout_policy == "same":
-                # Self (or symmetric mode): use configured rollout_policy
+            elif current_player == root_player:
+                # Self: use configured rollout_policy
                 if self.rollout_policy == "two_ply":
                     move = self._two_ply_select(sim_board, current_player, legal_moves)
                 elif self.rollout_policy == "random":
@@ -1596,7 +1600,10 @@ class MCTSAgent:
                 else:
                     move = self.rollout_agent.select_action(sim_board, current_player, legal_moves)
             else:
-                # Layer 7: Opponent — use opponent rollout policy (possibly upgraded)
+                # Layer 7: Opponent — use opponent rollout policy (possibly upgraded).
+                # When opponent_rollout_policy=="same", _select_opponent_rollout_move
+                # resolves "same" to the root player's rollout_policy but still
+                # allows the opponent model to upgrade individual opponents.
                 move = self._select_opponent_rollout_move(
                     sim_board, current_player, legal_moves
                 )
@@ -1691,7 +1698,9 @@ class MCTSAgent:
             sim = board.copy()
             positions = self._get_move_positions(move)
             sim.place_piece(positions, player, move.piece_id, validate=False)
-            value = self.state_evaluator.evaluate(sim, player)
+            value = self.state_evaluator.evaluate(
+                sim, player, self._get_defensive_adjustments(board)
+            )
             if value > best_value:
                 best_value = value
                 best_move = move
@@ -1757,6 +1766,25 @@ class MCTSAgent:
         return positions
 
     # ------------------------------------------------------------------
+    # Layer 7: Defensive evaluation adjustments
+    # ------------------------------------------------------------------
+
+    def _get_defensive_adjustments(self, board: Board) -> Optional[Dict[str, float]]:
+        """Return weight adjustments from opponent model, or None.
+
+        When an opponent is flagged as targeting the root player, the opponent
+        model returns weight deltas that shift evaluation toward defensive
+        features.  Returns None when no adjustment is needed (the common case).
+        """
+        if self._opponent_model is None:
+            return None
+        adj = self._opponent_model.get_defensive_eval_adjustment(board)
+        if adj:
+            self.stats["defensive_eval_adjustments"] += 1
+            return adj
+        return None
+
+    # ------------------------------------------------------------------
     # Layer 7: Opponent rollout and move notification
     # ------------------------------------------------------------------
 
@@ -1777,14 +1805,20 @@ class MCTSAgent:
         Returns:
             Selected move for the opponent.
         """
+        # Resolve "same" to the root player's rollout_policy so the
+        # opponent model can still upgrade individual opponents.
         policy = self.opponent_rollout_policy
+        if policy == "same":
+            policy = self.rollout_policy
+
+        base_policy = policy
 
         # Allow the opponent model to override the policy per-player
         if self._opponent_model is not None:
             policy = self._opponent_model.get_opponent_rollout_policy(
                 player, policy
             )
-            if policy != self.opponent_rollout_policy:
+            if policy != base_policy:
                 self.stats["opponent_upgraded_rollouts"] += 1
 
         if policy == "random":
