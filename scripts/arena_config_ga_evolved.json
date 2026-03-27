@@ -1,0 +1,40 @@
+{
+  "agents": [
+    {
+      "name": "heuristic_evolved",
+      "type": "heuristic",
+      "params": {
+        "weights": "__PLACEHOLDER_RUN_GA_FIRST__"
+      }
+    },
+    {
+      "name": "heuristic_default",
+      "type": "heuristic",
+      "params": {}
+    },
+    {
+      "name": "random_baseline",
+      "type": "random",
+      "params": {}
+    },
+    {
+      "name": "mcts_25ms",
+      "type": "mcts",
+      "thinking_time_ms": 25,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 10.0,
+        "exploration_constant": 1.414
+      }
+    }
+  ],
+  "num_games": 100,
+  "seed": 20260327,
+  "seat_policy": "round_robin",
+  "output_root": "arena_runs",
+  "max_turns": 2500,
+  "snapshots": {
+    "enabled": false
+  },
+  "notes": "Validate GA-evolved heuristic weights vs baselines. Replace heuristic_evolved weights with output from ga_evolve_weights.py"
+}
