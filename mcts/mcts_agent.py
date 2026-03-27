@@ -549,7 +549,7 @@ class MCTSAgent:
             int(rollout_cutoff_depth) if rollout_cutoff_depth is not None else None
         )
         self.minimax_backup_alpha = float(minimax_backup_alpha)
-        self._eval_reward_scale = 100.0  # match win-bonus magnitude
+        self._eval_reward_scale = 40.0  # calibrated to match typical score deltas
 
         # Layer 5 params
         self.rave_enabled = bool(rave_enabled)
@@ -1699,7 +1699,7 @@ class MCTSAgent:
             positions = self._get_move_positions(move)
             sim.place_piece(positions, player, move.piece_id, validate=False)
             value = self.state_evaluator.evaluate(
-                sim, player, self._get_defensive_adjustments(board)
+                sim, player, self._get_defensive_adjustments(sim)
             )
             if value > best_value:
                 best_value = value

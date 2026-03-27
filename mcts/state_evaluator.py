@@ -58,7 +58,7 @@ DEFAULT_WEIGHTS: Dict[str, float] = {
     "accessible_corners": 0.24,
     "reachable_empty_squares": 0.08,
     "largest_remaining_piece_size": -0.23,
-    "opponent_avg_mobility": -0.30,
+    "opponent_avg_mobility": -0.10,
     "center_proximity": 0.25,
     "territory_enclosure_area": 0.00,  # placeholder — too expensive for per-step eval
 }

@@ -19,16 +19,19 @@ class HeuristicAgent:
     - Avoid edges early in the game
     """
 
-    def __init__(self, seed: Optional[int] = None):
+    def __init__(self, seed: Optional[int] = None, epsilon: float = 0.1):
         """
         Initialize heuristic agent.
-        
+
         Args:
             seed: Random seed for reproducible behavior
+            epsilon: Probability of selecting a random move instead of the
+                best-scoring move (epsilon-greedy exploration). Default 0.1.
         """
         self.rng = np.random.RandomState(seed)
         self.move_generator = get_shared_generator()
         self.piece_generator = PieceGenerator()
+        self.epsilon = epsilon
 
         # Heuristic weights
         self.piece_size_weight = 1.0
@@ -57,13 +60,13 @@ class HeuristicAgent:
             score = self._evaluate_move(board, player, move)
             move_scores.append(score)
 
-        # Convert scores to probabilities (softmax)
-        scores_array = np.array(move_scores)
-        probabilities = self._softmax(scores_array, temperature=1.0)
+        # Epsilon-greedy: pick best move with probability 1-epsilon,
+        # otherwise pick uniformly at random.
+        if self.rng.random() < self.epsilon:
+            return legal_moves[self.rng.randint(len(legal_moves))]
 
-        # Select move based on probabilities
-        move_idx = self.rng.choice(len(legal_moves), p=probabilities)
-        return legal_moves[move_idx]
+        best_idx = int(np.argmax(move_scores))
+        return legal_moves[best_idx]
 
     def _evaluate_move(self, board: Board, player: Player, move: Move) -> float:
         """
