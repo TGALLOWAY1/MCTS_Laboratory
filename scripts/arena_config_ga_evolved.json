@@ -1,10 +1,21 @@
 {
   "agents": [
     {
-      "name": "heuristic_evolved",
-      "type": "heuristic",
+      "name": "enhanced_evolved",
+      "type": "enhanced_heuristic",
       "params": {
-        "weights": "__PLACEHOLDER_RUN_GA_FIRST__"
+        "weights": {
+          "piece_size": 4.186353869233235,
+          "corner_creation": 0.47505818308099407,
+          "edge_avoidance": -2.096073026902312,
+          "center_preference": 4.263163922060554,
+          "opponent_blocking": -0.37153835519299516,
+          "corners_killed": 1.713864813797406,
+          "opponent_proximity": -1.998280477155598,
+          "open_space": 0.4363959883717228,
+          "piece_versatility": -5.0,
+          "blocking_risk": 1.5133376303215236
+        }
       }
     },
     {
@@ -29,12 +40,12 @@
     }
   ],
   "num_games": 100,
-  "seed": 20260327,
+  "seed": 20260328,
   "seat_policy": "round_robin",
   "output_root": "arena_runs",
   "max_turns": 2500,
   "snapshots": {
     "enabled": false
   },
-  "notes": "Validate GA-evolved heuristic weights vs baselines. Replace heuristic_evolved weights with output from ga_evolve_weights.py"
+  "notes": "GA-evolved EnhancedHeuristicAgent v2 (10 features, 7-island ring, 28 gens, 68% win rate) vs baselines"
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Evolve HeuristicAgent weights using an Island-Model Genetic Algorithm.
+"""Evolve EnhancedHeuristicAgent weights using an Island-Model Genetic Algorithm.
 
 Uses a ring topology with 7+ islands that evolve independently, with periodic
 migration of elite individuals between neighbouring islands to balance
@@ -21,6 +21,7 @@ import argparse
 import copy
 import json
 import logging
+import multiprocessing
 import os
 import sys
 import time
@@ -32,6 +33,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import numpy as np
 
+from agents.enhanced_heuristic_agent import EnhancedHeuristicAgent
 from agents.heuristic_agent import HeuristicAgent
 from agents.random_agent import RandomAgent
 from engine.board import Player
@@ -41,8 +43,19 @@ logger = logging.getLogger(__name__)
 
 # ── Weight definitions ──────────────────────────────────────────────────────
 
-WEIGHT_NAMES = ["piece_size", "corner_creation", "edge_avoidance", "center_preference"]
-DEFAULT_WEIGHTS = [1.0, 2.0, -1.5, 0.5]
+WEIGHT_NAMES = [
+    # Original 4
+    "piece_size", "corner_creation", "edge_avoidance", "center_preference",
+    # New 6
+    "opponent_blocking", "corners_killed", "opponent_proximity",
+    "open_space", "piece_versatility", "blocking_risk",
+]
+DEFAULT_WEIGHTS = [
+    # Original 4
+    1.0, 2.0, -1.5, 0.5,
+    # New 6
+    1.5, -1.0, -0.5, 0.5, -0.3, -0.5,
+]
 WEIGHT_BOUNDS = (-5.0, 5.0)
 
 
@@ -104,7 +117,7 @@ def play_game(weights: Dict[str, float], opponents: List, seed: int) -> float:
     opponent_idx = 0
     for i, player in enumerate(players):
         if i == focal_seat:
-            agent = HeuristicAgent(seed=seed)
+            agent = EnhancedHeuristicAgent(seed=seed)
             agent.set_weights(weights)
             agents[player] = agent
         else:
@@ -146,25 +159,21 @@ def play_game(weights: Dict[str, float], opponents: List, seed: int) -> float:
     return float(result.scores.get(focal_player.value, 0))
 
 
-def evaluate_fitness(individual: Individual, games_per_eval: int,
-                     elite_weights: Optional[Dict[str, float]],
-                     base_seed: int) -> float:
-    """Evaluate an individual over multiple games.
+def _eval_worker(args_tuple):
+    """Worker function for multiprocessing. Must be top-level for pickling."""
+    weights_array, games_per_eval, elite_weights, base_seed = args_tuple
+    weights = dict(zip(WEIGHT_NAMES, weights_array.tolist()))
 
-    Opponents: 1 default-heuristic, 1 random, 1 elite (or default if no elite).
-    Returns average score across all games.
-    """
     default_agent = HeuristicAgent(seed=0)
     random_agent = RandomAgent(seed=0)
 
     if elite_weights is not None:
-        elite_agent = HeuristicAgent(seed=0)
+        elite_agent = EnhancedHeuristicAgent(seed=0)
         elite_agent.set_weights(elite_weights)
     else:
         elite_agent = HeuristicAgent(seed=0)
 
     opponents = [default_agent, random_agent, elite_agent]
-    weights = individual.weights_dict()
 
     total_score = 0.0
     for g in range(games_per_eval):
@@ -172,10 +181,36 @@ def evaluate_fitness(individual: Individual, games_per_eval: int,
         score = play_game(weights, opponents, game_seed)
         total_score += score
 
-    avg = total_score / games_per_eval
+    return total_score / games_per_eval
+
+
+def evaluate_fitness(individual: Individual, games_per_eval: int,
+                     elite_weights: Optional[Dict[str, float]],
+                     base_seed: int) -> float:
+    """Evaluate an individual over multiple games (sequential fallback)."""
+    avg = _eval_worker((individual.weights, games_per_eval, elite_weights, base_seed))
     individual.fitness = avg
     individual.games_played += games_per_eval
     return avg
+
+
+def evaluate_population_parallel(individuals: List[Individual],
+                                 games_per_eval: int,
+                                 elite_weights: Optional[Dict[str, float]],
+                                 base_seeds: List[int],
+                                 num_workers: int) -> None:
+    """Evaluate all individuals in parallel using multiprocessing."""
+    work_items = [
+        (ind.weights, games_per_eval, elite_weights, seed)
+        for ind, seed in zip(individuals, base_seeds)
+    ]
+
+    with multiprocessing.Pool(processes=num_workers) as pool:
+        results = pool.map(_eval_worker, work_items)
+
+    for ind, fitness in zip(individuals, results):
+        ind.fitness = fitness
+        ind.games_played += games_per_eval
 
 
 # ── GA operators ────────────────────────────────────────────────────────────
@@ -289,12 +324,12 @@ def evolve_island_generation(island: Island, elite_count: int,
                              global_elite_weights: Optional[Dict[str, float]],
                              base_seed: int,
                              rng: np.random.RandomState) -> None:
-    """Evolve one island for one generation."""
-    pop_size = len(island.population)
+    """Evolve one island for one generation.
 
-    # Evaluate fitness for all individuals
-    for ind in island.population:
-        evaluate_fitness(ind, games_per_eval, global_elite_weights, base_seed)
+    NOTE: Fitness must already be evaluated on all individuals before calling.
+    This function handles selection, crossover, mutation, and elitism only.
+    """
+    pop_size = len(island.population)
 
     # Sort by fitness (best first)
     island.population.sort(key=lambda ind: ind.fitness, reverse=True)
@@ -327,6 +362,8 @@ def run_ga(args: argparse.Namespace) -> EvolutionResult:
     pop_per_island = args.population
     total_pop = num_islands * pop_per_island
 
+    num_workers = getattr(args, 'workers', None) or min(num_islands * pop_per_island, multiprocessing.cpu_count())
+
     if args.verbose:
         print(f"\n{'='*65}")
         print(f" Island-Model GA — Ring Topology")
@@ -335,7 +372,7 @@ def run_ga(args: argparse.Namespace) -> EvolutionResult:
         print(f" Generations: {args.generations}, Games/eval: {args.games_per_eval}")
         print(f" Migration every {args.migration_interval} generations, "
               f"{args.num_migrants} migrant(s)")
-        print(f" Seed: {args.seed}")
+        print(f" Workers: {num_workers}, Seed: {args.seed}")
         print(f"{'='*65}\n")
 
     # Create islands — seed island 0 with default hand-tuned weights
@@ -363,8 +400,26 @@ def run_ga(args: argparse.Namespace) -> EvolutionResult:
         # Global elite weights for opponent pool
         elite_weights = dict(zip(WEIGHT_NAMES, global_best_weights.tolist()))
 
-        # Evolve each island
+        # Collect ALL individuals across ALL islands for parallel evaluation
         gen_seed = args.seed + gen * 10000
+        all_individuals = []
+        all_seeds = []
+        for island in islands:
+            island_seed = gen_seed + island.island_id * 1000
+            for ind in island.population:
+                all_individuals.append(ind)
+                all_seeds.append(island_seed)
+
+        # Parallel fitness evaluation across all islands at once
+        if num_workers > 1:
+            evaluate_population_parallel(
+                all_individuals, args.games_per_eval, elite_weights,
+                all_seeds, num_workers)
+        else:
+            for ind, seed in zip(all_individuals, all_seeds):
+                evaluate_fitness(ind, args.games_per_eval, elite_weights, seed)
+
+        # Now run selection/crossover/mutation on each island (fast, no games)
         for island in islands:
             island_seed = gen_seed + island.island_id * 1000
             island_rng = np.random.RandomState(island_seed)
@@ -485,7 +540,7 @@ def run_ga(args: argparse.Namespace) -> EvolutionResult:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Evolve HeuristicAgent weights via Island-Model GA (ring topology)")
+        description="Evolve EnhancedHeuristicAgent weights via Island-Model GA (ring topology)")
 
     # Island model
     parser.add_argument("--islands", type=int, default=7,
@@ -520,6 +575,8 @@ def main():
     # General
     parser.add_argument("--seed", type=int, default=42,
                         help="Random seed (default: 42)")
+    parser.add_argument("--workers", type=int, default=0,
+                        help="Parallel workers (0=auto, 1=sequential, default: 0)")
     parser.add_argument("--output", type=str, default="data/ga_evolved_weights.json",
                         help="Output JSON path (default: data/ga_evolved_weights.json)")
     parser.add_argument("--verbose", action="store_true",

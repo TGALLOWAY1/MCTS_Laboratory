@@ -1,0 +1,865 @@
+{
+  "best_weights": {
+    "piece_size": 4.186353869233235,
+    "corner_creation": 0.47505818308099407,
+    "edge_avoidance": -2.096073026902312,
+    "center_preference": 4.263163922060554,
+    "opponent_blocking": -0.37153835519299516,
+    "corners_killed": 1.713864813797406,
+    "opponent_proximity": -1.998280477155598,
+    "open_space": 0.4363959883717228,
+    "piece_versatility": -5.0,
+    "blocking_risk": 1.5133376303215236
+  },
+  "best_fitness": 108.33333333333333,
+  "generation": 28,
+  "islands": 7,
+  "default_weights": {
+    "piece_size": 1.0,
+    "corner_creation": 2.0,
+    "edge_avoidance": -1.5,
+    "center_preference": 0.5,
+    "opponent_blocking": 1.5,
+    "corners_killed": -1.0,
+    "opponent_proximity": -0.5,
+    "open_space": 0.5,
+    "piece_versatility": -0.3,
+    "blocking_risk": -0.5
+  },
+  "config": {
+    "islands": 7,
+    "population_per_island": 6,
+    "total_population": 42,
+    "generations": 200,
+    "games_per_eval": 6,
+    "tournament_k": 3,
+    "crossover_alpha": 0.5,
+    "mutation_rate": 0.3,
+    "sigma_start": 1.0,
+    "sigma_end": 0.05,
+    "elitism": 2,
+    "migration_interval": 5,
+    "num_migrants": 2,
+    "early_stop": 10,
+    "weight_bounds": [
+      -5.0,
+      5.0
+    ],
+    "seed": 99,
+    "total_elapsed_seconds": 3395.46
+  },
+  "history": [
+    {
+      "generation": 0,
+      "best_fitness": 95.5,
+      "global_best_fitness": 95.5,
+      "best_weights": {
+        "piece_size": 2.649776773798145,
+        "corner_creation": 4.993692875381324,
+        "edge_avoidance": 0.28983014654717865,
+        "center_preference": 3.31636548664091,
+        "opponent_blocking": 2.2326113542088355,
+        "corners_killed": 2.688098438265153,
+        "opponent_proximity": -2.066692973962242,
+        "open_space": 0.6629210251815887,
+        "piece_versatility": 3.0830085147719313,
+        "blocking_risk": 0.4522231394150755
+      },
+      "mutation_sigma": 1.0,
+      "elapsed_seconds": 58.57,
+      "island_best": [
+        85.33333333333333,
+        85.33333333333333,
+        80.83333333333333,
+        66.0,
+        95.5,
+        79.66666666666667,
+        78.83333333333333
+      ]
+    },
+    {
+      "generation": 1,
+      "best_fitness": 93.0,
+      "global_best_fitness": 95.5,
+      "best_weights": {
+        "piece_size": 1.1462431186877398,
+        "corner_creation": 3.1147664007356237,
+        "edge_avoidance": -1.4704026051008132,
+        "center_preference": 0.46482002144872975,
+        "opponent_blocking": 5.0,
+        "corners_killed": -1.0667544293356954,
+        "opponent_proximity": -0.6899159303895206,
+        "open_space": -0.36386489638801106,
+        "piece_versatility": 0.6392426051397624,
+        "blocking_risk": 2.7244195624125536
+      },
+      "mutation_sigma": 0.9952,
+      "elapsed_seconds": 59.69,
+      "island_best": [
+        93.0,
+        74.66666666666667,
+        79.33333333333333,
+        68.33333333333333,
+        84.5,
+        84.16666666666667,
+        86.5
+      ]
+    },
+    {
+      "generation": 2,
+      "best_fitness": 92.83333333333333,
+      "global_best_fitness": 95.5,
+      "best_weights": {
+        "piece_size": 2.649776773798145,
+        "corner_creation": 4.993692875381324,
+        "edge_avoidance": 0.28983014654717865,
+        "center_preference": 3.31636548664091,
+        "opponent_blocking": 2.2326113542088355,
+        "corners_killed": 2.688098438265153,
+        "opponent_proximity": -2.066692973962242,
+        "open_space": 0.6629210251815887,
+        "piece_versatility": 3.0830085147719313,
+        "blocking_risk": 0.4522231394150755
+      },
+      "mutation_sigma": 0.9905,
+      "elapsed_seconds": 61.15,
+      "island_best": [
+        90.5,
+        91.33333333333333,
+        82.33333333333333,
+        72.0,
+        92.83333333333333,
+        88.5,
+        89.5
+      ]
+    },
+    {
+      "generation": 3,
+      "best_fitness": 99.83333333333333,
+      "global_best_fitness": 99.83333333333333,
+      "best_weights": {
+        "piece_size": 1.6249651012737687,
+        "corner_creation": 1.9737235679421838,
+        "edge_avoidance": 0.2964306904914995,
+        "center_preference": 2.6018458667231004,
+        "opponent_blocking": 2.305277423185655,
+        "corners_killed": 2.894208186048966,
+        "opponent_proximity": -2.047861433445165,
+        "open_space": 0.44596486790928497,
+        "piece_versatility": 3.1364862862746175,
+        "blocking_risk": 2.186087837402429
+      },
+      "mutation_sigma": 0.9857,
+      "elapsed_seconds": 161.63,
+      "island_best": [
+        92.66666666666667,
+        90.16666666666667,
+        83.83333333333333,
+        73.16666666666667,
+        99.83333333333333,
+        96.33333333333333,
+        87.16666666666667
+      ]
+    },
+    {
+      "generation": 4,
+      "best_fitness": 97.33333333333333,
+      "global_best_fitness": 99.83333333333333,
+      "best_weights": {
+        "piece_size": 3.1986327851588383,
+        "corner_creation": 2.9787206659946794,
+        "edge_avoidance": -4.032082050295009,
+        "center_preference": -1.6569347215022243,
+        "opponent_blocking": 5.0,
+        "corners_killed": -3.8628938994888853,
+        "opponent_proximity": -1.0229584251482722,
+        "open_space": -0.03269801906625583,
+        "piece_versatility": 1.7953529771576013,
+        "blocking_risk": 2.7742986174148143
+      },
+      "mutation_sigma": 0.9809,
+      "elapsed_seconds": 458.68,
+      "island_best": [
+        87.5,
+        94.0,
+        97.33333333333333,
+        83.66666666666667,
+        74.83333333333333,
+        93.5,
+        89.83333333333333
+      ]
+    },
+    {
+      "generation": 5,
+      "best_fitness": 98.83333333333333,
+      "global_best_fitness": 99.83333333333333,
+      "best_weights": {
+        "piece_size": 3.1986327851588383,
+        "corner_creation": 2.9787206659946794,
+        "edge_avoidance": -4.032082050295009,
+        "center_preference": 0.12901148031908738,
+        "opponent_blocking": 5.0,
+        "corners_killed": -3.8628938994888853,
+        "opponent_proximity": -1.0229584251482722,
+        "open_space": -0.7835567028667688,
+        "piece_versatility": 1.7953529771576013,
+        "blocking_risk": 2.7742986174148143
+      },
+      "mutation_sigma": 0.9761,
+      "elapsed_seconds": 56.78,
+      "island_best": [
+        90.66666666666667,
+        98.83333333333333,
+        87.33333333333333,
+        78.33333333333333,
+        92.83333333333333,
+        91.83333333333333,
+        82.0
+      ]
+    },
+    {
+      "generation": 6,
+      "best_fitness": 97.16666666666667,
+      "global_best_fitness": 99.83333333333333,
+      "best_weights": {
+        "piece_size": 1.9583205966215154,
+        "corner_creation": 1.567470999301704,
+        "edge_avoidance": -0.739436061525446,
+        "center_preference": 3.282633150238732,
+        "opponent_blocking": 3.2276163228930814,
+        "corners_killed": 2.1309742168866213,
+        "opponent_proximity": -2.874532607335559,
+        "open_space": 0.6209899281928047,
+        "piece_versatility": 3.143457973457582,
+        "blocking_risk": 2.1106149444181153
+      },
+      "mutation_sigma": 0.9714,
+      "elapsed_seconds": 61.16,
+      "island_best": [
+        93.0,
+        96.16666666666667,
+        92.16666666666667,
+        87.0,
+        97.16666666666667,
+        95.33333333333333,
+        83.16666666666667
+      ]
+    },
+    {
+      "generation": 7,
+      "best_fitness": 103.0,
+      "global_best_fitness": 103.0,
+      "best_weights": {
+        "piece_size": 4.841909023452967,
+        "corner_creation": 2.7868570431645265,
+        "edge_avoidance": -4.032082050295009,
+        "center_preference": 0.12901148031908738,
+        "opponent_blocking": 5.0,
+        "corners_killed": -3.8628938994888853,
+        "opponent_proximity": -2.5410568535419307,
+        "open_space": -0.28610709532486034,
+        "piece_versatility": 1.7953529771576013,
+        "blocking_risk": 2.7742986174148143
+      },
+      "mutation_sigma": 0.9666,
+      "elapsed_seconds": 62.34,
+      "island_best": [
+        93.33333333333333,
+        103.0,
+        95.83333333333333,
+        88.5,
+        90.5,
+        96.83333333333333,
+        89.83333333333333
+      ]
+    },
+    {
+      "generation": 8,
+      "best_fitness": 96.5,
+      "global_best_fitness": 103.0,
+      "best_weights": {
+        "piece_size": 5.0,
+        "corner_creation": 2.823381666828518,
+        "edge_avoidance": -4.838570716597715,
+        "center_preference": -1.9167972077737523,
+        "opponent_blocking": 5.0,
+        "corners_killed": -3.8628938994888853,
+        "opponent_proximity": -1.964351330386685,
+        "open_space": -0.12044679798245317,
+        "piece_versatility": 1.7953529771576013,
+        "blocking_risk": 2.7742986174148143
+      },
+      "mutation_sigma": 0.9618,
+      "elapsed_seconds": 73.9,
+      "island_best": [
+        93.0,
+        96.5,
+        92.83333333333333,
+        86.33333333333333,
+        89.33333333333333,
+        89.66666666666667,
+        87.16666666666667
+      ]
+    },
+    {
+      "generation": 9,
+      "best_fitness": 101.0,
+      "global_best_fitness": 103.0,
+      "best_weights": {
+        "piece_size": 4.956770597996689,
+        "corner_creation": 0.618412480228991,
+        "edge_avoidance": -2.9978329477926238,
+        "center_preference": -2.4401182786730393,
+        "opponent_blocking": 2.3112114344072388,
+        "corners_killed": -3.8628938994888853,
+        "opponent_proximity": -2.0958038666445846,
+        "open_space": 0.08585084302589505,
+        "piece_versatility": 1.8082688070632507,
+        "blocking_risk": 2.7742986174148143
+      },
+      "mutation_sigma": 0.957,
+      "elapsed_seconds": 78.36,
+      "island_best": [
+        85.83333333333333,
+        90.5,
+        101.0,
+        93.66666666666667,
+        85.83333333333333,
+        98.66666666666667,
+        97.5
+      ]
+    },
+    {
+      "generation": 10,
+      "best_fitness": 101.5,
+      "global_best_fitness": 103.0,
+      "best_weights": {
+        "piece_size": 4.78214515240506,
+        "corner_creation": 3.21505238874825,
+        "edge_avoidance": -4.521522711012387,
+        "center_preference": -3.390266146577409,
+        "opponent_blocking": 5.0,
+        "corners_killed": -3.8628938994888853,
+        "opponent_proximity": -2.7204258178581995,
+        "open_space": -0.14887819633926333,
+        "piece_versatility": 0.5090009657382712,
+        "blocking_risk": 2.7742986174148143
+      },
+      "mutation_sigma": 0.9523,
+      "elapsed_seconds": 80.04,
+      "island_best": [
+        92.0,
+        101.5,
+        98.0,
+        89.16666666666667,
+        89.0,
+        97.5,
+        95.0
+      ]
+    },
+    {
+      "generation": 11,
+      "best_fitness": 101.66666666666667,
+      "global_best_fitness": 103.0,
+      "best_weights": {
+        "piece_size": 4.956770597996689,
+        "corner_creation": 0.618412480228991,
+        "edge_avoidance": -2.9978329477926238,
+        "center_preference": -2.4401182786730393,
+        "opponent_blocking": 2.3112114344072388,
+        "corners_killed": -3.8628938994888853,
+        "opponent_proximity": -2.0958038666445846,
+        "open_space": 0.08585084302589505,
+        "piece_versatility": 1.8082688070632507,
+        "blocking_risk": 2.7742986174148143
+      },
+      "mutation_sigma": 0.9475,
+      "elapsed_seconds": 78.56,
+      "island_best": [
+        92.66666666666667,
+        98.16666666666667,
+        101.66666666666667,
+        93.16666666666667,
+        94.66666666666667,
+        94.83333333333333,
+        92.83333333333333
+      ]
+    },
+    {
+      "generation": 12,
+      "best_fitness": 100.83333333333333,
+      "global_best_fitness": 103.0,
+      "best_weights": {
+        "piece_size": 5.0,
+        "corner_creation": 0.47684688457245855,
+        "edge_avoidance": -3.014161017063014,
+        "center_preference": 4.267050354128567,
+        "opponent_blocking": -2.913503491412001,
+        "corners_killed": 1.7140334573265432,
+        "opponent_proximity": -1.8937442945130833,
+        "open_space": -0.10595041043121409,
+        "piece_versatility": -4.8689178760118565,
+        "blocking_risk": 1.8795788471132777
+      },
+      "mutation_sigma": 0.9427,
+      "elapsed_seconds": 80.63,
+      "island_best": [
+        89.16666666666667,
+        96.83333333333333,
+        95.83333333333333,
+        88.33333333333333,
+        99.83333333333333,
+        100.83333333333333,
+        97.33333333333333
+      ]
+    },
+    {
+      "generation": 13,
+      "best_fitness": 99.33333333333333,
+      "global_best_fitness": 103.0,
+      "best_weights": {
+        "piece_size": 5.0,
+        "corner_creation": 0.478053494275357,
+        "edge_avoidance": -2.262364375752296,
+        "center_preference": 4.316284553412502,
+        "opponent_blocking": -3.5265485043624376,
+        "corners_killed": 1.7139441232993322,
+        "opponent_proximity": -1.896969999850792,
+        "open_space": -0.05998285791400166,
+        "piece_versatility": -4.565637865745128,
+        "blocking_risk": 1.879086986404368
+      },
+      "mutation_sigma": 0.9379,
+      "elapsed_seconds": 81.2,
+      "island_best": [
+        86.0,
+        92.16666666666667,
+        92.0,
+        91.33333333333333,
+        96.5,
+        94.83333333333333,
+        99.33333333333333
+      ]
+    },
+    {
+      "generation": 14,
+      "best_fitness": 97.33333333333333,
+      "global_best_fitness": 103.0,
+      "best_weights": {
+        "piece_size": 2.44998169899201,
+        "corner_creation": 2.7421947860031692,
+        "edge_avoidance": -0.901486572710825,
+        "center_preference": 3.721597515677982,
+        "opponent_blocking": 2.9203393878862824,
+        "corners_killed": 1.8160185714456165,
+        "opponent_proximity": -3.8784839179382535,
+        "open_space": -0.3299747786436291,
+        "piece_versatility": 3.5935350779930326,
+        "blocking_risk": 2.6558471719897305
+      },
+      "mutation_sigma": 0.9332,
+      "elapsed_seconds": 784.57,
+      "island_best": [
+        91.66666666666667,
+        91.66666666666667,
+        94.16666666666667,
+        94.0,
+        88.16666666666667,
+        97.33333333333333,
+        96.5
+      ]
+    },
+    {
+      "generation": 15,
+      "best_fitness": 97.0,
+      "global_best_fitness": 103.0,
+      "best_weights": {
+        "piece_size": 5.0,
+        "corner_creation": 0.47684688457245855,
+        "edge_avoidance": -3.014161017063014,
+        "center_preference": 4.267050354128567,
+        "opponent_blocking": -1.7015049717887223,
+        "corners_killed": 1.7140334573265432,
+        "opponent_proximity": -0.3734086704782049,
+        "open_space": -0.10595041043121409,
+        "piece_versatility": -4.8689178760118565,
+        "blocking_risk": 1.8795788471132777
+      },
+      "mutation_sigma": 0.9284,
+      "elapsed_seconds": 205.56,
+      "island_best": [
+        89.83333333333333,
+        95.33333333333333,
+        94.16666666666667,
+        93.0,
+        96.0,
+        94.83333333333333,
+        97.0
+      ]
+    },
+    {
+      "generation": 16,
+      "best_fitness": 103.66666666666667,
+      "global_best_fitness": 103.66666666666667,
+      "best_weights": {
+        "piece_size": 4.299947040940288,
+        "corner_creation": -0.2564705132323954,
+        "edge_avoidance": -2.579413360900478,
+        "center_preference": 1.0546131445167195,
+        "opponent_blocking": 5.0,
+        "corners_killed": -2.490290378045826,
+        "opponent_proximity": -3.279130320623354,
+        "open_space": -0.451008264302385,
+        "piece_versatility": -4.5997775579111755,
+        "blocking_risk": 2.9310048038250462
+      },
+      "mutation_sigma": 0.9236,
+      "elapsed_seconds": 72.62,
+      "island_best": [
+        94.0,
+        103.66666666666667,
+        90.83333333333333,
+        94.66666666666667,
+        91.33333333333333,
+        90.0,
+        99.83333333333333
+      ]
+    },
+    {
+      "generation": 17,
+      "best_fitness": 96.16666666666667,
+      "global_best_fitness": 103.66666666666667,
+      "best_weights": {
+        "piece_size": 5.0,
+        "corner_creation": 0.40688890544250517,
+        "edge_avoidance": -4.3064677994225224,
+        "center_preference": 4.934829812379768,
+        "opponent_blocking": -2.303020884747602,
+        "corners_killed": -1.3336417826161127,
+        "opponent_proximity": -2.371284101523266,
+        "open_space": -0.19032124543904597,
+        "piece_versatility": -4.8689178760118565,
+        "blocking_risk": 2.04459024587255
+      },
+      "mutation_sigma": 0.9188,
+      "elapsed_seconds": 71.35,
+      "island_best": [
+        91.33333333333333,
+        92.33333333333333,
+        92.83333333333333,
+        94.0,
+        96.0,
+        96.16666666666667,
+        95.5
+      ]
+    },
+    {
+      "generation": 18,
+      "best_fitness": 108.33333333333333,
+      "global_best_fitness": 108.33333333333333,
+      "best_weights": {
+        "piece_size": 4.186353869233235,
+        "corner_creation": 0.47505818308099407,
+        "edge_avoidance": -2.096073026902312,
+        "center_preference": 4.263163922060554,
+        "opponent_blocking": -0.37153835519299516,
+        "corners_killed": 1.713864813797406,
+        "opponent_proximity": -1.998280477155598,
+        "open_space": 0.4363959883717228,
+        "piece_versatility": -5.0,
+        "blocking_risk": 1.5133376303215236
+      },
+      "mutation_sigma": 0.9141,
+      "elapsed_seconds": 75.81,
+      "island_best": [
+        91.0,
+        89.16666666666667,
+        95.0,
+        87.83333333333333,
+        90.16666666666667,
+        93.83333333333333,
+        108.33333333333333
+      ]
+    },
+    {
+      "generation": 19,
+      "best_fitness": 100.66666666666667,
+      "global_best_fitness": 108.33333333333333,
+      "best_weights": {
+        "piece_size": 3.451735517086324,
+        "corner_creation": 0.39292142633456617,
+        "edge_avoidance": -3.092068117412434,
+        "center_preference": 0.40437654595115435,
+        "opponent_blocking": 2.4613373357098096,
+        "corners_killed": -2.3538173941320495,
+        "opponent_proximity": -3.2261855838606843,
+        "open_space": 0.153814623512586,
+        "piece_versatility": 0.940274127864688,
+        "blocking_risk": 1.9894417815830094
+      },
+      "mutation_sigma": 0.9093,
+      "elapsed_seconds": 71.3,
+      "island_best": [
+        98.0,
+        96.5,
+        91.83333333333333,
+        100.66666666666667,
+        97.33333333333333,
+        91.83333333333333,
+        100.0
+      ]
+    },
+    {
+      "generation": 20,
+      "best_fitness": 106.0,
+      "global_best_fitness": 108.33333333333333,
+      "best_weights": {
+        "piece_size": 4.597902538442115,
+        "corner_creation": 0.44881811777377756,
+        "edge_avoidance": -2.2249890422291045,
+        "center_preference": 1.1038966178498293,
+        "opponent_blocking": 5.0,
+        "corners_killed": -0.21530724701135792,
+        "opponent_proximity": 0.6769987621799317,
+        "open_space": 0.9748982974671574,
+        "piece_versatility": -2.364824543129076,
+        "blocking_risk": 3.950828586240657
+      },
+      "mutation_sigma": 0.9045,
+      "elapsed_seconds": 71.15,
+      "island_best": [
+        106.0,
+        96.16666666666667,
+        94.16666666666667,
+        89.0,
+        90.16666666666667,
+        90.66666666666667,
+        96.5
+      ]
+    },
+    {
+      "generation": 21,
+      "best_fitness": 100.33333333333333,
+      "global_best_fitness": 108.33333333333333,
+      "best_weights": {
+        "piece_size": 5.0,
+        "corner_creation": 1.4048185675342242,
+        "edge_avoidance": -4.351080284197858,
+        "center_preference": 4.939175207090458,
+        "opponent_blocking": -2.2951916392055165,
+        "corners_killed": -1.2064026869752502,
+        "opponent_proximity": -2.350863815373917,
+        "open_space": 0.32850161777838793,
+        "piece_versatility": -3.974086833854891,
+        "blocking_risk": 2.3521152353481534
+      },
+      "mutation_sigma": 0.8997,
+      "elapsed_seconds": 69.95,
+      "island_best": [
+        97.66666666666667,
+        94.5,
+        96.0,
+        99.0,
+        94.5,
+        100.33333333333333,
+        97.66666666666667
+      ]
+    },
+    {
+      "generation": 22,
+      "best_fitness": 99.83333333333333,
+      "global_best_fitness": 108.33333333333333,
+      "best_weights": {
+        "piece_size": 5.0,
+        "corner_creation": 0.8122323186615727,
+        "edge_avoidance": -3.703119616137271,
+        "center_preference": 4.984065075672122,
+        "opponent_blocking": -1.5754074039856607,
+        "corners_killed": -0.9152239230158763,
+        "opponent_proximity": -1.5121353122558734,
+        "open_space": -0.12975267130461937,
+        "piece_versatility": -4.8689178760118565,
+        "blocking_risk": 2.5144866686930722
+      },
+      "mutation_sigma": 0.895,
+      "elapsed_seconds": 73.37,
+      "island_best": [
+        93.66666666666667,
+        97.66666666666667,
+        93.5,
+        90.0,
+        93.5,
+        99.83333333333333,
+        93.33333333333333
+      ]
+    },
+    {
+      "generation": 23,
+      "best_fitness": 99.66666666666667,
+      "global_best_fitness": 108.33333333333333,
+      "best_weights": {
+        "piece_size": 4.119120591480909,
+        "corner_creation": 0.4414126568000882,
+        "edge_avoidance": -1.4846643000916169,
+        "center_preference": 0.10550830433638429,
+        "opponent_blocking": 5.0,
+        "corners_killed": 0.6378519730376835,
+        "opponent_proximity": 0.8285653051222955,
+        "open_space": 1.0599618973766138,
+        "piece_versatility": -2.1297818996035427,
+        "blocking_risk": 3.3351115068513724
+      },
+      "mutation_sigma": 0.8902,
+      "elapsed_seconds": 73.23,
+      "island_best": [
+        95.83333333333333,
+        99.66666666666667,
+        99.66666666666667,
+        98.5,
+        95.16666666666667,
+        96.33333333333333,
+        91.33333333333333
+      ]
+    },
+    {
+      "generation": 24,
+      "best_fitness": 102.5,
+      "global_best_fitness": 108.33333333333333,
+      "best_weights": {
+        "piece_size": 5.0,
+        "corner_creation": 1.1647774495554872,
+        "edge_avoidance": -4.359902735305122,
+        "center_preference": 4.944802898929923,
+        "opponent_blocking": -1.8132070574966797,
+        "corners_killed": -0.8128754888846722,
+        "opponent_proximity": -1.2159312672311804,
+        "open_space": 0.3420445064118481,
+        "piece_versatility": -4.90032024621397,
+        "blocking_risk": 2.423106790191604
+      },
+      "mutation_sigma": 0.8854,
+      "elapsed_seconds": 79.41,
+      "island_best": [
+        96.83333333333333,
+        94.83333333333333,
+        93.16666666666667,
+        102.16666666666667,
+        99.33333333333333,
+        100.16666666666667,
+        102.5
+      ]
+    },
+    {
+      "generation": 25,
+      "best_fitness": 107.5,
+      "global_best_fitness": 108.33333333333333,
+      "best_weights": {
+        "piece_size": 3.8295739628326038,
+        "corner_creation": 0.4998394193074712,
+        "edge_avoidance": -1.6740484845523658,
+        "center_preference": -1.2172724699690978,
+        "opponent_blocking": 4.660700629739942,
+        "corners_killed": -1.1499856387636074,
+        "opponent_proximity": -2.4949721813392625,
+        "open_space": 0.9746964674992094,
+        "piece_versatility": 0.625465594030242,
+        "blocking_risk": 2.986121760553805
+      },
+      "mutation_sigma": 0.8807,
+      "elapsed_seconds": 74.2,
+      "island_best": [
+        100.66666666666667,
+        99.16666666666667,
+        107.5,
+        106.33333333333333,
+        96.5,
+        93.83333333333333,
+        97.0
+      ]
+    },
+    {
+      "generation": 26,
+      "best_fitness": 100.66666666666667,
+      "global_best_fitness": 108.33333333333333,
+      "best_weights": {
+        "piece_size": 4.64660271371268,
+        "corner_creation": 1.2734664213031075,
+        "edge_avoidance": -2.438858246028137,
+        "center_preference": -1.1695418425356832,
+        "opponent_blocking": 2.93207072834605,
+        "corners_killed": -4.0165182673211905,
+        "opponent_proximity": -2.802137692790998,
+        "open_space": -0.26252929518578677,
+        "piece_versatility": 2.9847275500787633,
+        "blocking_risk": 2.101710797257653
+      },
+      "mutation_sigma": 0.8759,
+      "elapsed_seconds": 72.58,
+      "island_best": [
+        94.0,
+        98.5,
+        93.66666666666667,
+        100.66666666666667,
+        95.33333333333333,
+        95.0,
+        98.5
+      ]
+    },
+    {
+      "generation": 27,
+      "best_fitness": 108.33333333333333,
+      "global_best_fitness": 108.33333333333333,
+      "best_weights": {
+        "piece_size": 4.418776577082806,
+        "corner_creation": 0.9723803463162047,
+        "edge_avoidance": -1.395916188681148,
+        "center_preference": -1.2197065897119987,
+        "opponent_blocking": 3.6186681101602605,
+        "corners_killed": -1.618943239349666,
+        "opponent_proximity": -2.4471877272597253,
+        "open_space": -0.6713716323189116,
+        "piece_versatility": 1.7867088558659656,
+        "blocking_risk": 2.358935186386195
+      },
+      "mutation_sigma": 0.8711,
+      "elapsed_seconds": 73.44,
+      "island_best": [
+        97.0,
+        95.5,
+        95.66666666666667,
+        108.33333333333333,
+        99.66666666666667,
+        95.5,
+        106.33333333333333
+      ]
+    },
+    {
+      "generation": 28,
+      "best_fitness": 97.83333333333333,
+      "global_best_fitness": 108.33333333333333,
+      "best_weights": {
+        "piece_size": 5.0,
+        "corner_creation": 0.2813488397878584,
+        "edge_avoidance": -4.212161090040566,
+        "center_preference": 4.836484468577052,
+        "opponent_blocking": 0.05343418605038257,
+        "corners_killed": 1.048393725577742,
+        "opponent_proximity": -1.2572370419868035,
+        "open_space": 0.32890714606538435,
+        "piece_versatility": -4.939380029545166,
+        "blocking_risk": 2.5587168404179494
+      },
+      "mutation_sigma": 0.8663,
+      "elapsed_seconds": 74.23,
+      "island_best": [
+        92.83333333333333,
+        94.5,
+        96.83333333333333,
+        97.0,
+        96.83333333333333,
+        97.83333333333333,
+        96.16666666666667
+      ]
+    }
+  ]
+}

@@ -4,6 +4,68 @@ A Blokus AI experimentation platform centered on fast simulation, Monte Carlo Tr
 
 <img width="1795" height="865" alt="image" src="https://github.com/user-attachments/assets/751e771f-ce00-45b8-8289-6086f760cd7d" />
 
+---
+
+## Contribution: GA-Evolved Heuristic Agent (feat/ga-weight-evolution)
+
+We added an **Island-Model Genetic Algorithm** that evolves heuristic evaluation weights for Blokus — and the resulting agent **beats MCTS 8-to-1**.
+
+### The Problem
+
+The existing `HeuristicAgent` has 4 hand-tuned feature weights. They were never optimized. Meanwhile, MCTS struggles in Blokus due to the enormous branching factor (~80-500 legal moves per turn) and uninformative random rollouts.
+
+### What We Built
+
+1. **`EnhancedHeuristicAgent`** — 10 strategic features (the original 4 + 6 new ones covering opponent awareness, frontier management, and piece economy)
+2. **Island-Model GA** — 7 islands in a ring topology, evolving weights via BLX-alpha crossover, tournament selection, and Gaussian mutation with parallel fitness evaluation across 8 CPU cores
+3. **Neural network pipeline** (in progress) — supervised pre-training from 337k board states for future MCTS integration
+
+### Results
+
+| Agent | Win Rate | Avg Score |
+|-------|----------|-----------|
+| **GA-Evolved Enhanced Heuristic** | **60.0%** | **96.6** |
+| Default Heuristic (4 features) | 32.5% | 88.1 |
+| FastMCTS (500 iterations) | 7.5% | 75.9 |
+| Random | 0.0% | 60.5 |
+
+The evolved agent uses **zero lookahead** — it evaluates moves instantly using a weighted sum of 10 features. It beats MCTS because the GA discovered a counterintuitive aggressive strategy: play big pieces, rush the center, create outpost corners near opponents, and save flexible pieces for the endgame. Three of the 10 weights flipped sign from their hand-tuned defaults.
+
+### Why MCTS Struggles Here
+
+This isn't unique to Blokus. We independently discovered the same thing that [Nonaga](https://github.com/RaggedR/nonaga) research found — AlphaZero-style MCTS with random rollouts fails in games where the branching factor is too high for shallow search to be meaningful and random play produces uninformative value estimates. In both Blokus and Nonaga, a well-tuned evaluation function with zero lookahead outperforms tree search. The insight: **features matter more than search when search quality is poor.**
+
+### Quick Start
+
+```bash
+# Run the GA (full evolution, ~1 hour with 8 cores)
+python scripts/ga_evolve_weights.py --islands 7 --population 6 --generations 200 \
+    --games-per-eval 6 --workers 8 --sigma-start 1.0 --verbose
+
+# Quick arena comparison (2 minutes)
+python scripts/quick_arena.py 40
+
+# Run tests
+pytest tests/test_ga_evolve.py -v
+```
+
+### New Files
+
+| File | Purpose |
+|------|---------|
+| `agents/enhanced_heuristic_agent.py` | 10-feature heuristic agent |
+| `scripts/ga_evolve_weights.py` | Island-model GA with multiprocessing |
+| `scripts/quick_arena.py` | Lightweight game runner for fast benchmarking |
+| `scripts/generate_nn_training_data.py` | Training data generation from self-play |
+| `scripts/arena_config_ga_evolved.json` | Arena config with evolved weights |
+| `tests/test_ga_evolve.py` | 20 unit tests |
+| `docs/ga_weight_evolution.md` | Documentation |
+| `DESIGN_DECISIONS.md` | Full design rationale, training runs, and results |
+
+See [DESIGN_DECISIONS.md](DESIGN_DECISIONS.md) for the complete story — including why 3 weights flipped sign, how the island model works, and the separation-of-concerns architecture (NN features → GA weights → MCTS search).
+
+---
+
 ## Architecture at a Glance
 
 - **Game Engine (Python)**: High-performance bitboard and frontier-based move generation, capable of thousands of simulations per second.

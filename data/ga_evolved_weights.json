@@ -1,0 +1,333 @@
+{
+  "best_weights": {
+    "piece_size": 1.4077048888950436,
+    "corner_creation": 2.8581557577166907,
+    "edge_avoidance": -1.4961315390212713,
+    "center_preference": 0.29942180520269995,
+    "opponent_blocking": 1.6343394913062423,
+    "corners_killed": -1.4861171372529542,
+    "opponent_proximity": -0.6679458846009494,
+    "open_space": 0.5679153862661733,
+    "piece_versatility": -0.3,
+    "blocking_risk": -0.9363114965393224
+  },
+  "best_fitness": 96.75,
+  "generation": 9,
+  "islands": 7,
+  "default_weights": {
+    "piece_size": 1.0,
+    "corner_creation": 2.0,
+    "edge_avoidance": -1.5,
+    "center_preference": 0.5,
+    "opponent_blocking": 1.5,
+    "corners_killed": -1.0,
+    "opponent_proximity": -0.5,
+    "open_space": 0.5,
+    "piece_versatility": -0.3,
+    "blocking_risk": -0.5
+  },
+  "config": {
+    "islands": 7,
+    "population_per_island": 4,
+    "total_population": 28,
+    "generations": 10,
+    "games_per_eval": 4,
+    "tournament_k": 3,
+    "crossover_alpha": 0.5,
+    "mutation_rate": 0.3,
+    "sigma_start": 0.5,
+    "sigma_end": 0.1,
+    "elitism": 2,
+    "migration_interval": 3,
+    "num_migrants": 1,
+    "early_stop": 10,
+    "weight_bounds": [
+      -5.0,
+      5.0
+    ],
+    "seed": 42,
+    "total_elapsed_seconds": 2377.4
+  },
+  "history": [
+    {
+      "generation": 0,
+      "best_fitness": 92.0,
+      "global_best_fitness": 92.0,
+      "best_weights": {
+        "piece_size": 1.0,
+        "corner_creation": 2.0,
+        "edge_avoidance": -1.5,
+        "center_preference": 0.5,
+        "opponent_blocking": 1.5,
+        "corners_killed": -1.0,
+        "opponent_proximity": -0.5,
+        "open_space": 0.5,
+        "piece_versatility": -0.3,
+        "blocking_risk": -0.5
+      },
+      "mutation_sigma": 0.5,
+      "elapsed_seconds": 117.62,
+      "island_best": [
+        92.0,
+        79.25,
+        74.75,
+        77.25,
+        90.5,
+        70.5,
+        85.25
+      ]
+    },
+    {
+      "generation": 1,
+      "best_fitness": 84.75,
+      "global_best_fitness": 92.0,
+      "best_weights": {
+        "piece_size": 1.0,
+        "corner_creation": 2.0,
+        "edge_avoidance": -1.5,
+        "center_preference": 0.5,
+        "opponent_blocking": 1.5,
+        "corners_killed": -1.0,
+        "opponent_proximity": -0.5,
+        "open_space": 0.5,
+        "piece_versatility": -0.3,
+        "blocking_risk": -0.5
+      },
+      "mutation_sigma": 0.4556,
+      "elapsed_seconds": 118.1,
+      "island_best": [
+        84.75,
+        69.75,
+        75.5,
+        77.75,
+        81.5,
+        83.5,
+        80.5
+      ]
+    },
+    {
+      "generation": 2,
+      "best_fitness": 92.25,
+      "global_best_fitness": 92.25,
+      "best_weights": {
+        "piece_size": 1.0,
+        "corner_creation": 2.0,
+        "edge_avoidance": -1.5,
+        "center_preference": 0.5,
+        "opponent_blocking": 1.5,
+        "corners_killed": -1.0,
+        "opponent_proximity": -0.5,
+        "open_space": 0.5,
+        "piece_versatility": -0.3,
+        "blocking_risk": -0.5
+      },
+      "mutation_sigma": 0.4111,
+      "elapsed_seconds": 117.25,
+      "island_best": [
+        82.0,
+        92.25,
+        74.0,
+        91.0,
+        81.25,
+        85.5,
+        83.75
+      ]
+    },
+    {
+      "generation": 3,
+      "best_fitness": 88.0,
+      "global_best_fitness": 92.25,
+      "best_weights": {
+        "piece_size": 1.0,
+        "corner_creation": 2.0,
+        "edge_avoidance": -1.5,
+        "center_preference": 0.5,
+        "opponent_blocking": 1.5,
+        "corners_killed": -1.0,
+        "opponent_proximity": -0.5,
+        "open_space": 0.5,
+        "piece_versatility": -0.3,
+        "blocking_risk": -0.5
+      },
+      "mutation_sigma": 0.3667,
+      "elapsed_seconds": 117.59,
+      "island_best": [
+        81.25,
+        88.0,
+        78.25,
+        80.5,
+        85.75,
+        86.75,
+        79.75
+      ]
+    },
+    {
+      "generation": 4,
+      "best_fitness": 88.0,
+      "global_best_fitness": 92.25,
+      "best_weights": {
+        "piece_size": 1.1639125521366607,
+        "corner_creation": 2.7231233345056447,
+        "edge_avoidance": -1.5,
+        "center_preference": 0.21526099561246304,
+        "opponent_blocking": 1.5,
+        "corners_killed": -1.7022229691059547,
+        "opponent_proximity": -0.5831113133818417,
+        "open_space": 0.5,
+        "piece_versatility": -0.3,
+        "blocking_risk": -0.9363114965393224
+      },
+      "mutation_sigma": 0.3222,
+      "elapsed_seconds": 120.87,
+      "island_best": [
+        88.0,
+        87.25,
+        79.0,
+        85.5,
+        85.0,
+        83.0,
+        82.5
+      ]
+    },
+    {
+      "generation": 5,
+      "best_fitness": 93.25,
+      "global_best_fitness": 93.25,
+      "best_weights": {
+        "piece_size": 1.0,
+        "corner_creation": 2.0,
+        "edge_avoidance": -1.5,
+        "center_preference": 0.5,
+        "opponent_blocking": 1.5,
+        "corners_killed": -1.0,
+        "opponent_proximity": -0.5,
+        "open_space": 0.5,
+        "piece_versatility": -0.3,
+        "blocking_risk": -0.5
+      },
+      "mutation_sigma": 0.2778,
+      "elapsed_seconds": 115.8,
+      "island_best": [
+        85.75,
+        83.0,
+        93.25,
+        78.0,
+        78.0,
+        89.0,
+        87.75
+      ]
+    },
+    {
+      "generation": 6,
+      "best_fitness": 87.75,
+      "global_best_fitness": 93.25,
+      "best_weights": {
+        "piece_size": 0.4496891293127594,
+        "corner_creation": 2.250886147617405,
+        "edge_avoidance": 0.6484606434501456,
+        "center_preference": -2.757306905394402,
+        "opponent_blocking": 2.4588553621874745,
+        "corners_killed": -2.485185309804822,
+        "opponent_proximity": -1.9341897460707487,
+        "open_space": 2.4649140511802416,
+        "piece_versatility": 2.286439276425459,
+        "blocking_risk": 3.4922341049417795
+      },
+      "mutation_sigma": 0.2333,
+      "elapsed_seconds": 120.11,
+      "island_best": [
+        83.5,
+        87.0,
+        85.0,
+        82.0,
+        85.5,
+        87.25,
+        87.75
+      ]
+    },
+    {
+      "generation": 7,
+      "best_fitness": 90.0,
+      "global_best_fitness": 93.25,
+      "best_weights": {
+        "piece_size": 1.1607900261723212,
+        "corner_creation": 2.7202685262830286,
+        "edge_avoidance": -1.4961315390212713,
+        "center_preference": 0.29942180520269995,
+        "opponent_blocking": 1.506138728905591,
+        "corners_killed": -1.4861171372529542,
+        "opponent_proximity": -0.6679458846009494,
+        "open_space": 0.5679153862661733,
+        "piece_versatility": -0.3,
+        "blocking_risk": -0.9363114965393224
+      },
+      "mutation_sigma": 0.1889,
+      "elapsed_seconds": 1310.06,
+      "island_best": [
+        90.0,
+        89.75,
+        85.25,
+        80.5,
+        87.0,
+        88.25,
+        87.5
+      ]
+    },
+    {
+      "generation": 8,
+      "best_fitness": 96.75,
+      "global_best_fitness": 96.75,
+      "best_weights": {
+        "piece_size": 1.4077048888950436,
+        "corner_creation": 2.8581557577166907,
+        "edge_avoidance": -1.4961315390212713,
+        "center_preference": 0.29942180520269995,
+        "opponent_blocking": 1.6343394913062423,
+        "corners_killed": -1.4861171372529542,
+        "opponent_proximity": -0.6679458846009494,
+        "open_space": 0.5679153862661733,
+        "piece_versatility": -0.3,
+        "blocking_risk": -0.9363114965393224
+      },
+      "mutation_sigma": 0.1444,
+      "elapsed_seconds": 117.55,
+      "island_best": [
+        86.5,
+        96.75,
+        95.25,
+        83.0,
+        83.0,
+        87.25,
+        88.25
+      ]
+    },
+    {
+      "generation": 9,
+      "best_fitness": 96.0,
+      "global_best_fitness": 96.75,
+      "best_weights": {
+        "piece_size": 1.4077048888950436,
+        "corner_creation": 2.8581557577166907,
+        "edge_avoidance": -1.4961315390212713,
+        "center_preference": 0.29942180520269995,
+        "opponent_blocking": 1.6343394913062423,
+        "corners_killed": -1.4861171372529542,
+        "opponent_proximity": -0.6679458846009494,
+        "open_space": 0.5679153862661733,
+        "piece_versatility": -0.3,
+        "blocking_risk": -0.9363114965393224
+      },
+      "mutation_sigma": 0.1,
+      "elapsed_seconds": 122.44,
+      "island_best": [
+        96.0,
+        90.75,
+        86.0,
+        92.5,
+        82.75,
+        83.75,
+        93.25
+      ]
+    }
+  ]
+}

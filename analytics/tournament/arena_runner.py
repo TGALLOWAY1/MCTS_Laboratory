@@ -16,6 +16,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 import numpy as np
 
+from agents.enhanced_heuristic_agent import EnhancedHeuristicAgent
 from agents.fast_mcts_agent import FastMCTSAgent
 from agents.gameplay_fast_mcts import GameplayFastMCTSAgent
 from agents.heuristic_agent import HeuristicAgent
@@ -484,6 +485,13 @@ def build_agent(config: AgentConfig, seed: int) -> _ArenaAgentAdapter:
 
     if agent_type == "heuristic":
         agent = HeuristicAgent(seed=seed)
+        weights = params.get("weights")
+        if isinstance(weights, Mapping):
+            agent.set_weights(dict(weights))
+        return _SelectActionAdapter(agent)
+
+    if agent_type == "enhanced_heuristic":
+        agent = EnhancedHeuristicAgent(seed=seed)
         weights = params.get("weights")
         if isinstance(weights, Mapping):
             agent.set_weights(dict(weights))
