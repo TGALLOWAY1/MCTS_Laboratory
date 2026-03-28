@@ -149,7 +149,7 @@ class StrategyLogger:
             mcts_diag = MCTSStepDiagnostics(
                 decision_time_ms=decision_time_ms or mcts_stats.get("time_elapsed", 0.0) * 1000.0,
                 iterations=mcts_stats.get("iterations_run"),
-                branching_factor=mcts_stats.get("branching_factor"),
+                branching_factor=mcts_stats.get("root_legal_moves") or mcts_stats.get("branching_factor"),
                 tree_depth_max=mcts_stats.get("tree_depth_max"),
                 tree_depth_mean=mcts_stats.get("tree_depth_mean"),
                 tree_size=mcts_stats.get("tree_size"),

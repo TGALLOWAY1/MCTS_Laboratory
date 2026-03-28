@@ -185,7 +185,7 @@ def profile_mcts_phases(
             "tree_depth_max": agent.stats.get("tree_depth_max"),
             "tree_depth_mean": round(agent.stats.get("tree_depth_mean", 0), 2),
             "visit_entropy": round(agent.stats.get("visit_entropy", 0), 4),
-            "branching_factor": agent.stats.get("branching_factor"),
+            "root_legal_moves": agent.stats.get("root_legal_moves"),
         },
     }
 

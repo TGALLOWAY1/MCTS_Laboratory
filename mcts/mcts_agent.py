@@ -923,7 +923,7 @@ class MCTSAgent:
         self.stats["tree_size"] = total_nodes
         self.stats["tree_depth_max"] = max_depth
         self.stats["tree_depth_mean"] = mean_depth
-        self.stats["branching_factor"] = len(root.untried_moves) + len(root.children)
+        self.stats["root_legal_moves"] = len(root.untried_moves) + len(root.children)
 
     # --- Search Trace helpers ---
 

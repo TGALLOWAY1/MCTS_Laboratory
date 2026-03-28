@@ -217,12 +217,15 @@ class BlokusGame:
         """
         Get the canonical game result with final scores and winner information.
         
-        This method computes final scores for all players using the standard Blokus
-        scoring system:
+        This method computes final scores for all players using a Blokus variant
+        scoring system (includes house bonuses beyond standard Blokus rules):
         - Base score: 1 point per square covered by pieces
         - Bonus: +15 points if player used all 21 pieces
         - Corner control bonus: +5 points per controlled corner (4 corners max)
         - Center control bonus: +2 points per center square (4×4 center area)
+
+        Note: Corner and center bonuses are custom additions, not part of
+        standard Blokus scoring.
         
         The method can be safely called:
         - After the game is over (recommended): Returns accurate final scores
