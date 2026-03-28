@@ -1484,12 +1484,16 @@ class MCTSAgent:
         return reward, rollout_actions
 
     def _evaluate_leaf(self, board: Board, player: Player) -> float:
-        """Evaluate leaf with learned model-backed win probability."""
+        """Evaluate leaf with learned model-backed win probability.
+
+        Uses root player perspective for consistent reward semantics.
+        """
         if self.learned_evaluator is None:
             return self._rollout(board, player)
+        reward_player = self._root_player if self._root_player is not None else player
         try:
             probability = self.learned_evaluator.predict_player_win_probability(
-                board, player
+                board, reward_player
             )
             self.stats["leaf_eval_calls"] += 1
             return float(probability)
@@ -1518,6 +1522,9 @@ class MCTSAgent:
         """
         Run rollout simulation with configurable policy and early termination.
 
+        All rewards are computed from the root player's perspective so that
+        backpropagation can propagate a single consistent value up the tree.
+
         Layer 4 enhancements:
         - rollout_policy: "heuristic" (default), "random", or "two_ply"
         - rollout_cutoff_depth: terminate early and evaluate statically
@@ -1532,24 +1539,27 @@ class MCTSAgent:
         Returns:
             Tuple of (reward, rollout_action_keys)
         """
+        # All rewards must be from the root player's perspective.
+        reward_player = self._root_player if self._root_player is not None else player
+
         # Layer 7: Get defensive weight adjustments from opponent model
         defensive_adj = self._get_defensive_adjustments(board)
 
         # Layer 4: depth-0 cutoff — pure static evaluation, no rollout at all
         if self._effective_rollout_cutoff_depth is not None and self._effective_rollout_cutoff_depth <= 0:
             self.stats["cutoff_evals"] += 1
-            return self.state_evaluator.evaluate(board, player, defensive_adj) * self._eval_reward_scale, []
+            return self.state_evaluator.evaluate(board, reward_player, defensive_adj) * self._eval_reward_scale, []
 
         # Create copy for simulation
         sim_board = board.copy()
         current_player = player
 
-        # Get initial score
-        initial_score = sim_board.get_score(player)
+        # Get initial score from root player's perspective
+        initial_score = sim_board.get_score(reward_player)
         initial_potential = None
         if self.potential_shaping_enabled and self.learned_evaluator is not None:
             try:
-                initial_potential = self.learned_evaluator.potential(sim_board, player)
+                initial_potential = self.learned_evaluator.potential(sim_board, reward_player)
             except Exception:
                 self.stats["evaluator_errors"] += 1
                 initial_potential = None
@@ -1573,7 +1583,7 @@ class MCTSAgent:
             ):
                 self.stats["cutoff_evals"] += 1
                 return (
-                    self.state_evaluator.evaluate(sim_board, player, defensive_adj) * self._eval_reward_scale,
+                    self.state_evaluator.evaluate(sim_board, reward_player, defensive_adj) * self._eval_reward_scale,
                     rollout_actions,
                 )
 
@@ -1631,14 +1641,14 @@ class MCTSAgent:
             current_player = _PLAYERS[(current_idx + 1) % len(_PLAYERS)]
             moves_made += 1
 
-        # Calculate reward
-        final_score = sim_board.get_score(player)
+        # Calculate reward from root player's perspective
+        final_score = sim_board.get_score(reward_player)
         reward = final_score - initial_score
 
-        # Add bonus for winning
+        # Add bonus for winning (from root player's perspective)
         if sim_board.is_game_over():
             winner = sim_board.get_winner()
-            if winner == player:
+            if winner == reward_player:
                 reward += 100
             elif winner is None:
                 reward += 10
@@ -1652,7 +1662,7 @@ class MCTSAgent:
             and not sim_board.is_game_over()
         ):
             try:
-                final_potential = self.learned_evaluator.potential(sim_board, player)
+                final_potential = self.learned_evaluator.potential(sim_board, reward_player)
                 shaping_term = self.potential_shaping_weight * (
                     (self.potential_shaping_gamma * final_potential) - initial_potential
                 )
