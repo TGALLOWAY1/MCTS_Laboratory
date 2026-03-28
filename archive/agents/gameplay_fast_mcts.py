@@ -1,4 +1,9 @@
 """
+WARNING: FastMCTS is NOT a valid MCTS implementation. See
+archive/agents/fast_mcts_agent.py for details. This adapter is archived for
+reference only and MUST NOT be used in competitive comparisons.
+
+Original description:
 Gameplay adapter that exposes FastMCTSAgent via choose_move().
 """
 

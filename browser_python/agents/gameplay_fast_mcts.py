@@ -1,5 +1,9 @@
 """
-Gameplay adapter that exposes FastMCTSAgent via choose_move().
+DEPRECATED: FastMCTS is NOT a valid MCTS implementation. Retained in
+browser_python for backward compatibility only. Do not use for competitive
+comparisons. See docs/audits/mcts_audit_remediation_plan.md.
+
+Original: Gameplay adapter that exposes FastMCTSAgent via choose_move().
 """
 
 from __future__ import annotations

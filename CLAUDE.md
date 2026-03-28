@@ -2,10 +2,8 @@
 
 ## Agent Selection
 
-- **Do NOT use `fast_mcts` (FastMCTSAgent / GameplayFastMCTSAgent) unless the user explicitly asks for it.**
-  The fast_mcts agent uses a simplified rollout policy and lightweight node structure that trades accuracy for speed. Layer 2 analysis found that the evaluation function underperforms under the constrained search time of fast_mcts. Default to the full `mcts` agent type (MCTSAgent) for arena runs and testing.
-
-- When creating new arena configs, prefer `"type": "mcts"` over `"type": "gameplay_fast_mcts"` or `"type": "fast_mcts"`.
+- **Do NOT use `fast_mcts` (FastMCTSAgent / GameplayFastMCTSAgent). It has been archived.**
+  A systematic audit determined that FastMCTS is NOT a valid tree search: nodes do not represent successor states and rollouts use heuristic scoring from the root state. The code has been moved to `archive/agents/` and the arena runner will reject `fast_mcts` agent types with an error. Always use `"type": "mcts"` (MCTSAgent) for arena runs and testing.
 
 ## Running Arena Tests
 
@@ -24,7 +22,7 @@ python scripts/arena.py --config scripts/arena_config_extended_rollout.json --nu
 
 - `max_rollout_moves`: Controls rollout simulation length (default: 50). The extended rollout config uses 200 (4x).
 - `iterations`: Max MCTS iterations per move (default: 1000 for full MCTS).
-- `iterations_per_ms`: Conversion rate for deterministic time budgets (10.0 for full MCTS, 20.0 for fast_mcts).
+- `iterations_per_ms`: Conversion rate for deterministic time budgets (10.0 for full MCTS).
 - `exploration_constant`: UCB1 exploration parameter (default: 1.414).
 
 ### Layer 4: Simulation Strategy Parameters
@@ -83,7 +81,7 @@ python scripts/arena.py --config scripts/arena_config_extended_rollout.json --nu
 - `mcts/parallel.py` — Root parallelization: worker spawning, config serialization, result merging (Layer 8)
 - `mcts/opponent_model.py` — Opponent modeling: blocking tracker, alliance detection, king-maker awareness, adaptive profiles (Layer 7)
 - `mcts/state_evaluator.py` — Lightweight state evaluation function with phase-dependent weights (Layers 4, 6)
-- `agents/fast_mcts_agent.py` — Lightweight FastMCTSAgent (use only when explicitly requested)
+- `archive/agents/fast_mcts_agent.py` — Archived FastMCTSAgent (NOT valid for competitive use)
 - `scripts/arena.py` — Arena CLI entry point
 - `scripts/arena_config*.json` — Arena configuration files
 - `scripts/collect_layer6_data.py` — Self-play data collection for evaluation refinement
