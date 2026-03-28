@@ -122,17 +122,34 @@ class MCTSNode:
         self._initialize_untried_moves()
 
     def _initialize_untried_moves(self):
-        """Initialize list of untried moves."""
+        """Initialize list of untried moves.
+
+        If the current player has no legal moves (must pass), we check whether
+        ANY player can still move. If so, this is a pass node — not terminal.
+        We store a sentinel ``[None]`` so that ``expand()`` creates a single
+        pass child that advances to the next player with the same board state.
+        If no player can move, the node is truly terminal (empty list).
+        """
         move_generator = get_shared_generator()
         self.untried_moves = move_generator.get_legal_moves(self.board, self.player)
         self._total_legal_moves = len(self.untried_moves)
+        self._is_pass_node = False
+
+        if not self.untried_moves:
+            # Check if any other player can still move
+            for p in _PLAYERS:
+                if p != self.player and move_generator.has_legal_moves(self.board, p):
+                    # This is a pass — sentinel so expand() creates a pass child
+                    self.untried_moves = [None]
+                    self._is_pass_node = True
+                    break
 
     def is_fully_expanded(self) -> bool:
         """Check if node is fully expanded (all legal moves tried)."""
         return len(self.untried_moves) == 0
 
     def is_terminal(self) -> bool:
-        """Check if node is terminal."""
+        """Check if node is terminal (no player can move)."""
         return len(self.untried_moves) == 0 and len(self.children) == 0
 
     def max_children_for_visits(self, pw_c: float, pw_alpha: float) -> int:
@@ -308,7 +325,11 @@ class MCTSNode:
     def expand(self) -> 'MCTSNode':
         """
         Expand node by adding a new child.
-        
+
+        If this is a pass node (current player has no legal moves but other
+        players do), creates a single child with the same board state and
+        the next player to move.
+
         Returns:
             New child node
         """
@@ -317,6 +338,13 @@ class MCTSNode:
 
         # Select random untried move
         move = self.untried_moves.pop()
+
+        # Handle pass node — same board, advance to next player
+        if move is None:
+            next_player = self._get_next_player()
+            child = MCTSNode(self.board, next_player, None, self)
+            self.children.append(child)
+            return child
 
         # Create new board state
         new_board = self.board.copy()
@@ -1574,6 +1602,8 @@ class MCTSAgent:
 
         # Simulate until game ends or max moves
         moves_made = 0
+        consecutive_passes = 0
+        num_players = len(_PLAYERS)
 
         while moves_made < self.max_rollout_moves:
             # Layer 4: Early termination at cutoff depth
@@ -1591,7 +1621,14 @@ class MCTSAgent:
             legal_moves = self.move_generator.get_legal_moves(sim_board, current_player)
 
             if not legal_moves:
-                break
+                # Player passes — advance to next player
+                consecutive_passes += 1
+                if consecutive_passes >= num_players:
+                    # All players passed consecutively — game is truly over
+                    break
+                current_idx = _PLAYERS.index(current_player)
+                current_player = _PLAYERS[(current_idx + 1) % num_players]
+                continue
 
             # Layer 5: NST-biased move selection for root player
             if (
@@ -1636,9 +1673,12 @@ class MCTSAgent:
             if not success:
                 break
 
+            # Successful move resets consecutive pass counter
+            consecutive_passes = 0
+
             # Move to next player
             current_idx = _PLAYERS.index(current_player)
-            current_player = _PLAYERS[(current_idx + 1) % len(_PLAYERS)]
+            current_player = _PLAYERS[(current_idx + 1) % num_players]
             moves_made += 1
 
         # Calculate reward from root player's perspective
