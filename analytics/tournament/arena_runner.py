@@ -1,5 +1,9 @@
 """Reproducible arena harness for multi-agent Blokus experiments."""
 
+# Audit version tag: all results produced after the mcts audit remediation
+# include this version so pre-fix and post-fix results can be distinguished.
+AUDIT_VERSION = "v1_2026-03-28"
+
 from __future__ import annotations
 
 import csv
@@ -764,6 +768,9 @@ def run_single_game(
         "agent_move_stats": per_agent_stats,
         "snapshot_checkpoints_hit": sorted(checkpoint_hits),
         "error": error,
+        "is_valid_result": True,
+        "invalid_reason": "",
+        "audit_version": AUDIT_VERSION,
     }
     return record, snapshot_rows
 
@@ -794,6 +801,7 @@ def _append_index_row(
         "seed": run_config.seed,
         "seat_policy": run_config.seat_policy,
         "notes": run_config.notes,
+        "audit_version": AUDIT_VERSION,
     }
     write_header = not index_path.exists()
     with index_path.open("a", encoding="utf-8", newline="") as handle:
@@ -1065,6 +1073,7 @@ def run_experiment(
         )
         summary["snapshots"]["expected_rows_max"] = int(expected_rows)
 
+    summary["audit_version"] = AUDIT_VERSION
     _write_json(run_dir / "summary.json", summary)
     (run_dir / "summary.md").write_text(
         render_summary_markdown(summary),
