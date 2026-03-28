@@ -1,6 +1,9 @@
 """
-Fast MCTS agent optimized for real-time gameplay.
-Uses aggressive optimizations to minimize computation time.
+DEPRECATED: FastMCTS is NOT a valid MCTS implementation. It does not build a
+true game tree and produces misleading results. Retained in browser_python for
+backward compatibility only. Do not use for competitive comparisons.
+
+Original: Fast MCTS agent optimized for real-time gameplay.
 """
 
 import random

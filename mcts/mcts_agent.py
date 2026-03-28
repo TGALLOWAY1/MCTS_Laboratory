@@ -122,17 +122,34 @@ class MCTSNode:
         self._initialize_untried_moves()
 
     def _initialize_untried_moves(self):
-        """Initialize list of untried moves."""
+        """Initialize list of untried moves.
+
+        If the current player has no legal moves (must pass), we check whether
+        ANY player can still move. If so, this is a pass node — not terminal.
+        We store a sentinel ``[None]`` so that ``expand()`` creates a single
+        pass child that advances to the next player with the same board state.
+        If no player can move, the node is truly terminal (empty list).
+        """
         move_generator = get_shared_generator()
         self.untried_moves = move_generator.get_legal_moves(self.board, self.player)
         self._total_legal_moves = len(self.untried_moves)
+        self._is_pass_node = False
+
+        if not self.untried_moves:
+            # Check if any other player can still move
+            for p in _PLAYERS:
+                if p != self.player and move_generator.has_legal_moves(self.board, p):
+                    # This is a pass — sentinel so expand() creates a pass child
+                    self.untried_moves = [None]
+                    self._is_pass_node = True
+                    break
 
     def is_fully_expanded(self) -> bool:
         """Check if node is fully expanded (all legal moves tried)."""
         return len(self.untried_moves) == 0
 
     def is_terminal(self) -> bool:
-        """Check if node is terminal."""
+        """Check if node is terminal (no player can move)."""
         return len(self.untried_moves) == 0 and len(self.children) == 0
 
     def max_children_for_visits(self, pw_c: float, pw_alpha: float) -> int:
@@ -308,7 +325,11 @@ class MCTSNode:
     def expand(self) -> 'MCTSNode':
         """
         Expand node by adding a new child.
-        
+
+        If this is a pass node (current player has no legal moves but other
+        players do), creates a single child with the same board state and
+        the next player to move.
+
         Returns:
             New child node
         """
@@ -317,6 +338,13 @@ class MCTSNode:
 
         # Select random untried move
         move = self.untried_moves.pop()
+
+        # Handle pass node — same board, advance to next player
+        if move is None:
+            next_player = self._get_next_player()
+            child = MCTSNode(self.board, next_player, None, self)
+            self.children.append(child)
+            return child
 
         # Create new board state
         new_board = self.board.copy()
@@ -895,7 +923,7 @@ class MCTSAgent:
         self.stats["tree_size"] = total_nodes
         self.stats["tree_depth_max"] = max_depth
         self.stats["tree_depth_mean"] = mean_depth
-        self.stats["branching_factor"] = len(root.untried_moves) + len(root.children)
+        self.stats["root_legal_moves"] = len(root.untried_moves) + len(root.children)
 
     # --- Search Trace helpers ---
 
@@ -1484,12 +1512,16 @@ class MCTSAgent:
         return reward, rollout_actions
 
     def _evaluate_leaf(self, board: Board, player: Player) -> float:
-        """Evaluate leaf with learned model-backed win probability."""
+        """Evaluate leaf with learned model-backed win probability.
+
+        Uses root player perspective for consistent reward semantics.
+        """
         if self.learned_evaluator is None:
             return self._rollout(board, player)
+        reward_player = self._root_player if self._root_player is not None else player
         try:
             probability = self.learned_evaluator.predict_player_win_probability(
-                board, player
+                board, reward_player
             )
             self.stats["leaf_eval_calls"] += 1
             return float(probability)
@@ -1518,6 +1550,9 @@ class MCTSAgent:
         """
         Run rollout simulation with configurable policy and early termination.
 
+        All rewards are computed from the root player's perspective so that
+        backpropagation can propagate a single consistent value up the tree.
+
         Layer 4 enhancements:
         - rollout_policy: "heuristic" (default), "random", or "two_ply"
         - rollout_cutoff_depth: terminate early and evaluate statically
@@ -1532,24 +1567,27 @@ class MCTSAgent:
         Returns:
             Tuple of (reward, rollout_action_keys)
         """
+        # All rewards must be from the root player's perspective.
+        reward_player = self._root_player if self._root_player is not None else player
+
         # Layer 7: Get defensive weight adjustments from opponent model
         defensive_adj = self._get_defensive_adjustments(board)
 
         # Layer 4: depth-0 cutoff — pure static evaluation, no rollout at all
         if self._effective_rollout_cutoff_depth is not None and self._effective_rollout_cutoff_depth <= 0:
             self.stats["cutoff_evals"] += 1
-            return self.state_evaluator.evaluate(board, player, defensive_adj) * self._eval_reward_scale, []
+            return self.state_evaluator.evaluate(board, reward_player, defensive_adj) * self._eval_reward_scale, []
 
         # Create copy for simulation
         sim_board = board.copy()
         current_player = player
 
-        # Get initial score
-        initial_score = sim_board.get_score(player)
+        # Get initial score from root player's perspective
+        initial_score = sim_board.get_score(reward_player)
         initial_potential = None
         if self.potential_shaping_enabled and self.learned_evaluator is not None:
             try:
-                initial_potential = self.learned_evaluator.potential(sim_board, player)
+                initial_potential = self.learned_evaluator.potential(sim_board, reward_player)
             except Exception:
                 self.stats["evaluator_errors"] += 1
                 initial_potential = None
@@ -1564,6 +1602,8 @@ class MCTSAgent:
 
         # Simulate until game ends or max moves
         moves_made = 0
+        consecutive_passes = 0
+        num_players = len(_PLAYERS)
 
         while moves_made < self.max_rollout_moves:
             # Layer 4: Early termination at cutoff depth
@@ -1573,7 +1613,7 @@ class MCTSAgent:
             ):
                 self.stats["cutoff_evals"] += 1
                 return (
-                    self.state_evaluator.evaluate(sim_board, player, defensive_adj) * self._eval_reward_scale,
+                    self.state_evaluator.evaluate(sim_board, reward_player, defensive_adj) * self._eval_reward_scale,
                     rollout_actions,
                 )
 
@@ -1581,7 +1621,14 @@ class MCTSAgent:
             legal_moves = self.move_generator.get_legal_moves(sim_board, current_player)
 
             if not legal_moves:
-                break
+                # Player passes — advance to next player
+                consecutive_passes += 1
+                if consecutive_passes >= num_players:
+                    # All players passed consecutively — game is truly over
+                    break
+                current_idx = _PLAYERS.index(current_player)
+                current_player = _PLAYERS[(current_idx + 1) % num_players]
+                continue
 
             # Layer 5: NST-biased move selection for root player
             if (
@@ -1626,22 +1673,33 @@ class MCTSAgent:
             if not success:
                 break
 
+            # Successful move resets consecutive pass counter
+            consecutive_passes = 0
+
             # Move to next player
             current_idx = _PLAYERS.index(current_player)
-            current_player = _PLAYERS[(current_idx + 1) % len(_PLAYERS)]
+            current_player = _PLAYERS[(current_idx + 1) % num_players]
             moves_made += 1
 
-        # Calculate reward
-        final_score = sim_board.get_score(player)
+        # Calculate reward from root player's perspective
+        final_score = sim_board.get_score(reward_player)
         reward = final_score - initial_score
 
-        # Add bonus for winning
-        if sim_board.is_game_over():
-            winner = sim_board.get_winner()
-            if winner == player:
-                reward += 100
-            elif winner is None:
-                reward += 10
+        # Determine if rollout reached a natural game end (all players passed)
+        game_ended = consecutive_passes >= num_players
+
+        # Add bonus for winning/tying (from root player's perspective)
+        if game_ended:
+            # Compute actual game result from scores
+            scores = {p: sim_board.get_score(p) for p in _PLAYERS}
+            max_score = max(scores.values())
+            root_score = scores[reward_player]
+            if root_score == max_score:
+                winners = [p for p, s in scores.items() if s == max_score]
+                if len(winners) == 1:
+                    reward += 100  # outright win
+                else:
+                    reward += 10   # tie (shared win)
 
         # Apply potential-based shaping only on truncated rollouts.
         if (
@@ -1649,10 +1707,10 @@ class MCTSAgent:
             and self.learned_evaluator is not None
             and initial_potential is not None
             and moves_made >= self.max_rollout_moves
-            and not sim_board.is_game_over()
+            and not game_ended
         ):
             try:
-                final_potential = self.learned_evaluator.potential(sim_board, player)
+                final_potential = self.learned_evaluator.potential(sim_board, reward_player)
                 shaping_term = self.potential_shaping_weight * (
                     (self.potential_shaping_gamma * final_potential) - initial_potential
                 )

@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+# Audit version tag: all results produced after the mcts audit remediation
+# include this version so pre-fix and post-fix results can be distinguished.
+AUDIT_VERSION = "v1_2026-03-28"
+
 import csv
 import hashlib
 import json
@@ -16,8 +20,6 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 
 import numpy as np
 
-from agents.fast_mcts_agent import FastMCTSAgent
-from agents.gameplay_fast_mcts import GameplayFastMCTSAgent
 from agents.heuristic_agent import HeuristicAgent
 from agents.random_agent import RandomAgent
 from analytics.logging.logger import StrategyLogger
@@ -343,137 +345,6 @@ class _SelectActionAdapter(_ArenaAgentAdapter):
         return getattr(self.agent, 'opponent_modeling_enabled', False)
 
 
-def _extract_mcts_stats_from_fast_diagnostics(stats: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    """Map FastMCTSAgent diagnostics to _mcts_stats format for step logger.
-
-    The ``MCTSAgent`` adapter (``_SelectActionAdapter``) natively produces
-    ``_mcts_stats`` consumed by ``StrategyLogger.on_step`` to populate
-    ``MCTSStepDiagnostics``.  ``FastMCTSAgent`` and ``GameplayFastMCTSAgent``
-    emit a different stats layout.  This helper bridges the gap so that step
-    logs contain branching factor, Q-values, visit counts, and other
-    diagnostics regardless of the underlying agent type.
-    """
-    diagnostics = stats.get("diagnostics")
-    if not diagnostics:
-        return None
-    top_moves = diagnostics.get("rootPolicy") or []
-    best = top_moves[0] if top_moves else {}
-    second = top_moves[1] if len(top_moves) > 1 else {}
-    best_q = best.get("q_value")
-    second_q = second.get("q_value")
-    return {
-        "branching_factor": diagnostics.get("rootLegalMoves"),
-        "iterations_run": diagnostics.get("simulations"),
-        "tree_size": diagnostics.get("nodesExpanded"),
-        "tree_depth_max": diagnostics.get("maxDepthReached"),
-        "visit_entropy": diagnostics.get("policyEntropy"),
-        "best_move_q": best_q,
-        "best_move_visits": best.get("visits"),
-        "second_best_q": second_q,
-        "regret_gap": (
-            (best_q - second_q)
-            if best_q is not None and second_q is not None
-            else None
-        ),
-    }
-
-
-class _FastMCTSAdapter(_ArenaAgentAdapter):
-    def __init__(
-        self,
-        agent: FastMCTSAgent,
-        *,
-        deterministic_time_budget: bool,
-        iterations_per_ms: float,
-    ):
-        self.agent = agent
-        self.deterministic_time_budget = deterministic_time_budget
-        self.iterations_per_ms = iterations_per_ms
-
-    def choose_move(
-        self,
-        board: Any,
-        player: Player,
-        legal_moves: List[Move],
-        thinking_time_ms: Optional[int],
-    ) -> Tuple[Optional[Move], Dict[str, Any]]:
-        budget = int(thinking_time_ms or max(int(self.agent.time_limit * 1000), 1))
-        if self.deterministic_time_budget:
-            iteration_cap = max(1, int(round(self.iterations_per_ms * budget)))
-            original_iterations = self.agent.iterations
-            self.agent.iterations = iteration_cap
-            try:
-                result = self.agent.think(
-                    board,
-                    player,
-                    legal_moves,
-                    max(10_000_000, budget),
-                )
-            finally:
-                self.agent.iterations = original_iterations
-            stats = dict(result.get("stats") or {})
-            stats["timeBudgetMs"] = budget
-            stats["iterationCap"] = iteration_cap
-            mcts_stats = _extract_mcts_stats_from_fast_diagnostics(stats)
-            if mcts_stats is not None:
-                stats["_mcts_stats"] = mcts_stats
-            return result.get("move"), stats
-        result = self.agent.think(board, player, legal_moves, budget)
-        stats = dict(result.get("stats") or {})
-        mcts_stats = _extract_mcts_stats_from_fast_diagnostics(stats)
-        if mcts_stats is not None:
-            stats["_mcts_stats"] = mcts_stats
-        return result.get("move"), stats
-
-
-class _GameplayFastMCTSAdapter(_ArenaAgentAdapter):
-    def __init__(
-        self,
-        agent: GameplayFastMCTSAgent,
-        *,
-        deterministic_time_budget: bool,
-        iterations_per_ms: float,
-    ):
-        self.agent = agent
-        self.deterministic_time_budget = deterministic_time_budget
-        self.iterations_per_ms = iterations_per_ms
-
-    def choose_move(
-        self,
-        board: Any,
-        player: Player,
-        legal_moves: List[Move],
-        thinking_time_ms: Optional[int],
-    ) -> Tuple[Optional[Move], Dict[str, Any]]:
-        budget = int(thinking_time_ms or 1)
-        if self.deterministic_time_budget:
-            iteration_cap = max(1, int(round(self.iterations_per_ms * budget)))
-            original_iterations = self.agent._agent.iterations
-            self.agent._agent.iterations = iteration_cap
-            try:
-                move, stats = self.agent.choose_move(
-                    board,
-                    player,
-                    legal_moves,
-                    max(10_000_000, budget),
-                )
-            finally:
-                self.agent._agent.iterations = original_iterations
-            output_stats = dict(stats or {})
-            output_stats["timeBudgetMs"] = budget
-            output_stats["iterationCap"] = iteration_cap
-            mcts_stats = _extract_mcts_stats_from_fast_diagnostics(output_stats)
-            if mcts_stats is not None:
-                output_stats["_mcts_stats"] = mcts_stats
-            return move, output_stats
-        move, stats = self.agent.choose_move(board, player, legal_moves, budget)
-        output_stats = dict(stats or {})
-        mcts_stats = _extract_mcts_stats_from_fast_diagnostics(output_stats)
-        if mcts_stats is not None:
-            output_stats["_mcts_stats"] = mcts_stats
-        return move, output_stats
-
-
 def build_agent(config: AgentConfig, seed: int) -> _ArenaAgentAdapter:
     """Instantiate an agent adapter from configuration."""
     agent_type = config.type.lower()
@@ -559,41 +430,12 @@ def build_agent(config: AgentConfig, seed: int) -> _ArenaAgentAdapter:
         )
         return _SelectActionAdapter(agent)
 
-    if agent_type == "fast_mcts":
-        deterministic_time_budget = bool(params.get("deterministic_time_budget", True))
-        iterations_per_ms = float(params.get("iterations_per_ms", 20.0))
-        default_time = (
-            float(config.thinking_time_ms) / 1000.0
-            if config.thinking_time_ms is not None
-            else float(params.get("time_limit", 0.1))
-        )
-        agent = FastMCTSAgent(
-            iterations=int(params.get("iterations", 5000)),
-            time_limit=default_time,
-            exploration_constant=float(params.get("exploration_constant", 1.414)),
-            seed=seed,
-            enable_diagnostics=bool(params.get("enable_diagnostics", False)),
-        )
-        return _FastMCTSAdapter(
-            agent,
-            deterministic_time_budget=deterministic_time_budget,
-            iterations_per_ms=iterations_per_ms,
-        )
-
-    if agent_type in {"gameplay_fast_mcts", "gameplay_mcts"}:
-        deterministic_time_budget = bool(params.get("deterministic_time_budget", True))
-        iterations_per_ms = float(params.get("iterations_per_ms", 20.0))
-        agent = GameplayFastMCTSAgent(
-            iterations=int(params.get("iterations", 5000)),
-            exploration_constant=float(params.get("exploration_constant", 1.414)),
-            seed=seed,
-        )
-        if bool(params.get("enable_diagnostics", False)):
-            agent._agent.enable_diagnostics = True
-        return _GameplayFastMCTSAdapter(
-            agent,
-            deterministic_time_budget=deterministic_time_budget,
-            iterations_per_ms=iterations_per_ms,
+    if agent_type in {"fast_mcts", "gameplay_fast_mcts", "gameplay_mcts"}:
+        raise ValueError(
+            f"Agent type '{config.type}' (FastMCTS) is not a valid MCTS implementation "
+            "and has been removed from arena use. FastMCTS does not build a true game "
+            "tree and produces misleading results. Use type 'mcts' instead. "
+            "See docs/audits/mcts_audit_remediation_plan.md for details."
         )
 
     raise ValueError(f"Unsupported agent type: {config.type}")
@@ -926,6 +768,9 @@ def run_single_game(
         "agent_move_stats": per_agent_stats,
         "snapshot_checkpoints_hit": sorted(checkpoint_hits),
         "error": error,
+        "is_valid_result": True,
+        "invalid_reason": "",
+        "audit_version": AUDIT_VERSION,
     }
     return record, snapshot_rows
 
@@ -956,6 +801,7 @@ def _append_index_row(
         "seed": run_config.seed,
         "seat_policy": run_config.seat_policy,
         "notes": run_config.notes,
+        "audit_version": AUDIT_VERSION,
     }
     write_header = not index_path.exists()
     with index_path.open("a", encoding="utf-8", newline="") as handle:
@@ -1227,6 +1073,7 @@ def run_experiment(
         )
         summary["snapshots"]["expected_rows_max"] = int(expected_rows)
 
+    summary["audit_version"] = AUDIT_VERSION
     _write_json(run_dir / "summary.json", summary)
     (run_dir / "summary.md").write_text(
         render_summary_markdown(summary),

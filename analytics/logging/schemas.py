@@ -9,7 +9,7 @@ class MCTSStepDiagnostics(BaseModel):
 
     decision_time_ms: Optional[float] = None
     iterations: Optional[int] = None
-    branching_factor: Optional[int] = None
+    branching_factor: Optional[int] = None  # Actually root_legal_moves; kept as branching_factor for schema compat
     tree_depth_max: Optional[int] = None
     tree_depth_mean: Optional[float] = None
     tree_size: Optional[int] = None

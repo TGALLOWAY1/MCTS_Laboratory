@@ -1,4 +1,11 @@
 """
+WARNING: FastMCTS is NOT a valid MCTS implementation. It does not build a true
+game tree and produces misleading results. Nodes do not represent successor
+states and rollouts use heuristic scoring from the root state regardless of
+tree depth. This file is archived for reference only and MUST NOT be used in
+competitive comparisons or arena experiments.
+
+Original description:
 Fast MCTS agent optimized for real-time gameplay.
 Uses aggressive optimizations to minimize computation time.
 """
