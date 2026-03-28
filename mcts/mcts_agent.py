@@ -1685,13 +1685,21 @@ class MCTSAgent:
         final_score = sim_board.get_score(reward_player)
         reward = final_score - initial_score
 
-        # Add bonus for winning (from root player's perspective)
-        if sim_board.is_game_over():
-            winner = sim_board.get_winner()
-            if winner == reward_player:
-                reward += 100
-            elif winner is None:
-                reward += 10
+        # Determine if rollout reached a natural game end (all players passed)
+        game_ended = consecutive_passes >= num_players
+
+        # Add bonus for winning/tying (from root player's perspective)
+        if game_ended:
+            # Compute actual game result from scores
+            scores = {p: sim_board.get_score(p) for p in _PLAYERS}
+            max_score = max(scores.values())
+            root_score = scores[reward_player]
+            if root_score == max_score:
+                winners = [p for p, s in scores.items() if s == max_score]
+                if len(winners) == 1:
+                    reward += 100  # outright win
+                else:
+                    reward += 10   # tie (shared win)
 
         # Apply potential-based shaping only on truncated rollouts.
         if (
@@ -1699,7 +1707,7 @@ class MCTSAgent:
             and self.learned_evaluator is not None
             and initial_potential is not None
             and moves_made >= self.max_rollout_moves
-            and not sim_board.is_game_over()
+            and not game_ended
         ):
             try:
                 final_potential = self.learned_evaluator.potential(sim_board, reward_player)
