@@ -15,11 +15,13 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import numpy as np
 
 from agents.enhanced_heuristic_agent import EnhancedHeuristicAgent
+from agents.fast_mcts_agent import FastMCTSAgent
 from agents.heuristic_agent import HeuristicAgent
+from agents.nn_agent import NNAgent
+from agents.nn_mcts_agent import NNMCTSAgent
 from agents.random_agent import RandomAgent
 from engine.board import Player
 from engine.game import BlokusGame
-from agents.fast_mcts_agent import FastMCTSAgent
 
 # Load evolved weights
 EVOLVED_WEIGHTS = {
@@ -35,22 +37,28 @@ EVOLVED_WEIGHTS = {
     "blocking_risk": 1.5133376303215236,
 }
 
-AGENT_NAMES = ["enhanced_evolved", "heuristic_default", "fast_mcts_500", "random"]
+AGENT_NAMES = ["ga_evolved", "nn_mcts", "nn_standalone", "fast_mcts"]
 
 
 def make_agents(seed):
+    # Our GA-evolved 10-feature heuristic (zero lookahead, instant)
     evolved = EnhancedHeuristicAgent(seed=seed)
     evolved.set_weights(EVOLVED_WEIGHTS)
 
-    default_h = HeuristicAgent(seed=seed + 1)
+    # NN value head guiding MCTS (replaces random rollouts)
+    nn_mcts = NNMCTSAgent(
+        model_path="models/blokus_nn_v1.pt",
+        iterations=500, time_limit=0.5, seed=seed + 1)
 
-    # FastMCTSAgent — optimized MCTS (no board copying, cached legal moves)
-    # 500 iterations with 0.5s time limit, matching repo's run_tournament.py config
-    mcts = FastMCTSAgent(iterations=500, time_limit=0.5, seed=seed + 2)
+    # NN policy head standalone (no search, instant)
+    nn_solo = NNAgent(
+        model_path="models/blokus_nn_v1.pt",
+        seed=seed + 2, temperature=0.5)
 
-    random_a = RandomAgent(seed=seed + 3)
+    # Original FastMCTS with heuristic rollouts (baseline)
+    mcts = FastMCTSAgent(iterations=500, time_limit=0.5, seed=seed + 3)
 
-    return [evolved, default_h, mcts, random_a]
+    return [evolved, nn_mcts, nn_solo, mcts]
 
 
 def play_game(agents, seat_order, seed):

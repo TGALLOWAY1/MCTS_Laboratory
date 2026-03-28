@@ -62,6 +62,10 @@ pytest tests/test_ga_evolve.py -v
 
 See [DESIGN_DECISIONS.md](DESIGN_DECISIONS.md) for the complete story — including why 3 weights flipped sign and how the island model works.
 
+### Neural Network Experiments
+
+We also trained a ResNet (317k params) on 337k board states from GA self-play, then attempted self-play RL to surpass the GA agent. **The NN did not beat the GA.** Supervised pre-training hit a ceiling (the NN can't beat its teacher), and self-play training plateaued at 33% win rate vs the GA — insufficient data per iteration and value-head-only training couldn't close the gap. Full results and analysis in [NN.md](NN.md).
+
 ---
 
 ## Architecture at a Glance
