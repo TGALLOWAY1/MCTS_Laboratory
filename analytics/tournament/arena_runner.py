@@ -1,10 +1,10 @@
 """Reproducible arena harness for multi-agent Blokus experiments."""
 
+from __future__ import annotations
+
 # Audit version tag: all results produced after the mcts audit remediation
 # include this version so pre-fix and post-fix results can be distinguished.
 AUDIT_VERSION = "v1_2026-03-28"
-
-from __future__ import annotations
 
 import csv
 import hashlib
