@@ -18,7 +18,6 @@ The existing `HeuristicAgent` has 4 hand-tuned feature weights. They were never 
 
 1. **`EnhancedHeuristicAgent`** — 10 strategic features (the original 4 + 6 new ones covering opponent awareness, frontier management, and piece economy)
 2. **Island-Model GA** — 7 islands in a ring topology, evolving weights via BLX-alpha crossover, tournament selection, and Gaussian mutation with parallel fitness evaluation across 8 CPU cores
-3. **Neural network pipeline** (in progress) — supervised pre-training from 337k board states for future MCTS integration
 
 ### Results
 
@@ -56,13 +55,12 @@ pytest tests/test_ga_evolve.py -v
 | `agents/enhanced_heuristic_agent.py` | 10-feature heuristic agent |
 | `scripts/ga_evolve_weights.py` | Island-model GA with multiprocessing |
 | `scripts/quick_arena.py` | Lightweight game runner for fast benchmarking |
-| `scripts/generate_nn_training_data.py` | Training data generation from self-play |
 | `scripts/arena_config_ga_evolved.json` | Arena config with evolved weights |
 | `tests/test_ga_evolve.py` | 20 unit tests |
 | `docs/ga_weight_evolution.md` | Documentation |
 | `DESIGN_DECISIONS.md` | Full design rationale, training runs, and results |
 
-See [DESIGN_DECISIONS.md](DESIGN_DECISIONS.md) for the complete story — including why 3 weights flipped sign, how the island model works, and the separation-of-concerns architecture (NN features → GA weights → MCTS search).
+See [DESIGN_DECISIONS.md](DESIGN_DECISIONS.md) for the complete story — including why 3 weights flipped sign and how the island model works.
 
 ---
 
