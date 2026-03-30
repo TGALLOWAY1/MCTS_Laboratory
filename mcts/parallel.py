@@ -314,5 +314,6 @@ def run_root_parallel(
         "merged_move_count": len(merged),
         "best_move_visits": merged[best_key][0],
         "best_move_reward": merged[best_key][1],
+        "merged_moves": merged,
     }
     return best_move, stats

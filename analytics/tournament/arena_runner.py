@@ -472,6 +472,35 @@ def _extract_move_telemetry(
     return float(time_spent_ms), simulations
 
 
+def _maybe_save_heatmap_data(
+    agent: _ArenaAgentAdapter,
+    turn: int,
+    player: "Player",
+    board: Any,
+    move: Move,
+    output_dir: Path,
+) -> None:
+    """Save heatmap visit-count data for a turn if the agent is MCTS."""
+    underlying = getattr(agent, "agent", None)
+    if not isinstance(underlying, MCTSAgent):
+        return
+    children_data = getattr(underlying, "_last_root_children_data", None)
+    if not children_data:
+        return
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    turn_data = {
+        "turn": turn,
+        "player": int(player.value),
+        "board_grid": board.grid.tolist(),
+        "moves": children_data,
+        "chosen_move": {"x": move.anchor_col, "y": move.anchor_row},
+    }
+    path = output_dir / f"turn_{turn:03d}.json"
+    with open(path, "w") as f:
+        json.dump(turn_data, f)
+
+
 def _compute_ranks(scores_by_player: Mapping[str, int]) -> Dict[str, int]:
     unique_scores = sorted(set(scores_by_player.values()), reverse=True)
     score_to_rank = {score: rank + 1 for rank, score in enumerate(unique_scores)}
@@ -544,6 +573,7 @@ def run_single_game(
     agent_configs: Mapping[str, AgentConfig],
     game_logger: Optional[StrategyLogger] = None,
     verbose: bool = False,
+    heatmap_output_dir: Optional[Path] = None,
 ) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
     """Run one game and return game record + snapshot rows."""
     random.seed(game_seed)
@@ -651,6 +681,12 @@ def run_single_game(
                     f"turn {turn_count}, {game_elapsed:.1f}s elapsed, "
                     f"agent={agent_name}, move_ms={elapsed_ms:.0f}",
                     flush=True,
+                )
+
+            # Capture heatmap data from MCTS agents
+            if heatmap_output_dir is not None and move is not None:
+                _maybe_save_heatmap_data(
+                    agent, turn_count, current_player, game.board, move, heatmap_output_dir,
                 )
 
             if move is None:

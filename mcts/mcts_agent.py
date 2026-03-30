@@ -686,6 +686,9 @@ class MCTSAgent:
         # Track last action key played by root player (for NST continuity)
         self._last_root_action_key: Optional[int] = None
 
+        # Heatmap data: visit counts per anchor cell from last search
+        self._last_root_children_data: Optional[List[Dict[str, int]]] = None
+
         # Statistics
         self.stats = {
             "iterations_run": 0,
@@ -797,6 +800,12 @@ class MCTSAgent:
             self.stats["parallel_strategy"] = "root"
             self.stats["parallel_trees_merged"] = par_stats.get("trees_merged", 0)
             self.stats["iterations_run"] = par_stats.get("total_iterations", 0)
+            # Capture heatmap data from parallel merged stats
+            self._last_root_children_data = [
+                {"x": key[3], "y": key[2], "visits": int(vals[0])}
+                for key, vals in par_stats.get("merged_moves", {}).items()
+                if vals[0] > 0
+            ]
             if self.nst_enabled and best_move is not None:
                 self._last_root_action_key = move_action_key(best_move)
             return best_move
@@ -836,6 +845,12 @@ class MCTSAgent:
 
         # Get best move
         best_move = root.get_best_move()
+
+        # Capture heatmap data from root children
+        self._last_root_children_data = [
+            {"x": c.move.anchor_col, "y": c.move.anchor_row, "visits": c.visits}
+            for c in root.children if c.move is not None and c.visits > 0
+        ]
 
         # Layer 5: Update NST last-action key for cross-move continuity
         if self.nst_enabled and best_move is not None:
@@ -2110,6 +2125,8 @@ class MCTSAgent:
             "sufficiency_activations": 0,
             "loss_avoidance_triggers": 0,
         }
+
+        self._last_root_children_data = None
 
         if self.transposition_table:
             self.transposition_table.clear()

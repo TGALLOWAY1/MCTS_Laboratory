@@ -18,3 +18,6 @@ python-dotenv
 pandas
 scikit-learn
 pyarrow
+matplotlib
+scipy
+Pillow
