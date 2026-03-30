@@ -1,0 +1,23 @@
+{
+  "agents": [
+    {
+      "name": "mcts_fast",
+      "type": "mcts",
+      "thinking_time_ms": 5,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 1.0,
+        "exploration_constant": 1.414
+      }
+    }
+  ],
+  "num_games": 1,
+  "seed": 42,
+  "seat_policy": "round_robin",
+  "max_turns": 200,
+  "snapshots": {
+    "enabled": false,
+    "strategy": "fixed_ply",
+    "checkpoints": []
+  }
+}
