@@ -138,6 +138,11 @@ def main():
     parser.add_argument("--thinking-time-ms", type=int, default=None, help="Override thinking time")
     parser.add_argument("--seed", type=int, default=None, help="Random seed for game")
     parser.add_argument("--fps", type=int, default=2, help="Frames per second for video")
+    parser.add_argument(
+        "--sigma", type=float, default=0.6,
+        help="Heatmap blur radius in board-cell units (default: 0.6). "
+             "Smaller = tighter spots, larger = more spread. 0 = no blur.",
+    )
     parser.add_argument("--quiet", action="store_true", help="Suppress progress output")
 
     args = parser.parse_args()
@@ -164,6 +169,7 @@ def main():
         output_root=args.output_root,
         player_filter=args.player,
         fps=args.fps,
+        sigma=args.sigma,
     )
 
     if not args.quiet:
