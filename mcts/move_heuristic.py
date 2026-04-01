@@ -164,7 +164,12 @@ def rank_moves_by_heuristic(
     scored = [
         (compute_move_heuristic(board, player, m, move_generator, **kwargs), m)
         for m in moves
+        if m is not None
     ]
+    # Re-append None (pass) moves at the bottom so they are popped last (least preferred).
+    none_count = sum(1 for m in moves if m is None)
+    if none_count:
+        scored = [(-float("inf"), None)] * none_count + scored
     scored.sort(key=lambda x: x[0])  # ascending: worst first, best last
     return scored
 
