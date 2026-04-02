@@ -1,0 +1,170 @@
+{
+  "agents": [
+    {
+      "name": "Champion_PW_Phase",
+      "type": "mcts",
+      "thinking_time_ms": 200,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 0.5,
+        "exploration_constant": 1.414,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
+        "rave_enabled": true,
+        "rave_k": 1000,
+        "progressive_widening_enabled": true,
+        "pw_c": 2.0,
+        "pw_alpha": 0.5,
+        "adaptive_exploration_enabled": true,
+        "adaptive_exploration_base": 1.414,
+        "adaptive_exploration_avg_bf": 80.0,
+        "adaptive_rollout_depth_enabled": true,
+        "adaptive_rollout_depth_base": 5,
+        "adaptive_rollout_depth_avg_bf": 80.0,
+        "sufficiency_threshold_enabled": true,
+        "loss_avoidance_enabled": true,
+        "loss_avoidance_threshold": -50.0,
+        "state_eval_phase_weights": {
+          "early": {
+            "squares_placed": -0.176,
+            "remaining_piece_area": 0.176,
+            "accessible_corners": 0.3,
+            "reachable_empty_squares": 0.0,
+            "largest_remaining_piece_size": 0.0,
+            "opponent_avg_mobility": -0.053,
+            "center_proximity": 0.0,
+            "territory_enclosure_area": 0.0
+          },
+          "mid": {
+            "squares_placed": -0.004,
+            "remaining_piece_area": 0.004,
+            "accessible_corners": 0.3,
+            "reachable_empty_squares": 0.228,
+            "largest_remaining_piece_size": -0.238,
+            "opponent_avg_mobility": -0.203,
+            "center_proximity": 0.0,
+            "territory_enclosure_area": 0.0
+          },
+          "late": {
+            "squares_placed": 0.3,
+            "remaining_piece_area": -0.3,
+            "accessible_corners": 0.176,
+            "reachable_empty_squares": 0.134,
+            "largest_remaining_piece_size": -0.085,
+            "opponent_avg_mobility": -0.063,
+            "center_proximity": 0.0,
+            "territory_enclosure_area": 0.0
+          }
+        }
+      }
+    },
+    {
+      "name": "Champion_PW_Single",
+      "type": "mcts",
+      "thinking_time_ms": 200,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 0.5,
+        "exploration_constant": 1.414,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
+        "rave_enabled": true,
+        "rave_k": 1000,
+        "progressive_widening_enabled": true,
+        "pw_c": 2.0,
+        "pw_alpha": 0.5,
+        "adaptive_exploration_enabled": true,
+        "adaptive_exploration_base": 1.414,
+        "adaptive_exploration_avg_bf": 80.0,
+        "adaptive_rollout_depth_enabled": true,
+        "adaptive_rollout_depth_base": 5,
+        "adaptive_rollout_depth_avg_bf": 80.0,
+        "sufficiency_threshold_enabled": true,
+        "loss_avoidance_enabled": true,
+        "loss_avoidance_threshold": -50.0,
+        "state_eval_weights": {
+          "squares_placed": 0.0295,
+          "remaining_piece_area": -0.0295,
+          "accessible_corners": 0.243,
+          "reachable_empty_squares": 0.081,
+          "largest_remaining_piece_size": -0.231,
+          "opponent_avg_mobility": -0.3,
+          "center_proximity": 0.0,
+          "territory_enclosure_area": 0.0
+        }
+      }
+    },
+    {
+      "name": "L9_Full_NoPW",
+      "type": "mcts",
+      "thinking_time_ms": 200,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 0.5,
+        "exploration_constant": 1.414,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
+        "rave_enabled": true,
+        "rave_k": 1000,
+        "adaptive_exploration_enabled": true,
+        "adaptive_exploration_base": 1.414,
+        "adaptive_exploration_avg_bf": 80.0,
+        "adaptive_rollout_depth_enabled": true,
+        "adaptive_rollout_depth_base": 5,
+        "adaptive_rollout_depth_avg_bf": 80.0,
+        "sufficiency_threshold_enabled": true,
+        "loss_avoidance_enabled": true,
+        "loss_avoidance_threshold": -50.0,
+        "state_eval_weights": {
+          "squares_placed": 0.0295,
+          "remaining_piece_area": -0.0295,
+          "accessible_corners": 0.243,
+          "reachable_empty_squares": 0.081,
+          "largest_remaining_piece_size": -0.231,
+          "opponent_avg_mobility": -0.3,
+          "center_proximity": 0.0,
+          "territory_enclosure_area": 0.0
+        }
+      }
+    },
+    {
+      "name": "L9_Baseline",
+      "type": "mcts",
+      "thinking_time_ms": 200,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 0.5,
+        "exploration_constant": 1.414,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
+        "rave_enabled": true,
+        "rave_k": 1000,
+        "state_eval_weights": {
+          "squares_placed": 0.0295,
+          "remaining_piece_area": -0.0295,
+          "accessible_corners": 0.243,
+          "reachable_empty_squares": 0.081,
+          "largest_remaining_piece_size": -0.231,
+          "opponent_avg_mobility": -0.3,
+          "center_proximity": 0.0,
+          "territory_enclosure_area": 0.0
+        }
+      }
+    }
+  ],
+  "num_games": 300,
+  "seed": 20260402,
+  "seat_policy": "round_robin",
+  "output_root": "arena_runs",
+  "max_turns": 2500,
+  "snapshots": {
+    "enabled": true,
+    "strategy": "fixed_ply",
+    "checkpoints": [4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, 68, 72]
+  },
+  "notes": "Overnight 10hr run: Top-4 championship agents. Dense snapshots every 4 plies (18 checkpoints) for evaluation engine refinement. 300 games target (~258 expected in 10hrs at ~139s/game). Goals: (1) large-scale eval data (~17k snapshot rows) for regression/SHAP, (2) definitive TrueSkill rankings, (3) seat bias quantification, (4) phase threshold optimization data, (5) feature gap analysis between SE-7 and winprob-35 feature sets."
+}
