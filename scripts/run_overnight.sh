@@ -26,8 +26,27 @@ SESSION_NAME="overnight_arena"
 LOG_FILE="arena_runs/overnight_$(date +%Y%m%d_%H%M%S).log"
 PID_FILE="arena_runs/overnight.pid"
 
+# Find the right python command (python3 on macOS, python on some Linux)
+if command -v python3 &>/dev/null; then
+    PYTHON=python3
+elif command -v python &>/dev/null; then
+    PYTHON=python
+else
+    echo "ERROR: Neither python3 nor python found on PATH."
+    exit 1
+fi
+
 # Ensure output directory exists
 mkdir -p arena_runs
+
+# Pre-flight check: verify arena imports work before launching in background
+echo "Running pre-flight check..."
+if ! ${PYTHON} -c "from analytics.tournament.arena_runner import run_experiment" 2>&1; then
+    echo "ERROR: Pre-flight check failed. Fix the import errors above before running."
+    exit 1
+fi
+echo "Pre-flight check passed."
+echo ""
 
 echo "========================================"
 echo "  MCTS Laboratory — Overnight Arena Run"
@@ -51,12 +70,12 @@ TIMEOUT_CMD=$(find_timeout_cmd)
 
 # Build the core arena command
 if [ -n "$TIMEOUT_CMD" ]; then
-    ARENA_CMD="$TIMEOUT_CMD ${TIMEOUT_SECS} python scripts/arena.py --config ${CONFIG} --verbose"
+    ARENA_CMD="$TIMEOUT_CMD ${TIMEOUT_SECS} ${PYTHON} scripts/arena.py --config ${CONFIG} --verbose"
 else
     # No timeout command available — run without timeout, rely on num_games limit
     echo "WARNING: Neither 'timeout' nor 'gtimeout' found. Run will stop at num_games limit only."
     echo "         Install coreutils for timeout support: brew install coreutils"
-    ARENA_CMD="python scripts/arena.py --config ${CONFIG} --verbose"
+    ARENA_CMD="${PYTHON} scripts/arena.py --config ${CONFIG} --verbose"
 fi
 
 if command -v tmux &>/dev/null; then
@@ -71,16 +90,16 @@ if command -v tmux &>/dev/null; then
     tmux kill-session -t "$SESSION_NAME" 2>/dev/null || true
 
     TMUX_CMD="cd $(pwd) && \
-echo '=== Overnight arena started at \$(date) ===' && \
-${ARENA_CMD} 2>&1 | tee ${LOG_FILE}; \
+echo '=== Overnight arena started at \$(date) ===' | tee ${LOG_FILE} && \
+${ARENA_CMD} 2>&1 | tee -a ${LOG_FILE}; \
 EXIT_CODE=\${PIPESTATUS[0]:-\$?}; \
 if [ \$EXIT_CODE -eq 124 ]; then \
-  echo ''; \
-  echo '=== 10hr timeout reached. Run stopped gracefully. ==='; \
-  echo '=== Partial results are fully usable. ==='; \
+  echo '' | tee -a ${LOG_FILE}; \
+  echo '=== 10hr timeout reached. Run stopped gracefully. ===' | tee -a ${LOG_FILE}; \
+  echo '=== Partial results are fully usable. ===' | tee -a ${LOG_FILE}; \
 fi; \
-echo ''; \
-echo '=== Overnight arena finished at \$(date) ==='; \
+echo '' | tee -a ${LOG_FILE}; \
+echo '=== Overnight arena finished at \$(date) ===' | tee -a ${LOG_FILE}; \
 echo 'Press Enter to close this tmux session.'; \
 read"
 
