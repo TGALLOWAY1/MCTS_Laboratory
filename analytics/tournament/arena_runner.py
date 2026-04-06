@@ -480,19 +480,25 @@ def _maybe_save_heatmap_data(
     move: Move,
     output_dir: Path,
 ) -> None:
-    """Save heatmap visit-count data for a turn if the agent is MCTS."""
+    """Save heatmap visit-count data for a turn."""
     underlying = getattr(agent, "agent", None)
-    if not isinstance(underlying, MCTSAgent):
-        return
-    children_data = getattr(underlying, "_last_root_children_data", None)
-    if not children_data:
-        return
+    
+    # Try to grab MCTS children data if available, else empty
+    children_data = getattr(underlying, "_last_root_children_data", [])
 
     output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Store used pieces for offline analysis reconstruction
+    used_pieces = {
+        str(p.value): list(board.player_pieces_used[p]) 
+        for p in board.player_pieces_used
+    }
+
     turn_data = {
         "turn": turn,
         "player": int(player.value),
         "board_grid": board.grid.tolist(),
+        "used_pieces": used_pieces,
         "moves": children_data,
         "chosen_move": {"x": move.anchor_col, "y": move.anchor_row},
     }

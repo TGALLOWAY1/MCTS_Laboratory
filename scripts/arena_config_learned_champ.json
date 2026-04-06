@@ -1,0 +1,128 @@
+{
+  "agents": [
+    {
+      "name": "Learned_GBT_Champion_1",
+      "type": "mcts",
+      "thinking_time_ms": 200,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 0.5,
+        "exploration_constant": 1.414,
+        "leaf_evaluation_enabled": true,
+        "learned_model_path": "models/eval_from_overnight.pkl",
+        "progressive_bias_enabled": true,
+        "progressive_widening_enabled": true,
+        "pw_c": 2.0,
+        "pw_alpha": 0.5,
+        "adaptive_exploration_enabled": true,
+        "adaptive_exploration_base": 1.414,
+        "adaptive_exploration_avg_bf": 80.0,
+        "sufficiency_threshold_enabled": true,
+        "loss_avoidance_enabled": true,
+        "loss_avoidance_threshold": -50.0
+      }
+    },
+    {
+      "name": "Learned_GBT_Champion_2",
+      "type": "mcts",
+      "thinking_time_ms": 200,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 0.5,
+        "exploration_constant": 1.414,
+        "leaf_evaluation_enabled": true,
+        "learned_model_path": "models/eval_from_overnight.pkl",
+        "progressive_bias_enabled": true,
+        "progressive_widening_enabled": true,
+        "pw_c": 2.0,
+        "pw_alpha": 0.5,
+        "adaptive_exploration_enabled": true,
+        "adaptive_exploration_base": 1.414,
+        "adaptive_exploration_avg_bf": 80.0,
+        "sufficiency_threshold_enabled": true,
+        "loss_avoidance_enabled": true,
+        "loss_avoidance_threshold": -50.0
+      }
+    },
+    {
+      "name": "Champion_PW_Single_1",
+      "type": "mcts",
+      "thinking_time_ms": 200,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 0.5,
+        "exploration_constant": 1.414,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
+        "rave_enabled": true,
+        "rave_k": 1000,
+        "progressive_widening_enabled": true,
+        "pw_c": 2.0,
+        "pw_alpha": 0.5,
+        "adaptive_exploration_enabled": true,
+        "adaptive_exploration_base": 1.414,
+        "adaptive_exploration_avg_bf": 80.0,
+        "adaptive_rollout_depth_enabled": true,
+        "adaptive_rollout_depth_base": 5,
+        "adaptive_rollout_depth_avg_bf": 80.0,
+        "sufficiency_threshold_enabled": true,
+        "loss_avoidance_enabled": true,
+        "loss_avoidance_threshold": -50.0,
+        "state_eval_weights": {
+          "squares_placed": 0.0295,
+          "remaining_piece_area": -0.0295,
+          "accessible_corners": 0.243,
+          "reachable_empty_squares": 0.081,
+          "largest_remaining_piece_size": -0.231,
+          "opponent_avg_mobility": -0.3,
+          "center_proximity": 0.0,
+          "territory_enclosure_area": 0.0
+        }
+      }
+    },
+    {
+      "name": "Champion_PW_Single_2",
+      "type": "mcts",
+      "thinking_time_ms": 200,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 0.5,
+        "exploration_constant": 1.414,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
+        "rave_enabled": true,
+        "rave_k": 1000,
+        "progressive_widening_enabled": true,
+        "pw_c": 2.0,
+        "pw_alpha": 0.5,
+        "adaptive_exploration_enabled": true,
+        "adaptive_exploration_base": 1.414,
+        "adaptive_exploration_avg_bf": 80.0,
+        "adaptive_rollout_depth_enabled": true,
+        "adaptive_rollout_depth_base": 5,
+        "adaptive_rollout_depth_avg_bf": 80.0,
+        "sufficiency_threshold_enabled": true,
+        "loss_avoidance_enabled": true,
+        "loss_avoidance_threshold": -50.0,
+        "state_eval_weights": {
+          "squares_placed": 0.0295,
+          "remaining_piece_area": -0.0295,
+          "accessible_corners": 0.243,
+          "reachable_empty_squares": 0.081,
+          "largest_remaining_piece_size": -0.231,
+          "opponent_avg_mobility": -0.3,
+          "center_proximity": 0.0,
+          "territory_enclosure_area": 0.0
+        }
+      }
+    }
+  ],
+  "num_games": 300,
+  "seed": 8888,
+  "seat_policy": "round_robin",
+  "output_root": "arena_runs",
+  "max_turns": 2500,
+  "notes": "Learned model evaluation! 2 instances of Learned Evaluator vs 2 instances of the PW_Single rollout hero."
+}
