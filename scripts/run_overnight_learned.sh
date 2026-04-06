@@ -19,7 +19,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-CONFIG="scripts/arena_config_overnight_10hr.json"
+CONFIG="scripts/arena_config_learned_champ.json"
 TIMEOUT_HOURS=10
 TIMEOUT_SECS=$((TIMEOUT_HOURS * 3600))
 SESSION_NAME="overnight_arena"

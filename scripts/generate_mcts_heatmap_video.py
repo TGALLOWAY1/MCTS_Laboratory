@@ -162,18 +162,16 @@ def main():
             sys.exit(1)
 
     if not args.quiet:
-        print(f"\nRendering heatmap animation from {data_dir}...")
+        print(f"\nGenerating detailed interactive HTML dashboard from {data_dir}...")
 
-    result = render_all(
+    from scripts.generate_detailed_analysis import run_detailed_analysis_pipeline
+    run_detailed_analysis_pipeline(
         data_dir=data_dir,
-        output_root=args.output_root,
-        player_filter=args.player,
-        fps=args.fps,
-        sigma=args.sigma,
+        output_dir=args.output_root / "dashboards" / data_dir.name
     )
 
     if not args.quiet:
-        print(f"Done! Output: {result}")
+        print(f"Done! Check the output directory for index.html")
 
 
 if __name__ == "__main__":

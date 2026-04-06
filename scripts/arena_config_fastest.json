@@ -1,0 +1,23 @@
+{
+  "seed": 12345,
+  "num_games": 1,
+  "seat_policy": "round_robin",
+  "agents": [
+    {
+      "name": "random1",
+      "type": "random"
+    },
+    {
+      "name": "random2",
+      "type": "random"
+    },
+    {
+      "name": "random3",
+      "type": "random"
+    },
+    {
+      "name": "random4",
+      "type": "random"
+    }
+  ]
+}

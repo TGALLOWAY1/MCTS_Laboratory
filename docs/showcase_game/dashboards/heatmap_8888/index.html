@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blokus Spatial Dashboard</title>
+    <style>
+        :root {
+            --bg-dark: #161622;
+            --grid-line: rgba(255,255,255,0.1);
+            --p1-color: #e74c3c;
+            --p2-color: #3498db;
+            --p3-color: #f1c40f;
+            --p4-color: #2ecc71;
+            --p0-color: #2c3e50;
+            --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: #ecf0f1;
+            font-family: var(--font-family);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { margin-bottom: 5px; }
+
+        .dashboard-container {
+            display: flex;
+            gap: 40px;
+            margin-top: 20px;
+            max-width: 1200px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .board-wrapper {
+            position: relative;
+            width: 600px;
+            height: 600px;
+            background-color: var(--p0-color);
+            border: 2px solid #555;
+        }
+
+        .grid-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: grid;
+            grid-template-columns: repeat(20, 1fr);
+            grid-template-rows: repeat(20, 1fr);
+        }
+
+        .cell {
+            border-right: 1px solid var(--grid-line);
+            border-bottom: 1px solid var(--grid-line);
+            box-sizing: border-box;
+        }
+
+        .cell.p1 { background-color: var(--p1-color); }
+        .cell.p2 { background-color: var(--p2-color); }
+        .cell.p3 { background-color: var(--p3-color); }
+        .cell.p4 { background-color: var(--p4-color); }
+        
+        /* Overlays */
+        #heatmapLayer .cell {
+            transition: background-color 0.2s;
+        }
+
+        .controls {
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .panel h3 { margin-top: 0; font-size: 16px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 5px;}
+
+        input[type="range"] { width: 100%; }
+        
+        .radio-group label {
+            display: block;
+            margin: 8px 0;
+            cursor: pointer;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 14px;
+        }
+        .metric-val { font-weight: bold; font-size: 18px; color: #3498db; }
+
+        .btn-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover { background: #2980b9; }
+        button:disabled { background: #555; cursor: not-allowed; }
+
+        .player-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            color: black;
+            font-weight: bold;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Blokus Spatial Dashboard</h1>
+    <div style="color: #aaa;" id="statusText">Loading...</div>
+
+    <div class="dashboard-container" style="display:none;" id="mainContainer">
+        <!-- Board -->
+        <div class="board-wrapper">
+            <!-- Base pieces -->
+            <div class="grid-layer" id="baseBoard"></div>
+            <!-- Heatmap / Overlays -->
+            <div class="grid-layer" id="heatmapLayer"></div>
+            <!-- Frontier dots, indicators -->
+            <div class="grid-layer" id="indicatorLayer"></div>
+        </div>
+
+        <!-- Controls & Metrics -->
+        <div class="controls">
+            <!-- Navigation -->
+            <div class="panel">
+                <div class="btn-row">
+                    <button id="btnPrev">⮜ Prev</button>
+                    <span id="turnLabel" style="font-size: 18px; font-weight: bold; align-self: center;">Turn 0</span>
+                    <button id="btnNext">Next ⮞</button>
+                </div>
+                <input type="range" id="turnSlider" min="0" max="0" value="0">
+                <div style="margin-top: 10px;">
+                    Current Player: <span id="playerBadge" class="player-badge"></span>
+                </div>
+            </div>
+
+            <!-- View Modes -->
+            <div class="panel">
+                <h3>View Mode</h3>
+                <div class="radio-group" id="viewModeGroup">
+                    <label><input type="radio" name="viewMode" value="none" checked> None (Base Board)</label>
+                    <label><input type="radio" name="viewMode" value="influence"> Territorial Influence</label>
+                    <label><input type="radio" name="viewMode" value="reachable"> Reachable Space (1-ply)</label>
+                    <label><input type="radio" name="viewMode" value="pressure"> Opponent Pressure</label>
+                    <label><input type="radio" name="viewMode" value="delta"> Delta (Change from prev)</label>
+                </div>
+            </div>
+
+            <!-- Metrics -->
+            <div class="panel">
+                <h3>Turn Metrics</h3>
+                <div class="metrics-grid">
+                    <div>
+                        <div>Legal Moves</div>
+                        <div class="metric-val" id="m_legal">0</div>
+                    </div>
+                    <div>
+                        <div>Frontier Pts</div>
+                        <div class="metric-val" id="m_front">0</div>
+                    </div>
+                    <div>
+                        <div>Influence Mass</div>
+                        <div class="metric-val" id="m_inf">0.0</div>
+                    </div>
+                    <div>
+                        <div>Contested Cells</div>
+                        <div class="metric-val" id="m_contest">0</div>
+                    </div>
+                </div>
+                
+                <h3 style="margin-top: 20px;">Move Deltas</h3>
+                <div class="metrics-grid">
+                    <div>
+                        <div>Legal $\Delta$</div>
+                        <div class="metric-val" id="d_legal">-</div>
+                    </div>
+                    <div>
+                        <div>Frontier $\Delta$</div>
+                        <div class="metric-val" id="d_front">-</div>
+                    </div>
+                    <div>
+                        <div>Influence $\Delta$</div>
+                        <div class="metric-val" id="d_inf">-</div>
+                    </div>
+                     <div>
+                        <div>Contested $\Delta$</div>
+                        <div class="metric-val" id="d_contest">-</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load data -->
+    <script src="data.js"></script>
+    <script>
+        const SIZE = 20;
+        let currentIdx = 0;
+        let viewMode = 'none';
+
+        const pColors = { 1: '#e74c3c', 2: '#3498db', 3: '#f1c40f', 4: '#2ecc71' };
+        const pNames = { 1: 'RED', 2: 'BLUE', 3: 'YELLOW', 4: 'GREEN' };
+
+        const baseBoard = document.getElementById('baseBoard');
+        const heatmapLayer = document.getElementById('heatmapLayer');
+        const indicatorLayer = document.getElementById('indicatorLayer');
+
+        function initGrids() {
+            for(let r=0; r<SIZE; r++) {
+                for(let c=0; c<SIZE; c++) {
+                    const bCell = document.createElement('div');
+                    bCell.className = 'cell';
+                    baseBoard.appendChild(bCell);
+
+                    const hCell = document.createElement('div');
+                    hCell.className = 'cell';
+                    heatmapLayer.appendChild(hCell);
+
+                    const iCell = document.createElement('div');
+                    iCell.className = 'cell';
+                    iCell.style.position = 'relative';
+                    indicatorLayer.appendChild(iCell);
+                }
+            }
+        }
+
+        function getColoForValue(val, mode, maxVal) {
+            if (val === 0) return 'transparent';
+            if (mode === 'influence') {
+                // Gradient towards white/yellow
+                const intensity = Math.min(1.0, val);
+                return `rgba(255, 235, 59, ${intensity * 0.8})`;
+            } else if (mode === 'reachable') {
+                return `rgba(52, 152, 219, 0.6)`;
+            } else if (mode === 'pressure') {
+                const intensity = Math.min(1.0, val / (maxVal || 1.0));
+                return `rgba(231, 76, 60, ${intensity * 0.8})`;
+            } else if (mode === 'delta') {
+                if (val > 0.05) return `rgba(46, 204, 113, ${Math.min(1, val*2)})`; // Green
+                if (val < -0.05) return `rgba(231, 76, 60, ${Math.min(1, Math.abs(val)*2)})`; // Red
+                return 'transparent';
+            }
+            return 'transparent';
+        }
+
+        function renderTurn(idx) {
+            const data = window.GAME_DATA;
+            if(!data || !data[idx]) return;
+
+            const frame = data[idx];
+            document.getElementById('turnLabel').innerText = `Turn ${frame.turn}`;
+            
+            const pBadge = document.getElementById('playerBadge');
+            pBadge.innerText = pNames[frame.player];
+            pBadge.style.backgroundColor = pColors[frame.player];
+            if (frame.player === 3) pBadge.style.color = 'black'; else pBadge.style.color = 'white';
+
+            // Base board
+            const bCells = baseBoard.children;
+            for(let i=0; i<400; i++) bCells[i].className = 'cell ' + (frame.board_grid[Math.floor(i/SIZE)][i%SIZE] ? 'p'+frame.board_grid[Math.floor(i/SIZE)][i%SIZE] : '');
+
+            // Metrics
+            document.getElementById('m_legal').innerText = frame.analysis.legal_moves_count;
+            document.getElementById('m_front').innerText = frame.analysis.frontier_points.length;
+            document.getElementById('m_inf').innerText = frame.analysis.influence_mass.toFixed(1);
+            document.getElementById('m_contest').innerText = frame.analysis.contested_cells;
+            
+            if (frame.delta && frame.delta.metrics_delta) {
+                const d = frame.delta.metrics_delta;
+                const formatD = (v) => (v > 0 ? '+' : '') + v;
+                document.getElementById('d_legal').innerText = formatD(d.legal_moves);
+                document.getElementById('d_legal').style.color = d.legal_moves >= 0 ? '#2ecc71' : '#e74c3c';
+                document.getElementById('d_front').innerText = formatD(frame.delta.frontier_added.length - frame.delta.frontier_removed.length);
+                document.getElementById('d_inf').innerText = formatD(d.influence_mass.toFixed(1));
+                document.getElementById('d_inf').style.color = d.influence_mass >= 0 ? '#2ecc71' : '#e74c3c';
+                document.getElementById('d_contest').innerText = formatD(d.contested);
+            } else {
+                ['d_legal', 'd_front', 'd_inf', 'd_contest'].forEach(id => document.getElementById(id).innerText = '-');
+            }
+
+            renderOverlays(frame);
+        }
+
+        function renderOverlays(frame) {
+            const hCells = heatmapLayer.children;
+            const iCells = indicatorLayer.children;
+            
+            // max vals for normalization
+            let maxPressure = 0;
+            if (viewMode === 'pressure') {
+               frame.analysis.opponent_pressure_map.forEach(row => row.forEach(v => { if (v > maxPressure) maxPressure = v; }));
+            }
+
+            for(let r=0; r<SIZE; r++) {
+                for(let c=0; c<SIZE; c++) {
+                    const idx = r*SIZE + c;
+                    
+                    // Heatmap
+                    let hVal = 0;
+                    if (viewMode === 'influence') hVal = frame.analysis.influence_map[r][c];
+                    else if (viewMode === 'reachable') hVal = frame.analysis.reachable_space[r][c];
+                    else if (viewMode === 'pressure') hVal = frame.analysis.opponent_pressure_map[r][c];
+                    else if (viewMode === 'delta' && frame.delta) hVal = frame.delta.influence_delta[r][c];
+                    
+                    hCells[idx].style.backgroundColor = getColoForValue(hVal, viewMode, maxPressure);
+                    
+                    // Indicators
+                    iCells[idx].innerHTML = ''; // clear
+                }
+            }
+
+            // Draw chosen move
+            if (frame.chosen_move) {
+                const idx = frame.chosen_move.y * SIZE + frame.chosen_move.x;
+                iCells[idx].innerHTML = '<div style="position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:10px; height:10px; border-radius:50%; border:2px solid white; background:rgba(0,0,0,0.5);"></div>';
+            }
+
+            // Draw frontiers if appropriate mode
+            if (viewMode === 'influence' || viewMode === 'delta') {
+                frame.analysis.frontier_points.forEach(pt => {
+                    const idx = pt[0] * SIZE + pt[1];
+                    iCells[idx].innerHTML += '<div style="position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:6px; height:6px; border-radius:50%; background:white; opacity: 0.6;"></div>';
+                });
+            }
+        }
+
+        window.onload = () => {
+            if (!window.GAME_DATA || window.GAME_DATA.length === 0) {
+                document.getElementById('statusText').innerText = "No game data found. Make sure data.js is loaded.";
+                return;
+            }
+            document.getElementById('statusText').style.display = 'none';
+            document.getElementById('mainContainer').style.display = 'flex';
+            
+            document.getElementById('turnSlider').max = window.GAME_DATA.length - 1;
+            initGrids();
+            renderTurn(currentIdx);
+        };
+
+        function updateTurn(newIdx) {
+            currentIdx = Math.max(0, Math.min(newIdx, window.GAME_DATA.length - 1));
+            document.getElementById('turnSlider').value = currentIdx;
+            
+            document.getElementById('btnPrev').disabled = (currentIdx === 0);
+            document.getElementById('btnNext').disabled = (currentIdx === window.GAME_DATA.length - 1);
+            
+            renderTurn(currentIdx);
+        }
+
+        document.getElementById('btnPrev').onclick = () => updateTurn(currentIdx - 1);
+        document.getElementById('btnNext').onclick = () => updateTurn(currentIdx + 1);
+        document.getElementById('turnSlider').oninput = (e) => updateTurn(parseInt(e.target.value));
+
+        document.querySelectorAll('input[name="viewMode"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                viewMode = e.target.value;
+                renderTurn(currentIdx);
+            });
+        });
+
+        // Key bindings
+        document.addEventListener('keydown', (e) => {
+            if(e.key === 'ArrowRight') updateTurn(currentIdx + 1);
+            else if(e.key === 'ArrowLeft') updateTurn(currentIdx - 1);
+        });
+    </script>
+</body>
+</html>
