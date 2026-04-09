@@ -88,3 +88,10 @@ python scripts/arena.py --config scripts/arena_config_extended_rollout.json --nu
 - `scripts/analyze_layer6_features.py` — Feature importance analysis (regression, SHAP, residuals)
 - `scripts/self_improve.py` — Self-improvement loop: run tournaments, track metrics over time (Layer 9)
 - `analytics/tournament/arena_runner.py` — Arena harness and agent construction
+
+## Feature List Maintenance
+
+When making changes to the codebase, update `FEATURES.md` accordingly:
+- **Add** a feature entry when introducing new functionality
+- **Edit** a feature entry when modifying existing functionality (e.g., renaming, changing behavior, moving files)
+- **Delete** a feature entry when removing functionality
