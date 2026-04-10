@@ -70,18 +70,21 @@
 - Interactive Blokus board with piece selection and placement — `frontend/src/components/Board.tsx`
 - MCTS visualization suite: rollout histograms, UCT breakdown, exploration/exploitation charts — `frontend/src/components/mcts-viz/`
 - Move impact panels: waterfall charts, strategy-mix radar, move-delta diverging bars — `frontend/src/components/telemetry/`
-- AI Scoreboard / Benchmark page — `frontend/src/pages/Benchmark.tsx`
+- Advanced MCTS configuration UI with Layer 3-9 parameter controls and layer presets — `frontend/src/components/GameConfigModal.tsx`
+- Arena Results page with live pairwise win rate matrix, TrueSkill ratings, and agent config display — `frontend/src/pages/Benchmark.tsx`
+- Layer Progression dashboard grouping arena experiments by MCTS layer with expandable result cards — `frontend/src/pages/TrainEval.tsx`
 - Analysis page with MCTS diagnostics — `frontend/src/pages/Analysis.tsx`
 - ExplainMove panel — `frontend/src/components/ExplainMovePanel.tsx`
-- Game history browser — `frontend/src/pages/History.tsx`
+- Game history browser with agent config badges and active layer indicators — `frontend/src/pages/History.tsx`
 
 ## Web API
 
 - FastAPI REST backend — `webapi/app.py`
 - Gameplay routes: game creation, moves, state management — `webapi/routes_gameplay.py`
-- Research routes: training runs, analysis, history, trends — `webapi/routes_research.py`
-- Game orchestration manager — `webapi/game_manager.py`
-- Agent factory for dynamic agent instantiation — `webapi/gameplay_agent_factory.py`
+- Research routes: training runs, analysis, history, trends, arena results — `webapi/routes_research.py`
+- Arena results API: list and detail endpoints for tournament data (`/api/arena-runs`) — `webapi/app.py`, `webapi/routes_research.py`
+- Game orchestration with full MCTSAgent (Layers 3-9) — `webapi/app.py`
+- Agent factory using MCTSAgent with gameplay adapter — `webapi/gameplay_agent_factory.py`
 - MongoDB integration — `webapi/db/`
 - Research and deploy profiles — `webapi/profile.py`
 
