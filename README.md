@@ -1,5 +1,7 @@
 # MCTS Laboratory — Blokus AI Experimentation Platform
 
+Can a well-tuned evaluation function beat brute-force search? This project answers that question through a systematic, 9-layer optimization program for Monte Carlo Tree Search in 4-player Blokus. Using regression on 13,000+ self-play game states, we discovered that the hand-tuned evaluation had a **wrong-sign weight** and **3x underweighted opponent denial** — fixing these with ML-calibrated weights lets an agent with just 25 MCTS iterations beat one with 1,000 iterations of default evaluation. The full-stack platform includes a Python game engine, configurable MCTS with RAVE/parallelization/opponent modeling, a React frontend with in-browser AI via Pyodide, and a reproducible arena system for statistically rigorous comparison. **[Read the key findings →](KEY_FINDINGS.md)**
+
 A Blokus AI experimentation platform centered on fast simulation, Monte Carlo Tree Search, analytics, benchmarking, and comparative strategy evaluation.
 
 <img width="1795" height="865" alt="image" src="https://github.com/user-attachments/assets/751e771f-ce00-45b8-8289-6086f760cd7d" />
