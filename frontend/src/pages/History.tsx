@@ -2,6 +2,39 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { API_BASE } from '../constants/gameConstants';
 
+function getActiveLayers(cfg: Record<string, any>): string[] {
+  const layers: string[] = [];
+  if (cfg.progressive_widening_enabled || cfg.progressive_history_enabled) layers.push('L3');
+  if ((cfg.rollout_policy && cfg.rollout_policy !== 'random') || cfg.rollout_cutoff_depth != null) layers.push('L4');
+  if (cfg.rave_enabled || cfg.nst_enabled) layers.push('L5');
+  if (cfg.state_eval_phase_weights) layers.push('L6');
+  if (cfg.opponent_modeling_enabled) layers.push('L7');
+  if (cfg.num_workers && cfg.num_workers > 1) layers.push('L8');
+  if (cfg.adaptive_exploration_enabled || cfg.sufficiency_threshold_enabled) layers.push('L9');
+  return [...new Set(layers)];
+}
+
+function AgentBadge({ agentType, agentConfig }: { agentType: string; agentConfig: Record<string, any> }) {
+  if (agentType === 'human') return <span className="text-gray-400">Human</span>;
+  if (agentType === 'random') return <span className="text-gray-500">Random</span>;
+  if (agentType === 'heuristic') return <span className="text-neon-yellow">Heuristic</span>;
+
+  const layers = getActiveLayers(agentConfig || {});
+  const budget = agentConfig?.time_budget_ms;
+
+  return (
+    <span className="inline-flex items-center gap-1">
+      <span className="text-neon-blue">MCTS</span>
+      {budget && <span className="text-gray-500 text-[10px]">{budget}ms</span>}
+      {layers.map(l => (
+        <span key={l} className="text-[9px] font-bold px-1 py-0 rounded bg-neon-blue/10 text-neon-blue border border-neon-blue/20">
+          {l}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 export const History: React.FC = () => {
   const [games, setGames] = useState<any[]>([]);
 
@@ -30,22 +63,34 @@ export const History: React.FC = () => {
               <tr className="text-left border-b border-charcoal-700">
                 <th className="py-2">Game</th>
                 <th>Winner</th>
+                <th>Players</th>
                 <th>Moves</th>
-                <th>Duration (ms)</th>
-                <th>AI Nodes</th>
+                <th>Duration</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
               {games.map((g) => (
                 <tr key={g.game_id} className="border-b border-charcoal-700/40">
-                  <td className="py-2 font-mono">{g.game_id.slice(0, 8)}</td>
+                  <td className="py-2 font-mono text-xs">{g.game_id.slice(0, 8)}</td>
                   <td>{g.winner || 'NONE'}</td>
+                  <td className="py-2">
+                    {g.players ? (
+                      <div className="flex flex-wrap gap-1">
+                        {g.players.map((p: any, i: number) => (
+                          <span key={i} className="text-xs">
+                            <AgentBadge agentType={p.agent_type} agentConfig={p.agent_config || {}} />
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-gray-500 text-xs">-</span>
+                    )}
+                  </td>
                   <td>{g.move_count}</td>
-                  <td>{g.gameDurationMs}</td>
-                  <td>{g.totalAiNodesEvaluated}</td>
+                  <td>{g.gameDurationMs ? `${(g.gameDurationMs / 1000).toFixed(1)}s` : '-'}</td>
                   <td>
-                    <Link className="text-neon-blue" to={`/analysis/${g.game_id}`}>View analysis</Link>
+                    <Link className="text-neon-blue" to={`/analysis/${g.game_id}`}>Analyze</Link>
                   </td>
                 </tr>
               ))}

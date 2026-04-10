@@ -34,7 +34,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from agents.fast_mcts_agent import FastMCTSAgent
+from mcts.mcts_agent import MCTSAgent
 from agents.heuristic_agent import HeuristicAgent
 from agents.random_agent import RandomAgent
 from engine.board import Player as EnginePlayer
@@ -151,10 +151,58 @@ class GameManager:
                 agents[player] = HeuristicAgent()
             elif agent_type == AgentType.MCTS:
                 budget_ms = int(agent_config.get('time_budget_ms', 1000))
-                agents[player] = FastMCTSAgent(
-                    iterations=5000,
+                cfg = dict(agent_config)
+                agents[player] = MCTSAgent(
+                    iterations=int(cfg.get('iterations', 5000)),
                     time_limit=max(budget_ms, 1) / 1000.0,
-                    exploration_constant=1.414
+                    exploration_constant=float(cfg.get('exploration_constant', 1.414)),
+                    use_transposition_table=bool(cfg.get('use_transposition_table', True)),
+                    max_rollout_moves=int(cfg.get('max_rollout_moves', 50)),
+                    # Layer 3: Action Reduction
+                    progressive_widening_enabled=bool(cfg.get('progressive_widening_enabled', False)),
+                    pw_c=float(cfg.get('pw_c', 2.0)),
+                    pw_alpha=float(cfg.get('pw_alpha', 0.5)),
+                    progressive_history_enabled=bool(cfg.get('progressive_history_enabled', False)),
+                    progressive_history_weight=float(cfg.get('progressive_history_weight', 1.0)),
+                    heuristic_move_ordering=bool(cfg.get('heuristic_move_ordering', False)),
+                    # Layer 4: Simulation Strategy
+                    rollout_policy=str(cfg.get('rollout_policy', 'heuristic')),
+                    two_ply_top_k=int(cfg['two_ply_top_k']) if cfg.get('two_ply_top_k') is not None else None,
+                    rollout_cutoff_depth=int(cfg['rollout_cutoff_depth']) if cfg.get('rollout_cutoff_depth') is not None else None,
+                    state_eval_weights=cfg.get('state_eval_weights'),
+                    state_eval_phase_weights=cfg.get('state_eval_phase_weights'),
+                    minimax_backup_alpha=float(cfg.get('minimax_backup_alpha', 0.0)),
+                    # Layer 5: History Heuristics & RAVE
+                    rave_enabled=bool(cfg.get('rave_enabled', False)),
+                    rave_k=float(cfg.get('rave_k', 1000.0)),
+                    nst_enabled=bool(cfg.get('nst_enabled', False)),
+                    nst_weight=float(cfg.get('nst_weight', 0.5)),
+                    # Layer 7: Opponent Modeling
+                    opponent_rollout_policy=str(cfg.get('opponent_rollout_policy', 'same')),
+                    opponent_modeling_enabled=bool(cfg.get('opponent_modeling_enabled', False)),
+                    alliance_detection_enabled=bool(cfg.get('alliance_detection_enabled', False)),
+                    alliance_threshold=float(cfg.get('alliance_threshold', 2.0)),
+                    kingmaker_detection_enabled=bool(cfg.get('kingmaker_detection_enabled', False)),
+                    kingmaker_score_gap=int(cfg.get('kingmaker_score_gap', 15)),
+                    adaptive_opponent_enabled=bool(cfg.get('adaptive_opponent_enabled', False)),
+                    defensive_weight_shift=float(cfg.get('defensive_weight_shift', 0.15)),
+                    # Layer 8: Parallelization
+                    num_workers=int(cfg.get('num_workers', 1)),
+                    virtual_loss=float(cfg.get('virtual_loss', 1.0)),
+                    parallel_strategy=str(cfg.get('parallel_strategy', 'root')),
+                    # Layer 9: Meta-Optimization
+                    adaptive_exploration_enabled=bool(cfg.get('adaptive_exploration_enabled', False)),
+                    adaptive_exploration_base=float(cfg.get('adaptive_exploration_base', 1.414)),
+                    adaptive_exploration_avg_bf=float(cfg.get('adaptive_exploration_avg_bf', 80.0)),
+                    adaptive_rollout_depth_enabled=bool(cfg.get('adaptive_rollout_depth_enabled', False)),
+                    adaptive_rollout_depth_base=int(cfg.get('adaptive_rollout_depth_base', 20)),
+                    adaptive_rollout_depth_avg_bf=float(cfg.get('adaptive_rollout_depth_avg_bf', 80.0)),
+                    sufficiency_threshold_enabled=bool(cfg.get('sufficiency_threshold_enabled', False)),
+                    loss_avoidance_enabled=bool(cfg.get('loss_avoidance_enabled', False)),
+                    loss_avoidance_threshold=float(cfg.get('loss_avoidance_threshold', -50.0)),
+                    # Search Trace for visualization
+                    enable_search_trace=bool(cfg.get('enable_search_trace', False)),
+                    search_trace_sample_rate=int(cfg.get('search_trace_sample_rate', 10)),
                 )
             elif agent_type == AgentType.HUMAN:
                 agents[player] = None  # Human players don't need agents
@@ -1380,6 +1428,15 @@ async def get_history(limit: int = 20):
         user_moves = [m for m in moves if m.get("isHuman")]
         total_ai_nodes = sum((m.get("stats") or {}).get("nodesEvaluated", 0) for m in ai_moves)
         total_ai_think = sum((m.get("stats") or {}).get("timeSpentMs", 0) for m in ai_moves)
+        config = g.get('config')
+        player_configs = []
+        if config and hasattr(config, 'players'):
+            for pc in config.players:
+                player_configs.append({
+                    "player": pc.player,
+                    "agent_type": pc.agent_type,
+                    "agent_config": pc.agent_config or {},
+                })
         finished.append({
             "game_id": gid,
             "winner": g.get("winner"),
@@ -1389,6 +1446,7 @@ async def get_history(limit: int = 20):
             "avgUserMoveTimeMs": int(sum((m.get("stats") or {}).get("userMoveTimeMs", 0) for m in user_moves) / max(len(user_moves), 1)),
             "totalAiThinkTimeMs": total_ai_think,
             "totalAiNodesEvaluated": total_ai_nodes,
+            "players": player_configs,
         })
     finished.sort(key=lambda x: x.get('finished_at') or datetime.min, reverse=True)
     return {"games": finished[:limit]}
@@ -1649,6 +1707,48 @@ async def general_exception_handler(request, exc):
     )
 
 
+ARENA_RUNS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "arena_runs")
+
+
+async def list_arena_runs():
+    """List all arena runs with summary metadata."""
+    runs = []
+    if not os.path.isdir(ARENA_RUNS_DIR):
+        return {"runs": runs}
+    for entry in sorted(os.listdir(ARENA_RUNS_DIR), reverse=True):
+        summary_path = os.path.join(ARENA_RUNS_DIR, entry, "summary.json")
+        if not os.path.isfile(summary_path):
+            continue
+        try:
+            with open(summary_path, "r") as f:
+                summary = json.load(f)
+            run_config = summary.get("run_config", {})
+            agents = run_config.get("agents", [])
+            runs.append({
+                "run_id": summary.get("run_id", entry),
+                "notes": run_config.get("notes", ""),
+                "num_games": summary.get("num_games", 0),
+                "created_at": run_config.get("created_at", ""),
+                "agent_names": [a.get("name", "") for a in agents],
+                "agent_count": len(agents),
+            })
+        except Exception:
+            continue
+    return {"runs": runs}
+
+
+async def get_arena_run(run_id: str):
+    """Return full summary for a specific arena run."""
+    summary_path = os.path.join(ARENA_RUNS_DIR, run_id, "summary.json")
+    if not os.path.isfile(summary_path):
+        raise HTTPException(status_code=404, detail=f"Arena run '{run_id}' not found")
+    try:
+        with open(summary_path, "r") as f:
+            return json.load(f)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to read arena run: {exc}")
+
+
 def _normalize_profile(profile: Optional[str]) -> str:
     if profile in (APP_PROFILE_RESEARCH, APP_PROFILE_DEPLOY):
         return profile  # type: ignore[return-value]
@@ -1717,6 +1817,8 @@ def create_app(
             get_training_run=get_training_run,
             list_agents=list_agents,
             get_training_run_evaluations=get_training_run_evaluations,
+            list_arena_runs=list_arena_runs,
+            get_arena_run=get_arena_run,
         )
 
     app_instance.add_exception_handler(HTTPException, http_exception_handler)
