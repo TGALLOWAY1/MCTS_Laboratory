@@ -1,34 +1,49 @@
 # MCTS Laboratory — Blokus AI Experimentation Platform
 
-Can a well-tuned evaluation function beat brute-force search? This project answers that question through a systematic, 9-layer optimization program for Monte Carlo Tree Search in 4-player Blokus. Using regression on 13,000+ self-play game states, we discovered that the hand-tuned evaluation had a **wrong-sign weight** and **3x underweighted opponent denial** — fixing these with ML-calibrated weights lets an agent with just 25 MCTS iterations beat one with 1,000 iterations of default evaluation. The full-stack platform includes a Python game engine, configurable MCTS with RAVE/parallelization/opponent modeling, a React frontend with in-browser AI via Pyodide, and a reproducible arena system for statistically rigorous comparison. **[Read the key findings →](KEY_FINDINGS.md)**
-
-A Blokus AI experimentation platform centered on fast simulation, Monte Carlo Tree Search, analytics, benchmarking, and comparative strategy evaluation.
+Can a well-tuned evaluation function beat brute-force search? This project answers that question through a systematic, 10-layer optimization program for Monte Carlo Tree Search in 4-player Blokus. Using regression on 13,000+ self-play game states, we discovered that the hand-tuned evaluation had a **wrong-sign weight** and **3x underweighted opponent denial** — fixing these with ML-calibrated weights lets an agent with just 25 MCTS iterations beat one with 1,000 iterations of default evaluation. The full-stack platform includes a Python game engine, configurable MCTS with RAVE/parallelization/opponent modeling, a React frontend with in-browser AI via Pyodide, and a reproducible arena system for statistically rigorous comparison. **[Read the key findings →](KEY_FINDINGS.md)**
 
 <img width="1795" height="865" alt="image" src="https://github.com/user-attachments/assets/751e771f-ce00-45b8-8289-6086f760cd7d" />
+
+![Layer progression](arena_visuals/01_layer_progression.png)
 
 ## Architecture at a Glance
 
 - **Game Engine (Python)**: High-performance bitboard and frontier-based move generation, capable of thousands of simulations per second.
-- **MCTS Agent**: Full Monte Carlo Tree Search with UCB1, transposition tables, RAVE, progressive history, NST, phase-dependent evaluation, opponent modeling, parallelization, and adaptive meta-optimization (9 layers of iterative improvement).
+- **MCTS Agent**: Full Monte Carlo Tree Search with UCB1, transposition tables, RAVE, progressive history, NST, phase-dependent evaluation, opponent modeling, parallelization, and adaptive meta-optimization — 10 layers of iterative improvement (Layers 1–9 optimize the agent; Layer 10 adds throughput calibration).
 - **Frontend (React/TypeScript)**: Responsive, color-blind friendly SPA with in-browser Pyodide execution — MCTS runs locally via WebWorkers with zero backend scaling required.
 - **Arena System**: Reproducible tournament framework with deterministic seeding, round-robin scheduling, and structured output artifacts.
+
+### Agent selection
+
+**Always use `"type": "mcts"` (the full `MCTSAgent` in `mcts/mcts_agent.py`) for all
+arena runs and evaluation.** An earlier `FastMCTSAgent` was removed from the live
+tree after a systematic audit found it was not a valid tree search (nodes did not
+represent successor states and rollouts scored heuristically from the root). It
+now lives in `archive/agents/` and the arena runner rejects `fast_mcts` agent
+types with an error. See `CLAUDE.md` for the full rationale.
 
 ## Quick Start
 
 ```bash
-# Install
+# 1. Install Python package and frontend deps
 pip install -e .
 cd frontend && npm install && cd ..
 
-# Run backend
+# 2. Copy env file (MongoDB is only needed for research profile)
+cp .env.example .env
+
+# 3. Run backend — research profile, full route surface
 python run_server.py            # http://localhost:8000
 
-# Run frontend (separate terminal)
+# 4. Run frontend (separate terminal)
 cd frontend && npm run dev      # http://localhost:5173
 
-# Run an arena tournament
+# 5. Run an arena tournament
 python scripts/arena.py --config scripts/arena_config.json
 ```
+
+For the deploy-profile (gameplay-only) backend used on Vercel, and for building
+the in-browser Pyodide bundle, see [`docs/deployment.md`](docs/deployment.md).
 
 ## How to Run the Demo
 
@@ -77,9 +92,9 @@ For the full narrative, see [docs/project-history.md](docs/project-history.md) a
 | Mar 22, 2026 | **End-to-end eval-model pipeline** | Training-data generation, eval-model training, and validation scripts connected in a single workflow. |
 | Mar 22, 2026 | **Layer 1 baseline characterization** | Profiler, TrueSkill utilities, tournament runner, baseline report. Began treating MCTS improvement as a staged research program. |
 
-### Phase 4: Layered MCTS Optimization (Mar 2026)
+### Phase 4: Layered MCTS Optimization (Mar–Apr 2026)
 
-Nine layers of systematic MCTS improvement, each with arena experiments and written reports:
+Ten layers of systematic MCTS improvement, each with arena experiments and written reports:
 
 | Layer | Focus | Key Technique |
 |-------|-------|--------------|
@@ -92,8 +107,30 @@ Nine layers of systematic MCTS improvement, each with arena experiments and writ
 | **Layer 7** | Opponent modeling | Asymmetric rollout policies, alliance detection, king-maker awareness. **Status: needs re-implementation.** Initial arena testing showed zero effect — all agents produced identical play. Investigation revealed: activation thresholds too strict (alliance needs 3+ moves, kingmaker needs 55% occupancy), defensive weight shift is dead code (never called), and opponent rollout differentiation too weak at low iteration counts. The Blokus research literature models all opponents as a single combined adversary for alliance/kingmaker triggers; current implementation tracks opponents individually with overly conservative thresholds. Requires debugging before re-testing. |
 | **Layer 8** | Parallelization | Root-parallel multiprocessing, tree-parallel virtual loss. **Finding:** Root parallelization is the clear winner — root_2w wins 46% of games (TrueSkill #1), root_4w wins 40% (#2), while baseline_1w and tree_2w each win <10%. Tree parallelization is *slower* than single-threaded (GIL contention) and provides zero strength benefit. Throughput scales near-linearly: 1.84x at 2 workers, 3.13x at 4 workers on 4 cores; 8 workers oversubscribes. **Best setting:** `num_workers: 2, parallel_strategy: "root"`. |
 | **Layer 9** | Meta-optimization | Adaptive exploration/depth, UCT sufficiency threshold, loss avoidance. **Finding:** Adaptive rollout depth is the only beneficial mechanism -- wins 36% (TrueSkill #1) and is 1.64x faster than baseline by allocating shallow rollouts to high-BF early game and deep rollouts to low-BF late game. Adaptive exploration constant is harmful (8% wins) because it over-explores on top of RAVE. Combined "full" agent loses to baseline. See [`archive/reports/layer9_arena_results.md`](archive/reports/layer9_arena_results.md). |
+| **Layer 10** | Throughput calibration | Measured actual iter/ms at each rollout cutoff depth (`scripts/calibrate_throughput.py`). **Finding:** rollout depth is ~100× more expensive than naive estimates — at depth 0 MCTS runs ~0.32 iter/ms, but at depth 5 it drops to ~0.024 iter/ms, and 1000 iterations at depth 5 costs ~5 minutes per move in early game positions. Full 50-move rollouts exceed 2 hours per game and are infeasible. All downstream arena configs were re-calibrated to `rollout_cutoff_depth` of 0, 5, or 10 so a 25-game tournament completes in 60–90 minutes. Per-move verbose progress reporting added to the arena runner. See [`archive/reports/layer10_compute_independent_insights_report.md`](archive/reports/layer10_compute_independent_insights_report.md). |
 
 All layer reports are preserved in [`archive/reports/`](archive/reports/).
+
+![Grand summary of layer contributions](arena_visuals/09_grand_summary.png)
+![Layer 4 — quality of rollout beats quantity of iterations](arena_visuals/03_L4_quality_vs_quantity.png)
+![Layer 5 — RAVE convergence speedup](arena_visuals/05_L5_rave_convergence.png)
+
+## What Didn't Work — Honest Limitations
+
+Systematic optimization produced as many negative results as positive ones. These are worth calling out:
+
+- **Layer 2 — Learned evaluation model:** A gradient-boosted tree trained on 11K+ snapshots delivered zero strength gain. Inference cost (~26 ms/call) ate most of a 200 ms budget, so time saved elsewhere was immediately burned on the model.
+- **Layer 6 — Phase-dependent weights:** The phase-dependent evaluator posted a **0% win rate** in a 25-game arena. Sign-inverted early-game weights, missing `center_proximity`, and hard phase-transition discontinuities produced noisy tree statistics. A single calibrated weight set outperformed the phased version.
+- **Layer 7 — Opponent modeling:** Alliance detection, king-maker awareness, and asymmetric rollouts were implemented but produced no reliable competitive advantage even after a bug-fix pass. The Blokus research literature models all opponents as one combined adversary; this per-opponent implementation may not be the right abstraction. Marked "done but not recommended."
+- **Layer 8 — Tree parallelization:** Virtual-loss tree parallelization is *slower* than single-threaded MCTS because of Python's GIL and provides zero strength benefit. Only root parallelization (multiprocessing) delivers a real speedup.
+- **Layer 9 — Combined meta-optimization agent:** Stacking adaptive exploration + adaptive depth + sufficiency threshold + loss avoidance **loses to baseline**. Adaptive exploration constant is actively harmful (8% win rate) because it over-explores on top of RAVE. Only adaptive rollout depth survived the cut.
+- **Compute ceiling:** A full 50-move rollout exceeds 2 hours per game (Layer 10). All practical experiments use rollout cutoffs of 0, 5, or 10. Conclusions about agent strength are therefore conditional on that compute regime.
+
+### What this project is not
+
+- It is not an AlphaZero-style learned MCTS — there is no neural policy or value network driving selection or rollouts.
+- It is not distributed — the parallelization layer runs on a single machine, and the numbers were gathered on 4 cores.
+- It is not a general board-game framework — everything is Blokus-specific from the bitboard up.
 
 ---
 
@@ -102,36 +139,41 @@ All layer reports are preserved in [`archive/reports/`](archive/reports/).
 ```
 MCTS_Laboratory/
 ├── engine/              # Core Blokus engine (bitboard, frontier move gen)
-├── mcts/                # MCTS implementation (Layers 1-9)
+├── mcts/                # MCTS implementation (Layers 1-10)
 │   ├── mcts_agent.py    # Full MCTS with RAVE, NST, opponent modeling, parallelization
 │   ├── parallel.py      # Root parallelization (Layer 8)
 │   ├── opponent_model.py # Alliance detection, king-maker (Layer 7)
 │   └── state_evaluator.py # Phase-dependent evaluation (Layers 4, 6)
-├── agents/              # Agent implementations (random, heuristic, fast_mcts)
+├── agents/              # Baseline agents: random, heuristic, human adapters
 ├── analytics/           # Logging, metrics, tournament, win-probability
-├── scripts/             # Arena CLI, analysis scripts, utilities
+├── scripts/             # Arena CLI, analysis scripts, utilities (35+ arena configs)
 ├── frontend/            # React/TypeScript SPA
 ├── browser_python/      # Pyodide mirror of engine + MCTS
-├── webapi/              # FastAPI REST API
+├── webapi/              # FastAPI app module (research + deploy profiles)
+├── api-runtime/         # Vercel entry point — loads webapi in deploy profile
+├── run_server.py        # Local dev entry point — runs webapi/app.py on :8000
 ├── benchmarks/          # Performance benchmarks
 ├── schemas/             # Pydantic data models
 ├── tests/               # Test suite
 ├── data/                # Calibrated weights and active data
 ├── config/              # Agent configuration
+├── arena_visuals/       # Layer-progression plots embedded in this README
 ├── docs/                # Active documentation
 │   ├── arena.md         # Arena run schema and outputs
 │   ├── datasets.md      # Dataset generation docs
 │   ├── engine/          # Move generation, optimization notes
 │   ├── mcts-analysis-mode/ # MCTS diagnostics docs
-│   ├── deployment/      # Deployment guides
+│   ├── deployment.md    # Vercel deployment guide (single file)
 │   └── project-history.md  # Full project narrative
 └── archive/             # Historical artifacts
+    ├── agents/          # Archived FastMCTSAgent (NOT valid for competitive use)
+    ├── engine-service/  # Archived external /think microservice
     ├── rl/              # RL configs, logs, models, training docs
-    ├── arena_runs/      # 81 timestamped arena run results
+    ├── arena_runs/      # Timestamped arena run results
     ├── data/            # Parquet datasets, analysis plots
     ├── databases/       # League databases
-    ├── reports/         # Layer 1-9 optimization reports
-    ├── docs/            # Archived documentation
+    ├── reports/         # Layer 1-10 optimization reports
+    ├── docs/            # Archived documentation (inc. old deployment docs)
     ├── logs/            # Historical logs
     └── misc/            # Legacy scripts and plans
 ```
