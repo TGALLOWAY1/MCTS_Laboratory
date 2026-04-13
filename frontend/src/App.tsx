@@ -7,6 +7,7 @@ import { Analysis } from './pages/Analysis';
 import { Benchmark } from './pages/Benchmark';
 import { History } from './pages/History';
 import { MctsVisualization } from './pages/MctsVisualization';
+import { RecruiterStoryPage } from './pages/RecruiterStoryPage';
 import { IS_DEPLOY_PROFILE } from './constants/gameConstants';
 import './App.css';
 
@@ -26,6 +27,7 @@ function App() {
               <Route path="/benchmark" element={<Benchmark />} />
               <Route path="/history" element={<History />} />
               <Route path="/mcts-analysis" element={<MctsVisualization />} />
+              <Route path="/story" element={<RecruiterStoryPage />} />
             </>
           )}
         </Routes>
