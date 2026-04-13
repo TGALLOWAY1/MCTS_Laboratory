@@ -76,6 +76,7 @@
 - Analysis page with MCTS diagnostics — `frontend/src/pages/Analysis.tsx`
 - ExplainMove panel — `frontend/src/components/ExplainMovePanel.tsx`
 - Game history browser with agent config badges and active layer indicators — `frontend/src/pages/History.tsx`
+- Recruiter-facing scrolling story page with architecture narrative, animation specs, and impact framing — `frontend/src/pages/RecruiterStoryPage.tsx`, `docs/frontend/recruiter_scrolling_story_page.md`
 
 ## Web API
 
