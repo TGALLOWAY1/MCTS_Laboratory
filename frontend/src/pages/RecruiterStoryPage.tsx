@@ -264,16 +264,22 @@ export const RecruiterStoryPage: React.FC = () => {
               </div>
             </motion.div>
 
-            <div className="col-span-1 lg:col-span-2 overflow-hidden border-t border-charcoal-700 bg-charcoal-800/60">
-              {/* TODO capture: 2P-vs-4P split-tree graphic → frontend/public/assets/story/split_tree.png
-                  Candidates: NB3 prompt in plan doc §Remaining, or render with matplotlib
-                  (nx.DiGraph tree with 2 vs 534 children). */}
-              <CapturePlaceholder
-                label="Split-screen 2P vs 4P tree bloom. Left: tidy binary tree. Right: radial 534-branch explosion."
-                cmd={'# generate via matplotlib or NB3 prompt (see plan)\n# → frontend/public/assets/story/split_tree.png'}
-                aspect="aspect-[21/9]"
+            <motion.figure
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="col-span-1 lg:col-span-2 overflow-hidden border-t border-charcoal-700 bg-charcoal-800/60"
+            >
+              <img
+                src="/assets/story/story_multiplayer_branching.png"
+                alt="Central game-state branching into compounding 4-player futures"
+                className="aspect-[21/9] w-full object-cover"
               />
-            </div>
+              <figcaption className="px-4 py-3 text-xs uppercase tracking-widest text-gray-500">
+                Branching futures under 4-player non-stationarity
+              </figcaption>
+            </motion.figure>
           </motion.div>
         </div>
       </section>
@@ -282,7 +288,8 @@ export const RecruiterStoryPage: React.FC = () => {
       {/*  3. WHY NAÏVE MCTS FAILS                                             */}
       {/* ================================================================== */}
       <section className="border-t border-charcoal-800 bg-charcoal-900 px-6 py-24 md:px-12 lg:px-24">
-        <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-2 lg:items-center">
+        <div className="mx-auto max-w-6xl">
+        <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
           <div>
             <SectionEyebrow color="yellow">The First Failure</SectionEyebrow>
             <h2 className="mt-4 text-3xl font-bold leading-tight text-white md:text-5xl">
@@ -334,6 +341,24 @@ export const RecruiterStoryPage: React.FC = () => {
             </motion.div>
           </div>
         </div>
+
+        <motion.figure
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="mt-16 overflow-hidden rounded-2xl border border-charcoal-700 bg-charcoal-800/60"
+        >
+          <img
+            src="/assets/story/story_naive_search_wall.png"
+            alt="Search tree begins clean and collapses into a congested, bottlenecked cluster"
+            className="aspect-[21/9] w-full object-cover"
+          />
+          <figcaption className="px-4 py-3 text-xs uppercase tracking-widest text-gray-500">
+            Iteration efficiency collapses at 534-way branching · Q-estimates drown in noise
+          </figcaption>
+        </motion.figure>
+        </div>
       </section>
 
       {/* ================================================================== */}
@@ -350,6 +375,23 @@ export const RecruiterStoryPage: React.FC = () => {
               Before search quality could improve, the engine had to be fast enough to run real experiments. Bitboard state with O(1) legality checks and frontier-based move generation cut candidate placements 10–20×. Even so, rollout depth carries a brutal cliff — in the opening, depth-0 evaluation runs at 466 iter/s while depth-5 rollouts crawl at 3.5 iter/s.
             </p>
           </div>
+
+          <motion.figure
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="mb-10 overflow-hidden rounded-2xl border border-charcoal-700 bg-charcoal-800/60"
+          >
+            <img
+              src="/assets/story/story_engine_throughput.png"
+              alt="Fragmented computation pipeline reshaped into a streamlined evaluation flow"
+              className="aspect-[21/9] w-full object-cover"
+            />
+            <figcaption className="px-4 py-3 text-xs uppercase tracking-widest text-gray-500">
+              From fragmented computation to streamlined throughput · bitboard + frontier enumeration
+            </figcaption>
+          </motion.figure>
 
           <div className="grid gap-6 md:grid-cols-3">
             <motion.div
@@ -539,12 +581,22 @@ export const RecruiterStoryPage: React.FC = () => {
               </ul>
             </div>
             <div className="lg:col-span-3">
-              {/* TODO capture: run benchmark page → frontend/public/assets/story/capture_benchmark.png */}
-              <CapturePlaceholder
-                label="Benchmark page · TrueSkill leaderboard + pairwise win matrix for a layer-comparison tournament."
-                cmd={'cd frontend && npm run dev\n# open http://localhost:3000/benchmark\n# capture 1920×1080 → frontend/public/assets/story/capture_benchmark.png'}
-                aspect="aspect-[16/10]"
-              />
+              <motion.figure
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6 }}
+                className="overflow-hidden rounded-2xl border border-charcoal-700 bg-charcoal-800/60"
+              >
+                <img
+                  src="/assets/story/story_experimentation_lab.png"
+                  alt="Interconnected benchmarking, tournament evaluation, parameter tuning, analytics, and result comparison modules"
+                  className="aspect-[16/10] w-full object-cover"
+                />
+                <figcaption className="px-4 py-3 text-xs uppercase tracking-widest text-gray-500">
+                  Benchmarking · Tournaments · Tuning · Analytics · Result Comparison
+                </figcaption>
+              </motion.figure>
             </div>
           </div>
         </div>
@@ -555,6 +607,26 @@ export const RecruiterStoryPage: React.FC = () => {
       {/* ================================================================== */}
       <section className="border-t border-charcoal-800 bg-charcoal-900 px-6 py-24 md:px-12 lg:px-24">
         <div className="mx-auto max-w-6xl">
+          <motion.figure
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7 }}
+            className="mb-12 overflow-hidden rounded-2xl border border-charcoal-700 bg-charcoal-800/60"
+          >
+            <div className="px-6 pt-5">
+              <SectionEyebrow color="blue">The Thesis</SectionEyebrow>
+            </div>
+            <img
+              src="/assets/story/story_thesis_relationship.png"
+              alt="Engine efficiency feeds an experimentation layer that drives stronger search quality and gameplay outcomes"
+              className="aspect-[21/9] w-full object-cover"
+            />
+            <figcaption className="px-6 py-3 text-xs uppercase tracking-widest text-gray-500">
+              Performance optimization enabled experimentation · experimentation drove gameplay quality
+            </figcaption>
+          </motion.figure>
+
           <div className="mb-12 max-w-3xl">
             <SectionEyebrow color="green">Layers 3 → 9</SectionEyebrow>
             <h2 className="mt-4 text-3xl font-bold text-white md:text-5xl">
