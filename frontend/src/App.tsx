@@ -18,6 +18,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Play />} />
           <Route path="/play" element={<Play />} />
+          <Route path="/story" element={<RecruiterStoryPage />} />
           {!IS_DEPLOY_PROFILE && (
             <>
               <Route path="/train" element={<TrainEval />} />
@@ -27,7 +28,6 @@ function App() {
               <Route path="/benchmark" element={<Benchmark />} />
               <Route path="/history" element={<History />} />
               <Route path="/mcts-analysis" element={<MctsVisualization />} />
-              <Route path="/story" element={<RecruiterStoryPage />} />
             </>
           )}
         </Routes>
