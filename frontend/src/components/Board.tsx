@@ -83,8 +83,8 @@ export const Board: React.FC<BoardProps> = ({
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
 
-    const col = Math.floor(x / CELL_SIZE);
-    const row = Math.floor(y / CELL_SIZE);
+    const col = Math.floor((x / rect.width) * BOARD_SIZE);
+    const row = Math.floor((y / rect.height) * BOARD_SIZE);
 
     if (row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE) {
       setHoveredCell({ row, col });
@@ -97,8 +97,8 @@ export const Board: React.FC<BoardProps> = ({
   const handleClick = useCallback((event: React.MouseEvent<SVGSVGElement>) => {
     if (!svgRef.current) return;
     const rect = svgRef.current.getBoundingClientRect();
-    const col = Math.floor((event.clientX - rect.left) / CELL_SIZE);
-    const row = Math.floor((event.clientY - rect.top) / CELL_SIZE);
+    const col = Math.floor(((event.clientX - rect.left) / rect.width) * BOARD_SIZE);
+    const row = Math.floor(((event.clientY - rect.top) / rect.height) * BOARD_SIZE);
     if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE) return;
 
     if (previewMove) setPreviewMove(null);
@@ -258,15 +258,18 @@ export const Board: React.FC<BoardProps> = ({
   const piecePreview = getPiecePreview();
 
   return (
-    <div className="flex flex-col items-center justify-center h-full bg-transparent">
-      <svg
-        ref={svgRef}
-        width={BOARD_SIZE * CELL_SIZE}
-        height={BOARD_SIZE * CELL_SIZE}
-        className="cursor-crosshair bg-charcoal-900/50"
-        onMouseMove={handleMouseMove}
-        onClick={handleClick}
-      >
+    <div className="flex items-center justify-center h-full w-full bg-transparent">
+      <div className="aspect-square max-h-full max-w-full h-full">
+        <svg
+          ref={svgRef}
+          viewBox={`0 0 ${BOARD_SIZE * CELL_SIZE} ${BOARD_SIZE * CELL_SIZE}`}
+          preserveAspectRatio="xMidYMid meet"
+          width="100%"
+          height="100%"
+          className="cursor-crosshair bg-charcoal-900/50 block"
+          onMouseMove={handleMouseMove}
+          onClick={handleClick}
+        >
         {/* Grid lines - higher contrast against dark background */}
         {Array.from({ length: BOARD_SIZE + 1 }).map((_, i) => (
           <g key={i}>
@@ -344,7 +347,8 @@ export const Board: React.FC<BoardProps> = ({
             className="pointer-events-none"
           />
         )}
-      </svg>
+        </svg>
+      </div>
     </div>
   );
 };
