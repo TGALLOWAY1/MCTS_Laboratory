@@ -264,7 +264,7 @@ export const Play: React.FC = () => {
   }
 
   return (
-    <div className="fixed h-screen w-screen bg-charcoal-900 flex overflow-hidden pr-4">
+    <div className="fixed h-screen w-screen bg-charcoal-900 flex overflow-hidden pr-2">
       {/* Left Column - PieceTray (collapsible) */}
       {showPieceTray && (
         <aside className="w-80 border-r border-charcoal-700 bg-charcoal-900 flex flex-col overflow-hidden">
@@ -496,7 +496,7 @@ export const Play: React.FC = () => {
         )}
 
         {/* Board Container */}
-        <div className="relative flex-1 flex items-center justify-center overflow-auto">
+        <div className="relative flex-1 flex items-center justify-center overflow-hidden p-2">
           <Board
             onCellClick={handleCellClick}
             onCellHover={handleCellHover}
