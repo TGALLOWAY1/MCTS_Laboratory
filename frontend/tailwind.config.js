@@ -15,6 +15,8 @@ export default {
         },
         neon: {
           blue: '#00F0FF',
+          cyan: '#22D3EE',
+          violet: '#8B5CF6',
           green: '#00FF9D',
           red: '#FF4D4D',
           yellow: '#FFE600',
