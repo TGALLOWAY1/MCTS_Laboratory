@@ -17,17 +17,18 @@ import {
   XCircle,
   Layers,
   Gauge,
+  Film,
 } from 'lucide-react';
 
 /* ------------------------------------------------------------------ */
 /*  Small inline building blocks used across sections                  */
 /* ------------------------------------------------------------------ */
 
-type Accent = 'blue' | 'green' | 'yellow' | 'red' | 'white';
+type Accent = 'blue' | 'cyan' | 'violet' | 'red' | 'white';
 const accentMap: Record<Accent, string> = {
   blue: 'text-neon-blue',
-  green: 'text-neon-green',
-  yellow: 'text-neon-yellow',
+  cyan: 'text-neon-cyan',
+  violet: 'text-neon-violet',
   red: 'text-neon-red',
   white: 'text-white',
 };
@@ -54,16 +55,59 @@ const SectionEyebrow: React.FC<{ color: Accent; children: React.ReactNode }> = (
   <span className={`text-xs font-bold uppercase tracking-widest ${accentMap[color]}`}>{children}</span>
 );
 
-const CapturePlaceholder: React.FC<{ label: string; cmd?: string; aspect?: string }> = ({
-  label,
-  cmd,
-  aspect = 'aspect-[16/9]',
-}) => (
+/**
+ * Premium editorial figure wrapper for cinematic Gemini-generated story images.
+ * Applies rounded frame, charcoal hairline border, radial vignette overlay, and
+ * lazy-loading. Data-viz chart PNGs intentionally use plain `<figure>` instead.
+ */
+const EditorialFigure: React.FC<{
+  src: string;
+  alt: string;
+  caption?: string;
+  aspect?: string;
+  accent?: 'blue' | 'cyan' | 'violet';
+  className?: string;
+}> = ({ src, alt, caption, aspect = 'aspect-[21/9]', accent = 'cyan', className = '' }) => {
+  const glow = accent === 'blue'
+    ? 'shadow-[0_0_40px_rgba(0,240,255,0.08)]'
+    : accent === 'violet'
+      ? 'shadow-[0_0_40px_rgba(139,92,246,0.10)]'
+      : 'shadow-[0_0_40px_rgba(34,211,238,0.10)]';
+  return (
+    <figure className={`editorial-vignette relative overflow-hidden rounded-2xl border border-charcoal-700 bg-charcoal-800/40 ${glow} ${className}`}>
+      <div className={`${aspect} w-full`}>
+        <img
+          src={src}
+          alt={alt}
+          loading="lazy"
+          className="h-full w-full object-cover object-center"
+        />
+      </div>
+      {caption && (
+        <figcaption className="relative z-10 border-t border-charcoal-700/80 bg-charcoal-900/60 px-4 py-3 text-xs uppercase tracking-widest text-gray-500 backdrop-blur-sm">
+          {caption}
+        </figcaption>
+      )}
+    </figure>
+  );
+};
+
+/**
+ * Dashed-border TODO stub. Used for the one remaining upload-pending slot
+ * (frontier-focus screen recording). `kind="video"` swaps the icon + label.
+ */
+const MediaPlaceholder: React.FC<{
+  label: string;
+  cmd?: string;
+  aspect?: string;
+  kind?: 'image' | 'video';
+}> = ({ label, cmd, aspect = 'aspect-[16/9]', kind = 'image' }) => (
   <div
     className={`relative ${aspect} w-full rounded-2xl border-2 border-dashed border-charcoal-600 bg-charcoal-800/40 flex flex-col items-center justify-center p-6 text-center`}
   >
-    <span className="inline-flex items-center gap-2 rounded-full border border-neon-yellow/40 bg-neon-yellow/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-neon-yellow">
-      <AlertTriangle size={12} /> Capture TODO
+    <span className="inline-flex items-center gap-2 rounded-full border border-neon-violet/40 bg-neon-violet/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-neon-violet">
+      {kind === 'video' ? <Film size={12} /> : <AlertTriangle size={12} />}
+      {kind === 'video' ? 'Video upload pending' : 'Capture TODO'}
     </span>
     <div className="mt-4 max-w-md text-sm text-charcoal-500">{label}</div>
     {cmd && (
@@ -77,14 +121,14 @@ const CapturePlaceholder: React.FC<{ label: string; cmd?: string; aspect?: strin
 type LayerVerdict = 'win' | 'mixed' | 'loss';
 const verdictStyle: Record<LayerVerdict, { ring: string; badge: string; icon: JSX.Element; text: string }> = {
   win: {
-    ring: 'border-neon-green/40 hover:border-neon-green',
-    badge: 'bg-neon-green/10 text-neon-green border-neon-green/30',
+    ring: 'border-neon-cyan/40 hover:border-neon-cyan',
+    badge: 'bg-neon-cyan/10 text-neon-cyan border-neon-cyan/30',
     icon: <CheckCircle2 size={12} />,
     text: 'Win',
   },
   mixed: {
-    ring: 'border-neon-yellow/40 hover:border-neon-yellow',
-    badge: 'bg-neon-yellow/10 text-neon-yellow border-neon-yellow/30',
+    ring: 'border-neon-violet/40 hover:border-neon-violet',
+    badge: 'bg-neon-violet/10 text-neon-violet border-neon-violet/30',
     icon: <AlertTriangle size={12} />,
     text: 'Mixed',
   },
@@ -150,17 +194,26 @@ export const RecruiterStoryPage: React.FC = () => {
       {/*  1. HERO                                                             */}
       {/* ================================================================== */}
       <section className="relative flex min-h-[90vh] flex-col items-center justify-center overflow-hidden border-b border-charcoal-700 bg-gradient-to-b from-charcoal-800 to-charcoal-900 px-6 py-20 text-center">
+        {/* Editorial hero image layered behind the original search-tree render */}
         <motion.div
           style={{ opacity: heroOpacity, scale: treeScale }}
-          className="absolute inset-0 z-0 flex items-center justify-center opacity-30"
+          className="absolute inset-0 z-0"
         >
+          <img
+            src="/assets/story/editorial/01-hero-search-at-scale.png"
+            alt=""
+            aria-hidden="true"
+            className="h-full w-full object-cover object-center opacity-55"
+          />
           <img
             src="/assets/hero_search_tree_1776109554975.png"
             alt=""
             aria-hidden="true"
-            className="h-full w-full object-cover object-center opacity-70"
+            className="absolute inset-0 h-full w-full object-cover object-center mix-blend-screen opacity-25"
           />
-          <div className="absolute inset-0 bg-charcoal-900/50" />
+          {/* Cinematic gradient scrim keeps headline legible */}
+          <div className="absolute inset-0 bg-gradient-to-b from-charcoal-900/80 via-transparent to-charcoal-900" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.6)_100%)]" />
         </motion.div>
 
         <motion.div
@@ -170,19 +223,19 @@ export const RecruiterStoryPage: React.FC = () => {
           transition={{ duration: 0.8, ease: 'easeOut' }}
           className="relative z-10 mx-auto max-w-5xl"
         >
-          <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-neon-blue/30 bg-neon-blue/10 px-4 py-1.5 text-xs font-semibold tracking-widest text-neon-blue">
+          <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-neon-cyan/30 bg-neon-cyan/10 px-4 py-1.5 text-xs font-semibold tracking-widest text-neon-cyan">
             <Cpu size={14} /> AI / ML Systems Engineering
           </span>
           <h1 className="mt-4 text-5xl font-extrabold tracking-tight text-white md:text-7xl">
             Engineering Strategic Intelligence for <br />
-            <span className="bg-gradient-to-r from-neon-blue to-neon-green bg-clip-text text-transparent">4-Player Blokus</span>
+            <span className="bg-gradient-to-r from-neon-cyan via-neon-blue to-neon-violet bg-clip-text text-transparent">4-Player Blokus</span>
           </h1>
           <p className="mx-auto mt-8 max-w-3xl text-lg text-gray-300 md:text-xl">
             A nine-layer optimization program that turns a 534-move branching factor and four non-stationary opponents into measurable, explainable decision quality.
           </p>
 
           <div className="mt-12 flex flex-wrap justify-center gap-6">
-            <MetricChip value="76%" label="Calibrated Eval Win Rate" accent="green" delay={0.2} />
+            <MetricChip value="76%" label="Calibrated Eval Win Rate" accent="cyan" delay={0.2} />
             <MetricChip value="3.1×" label="Parallel Throughput Gain" accent="blue" delay={0.3} />
             <MetricChip value="13,332" label="Labeled Game States" accent="white" delay={0.4} />
           </div>
@@ -200,7 +253,7 @@ export const RecruiterStoryPage: React.FC = () => {
             </Link>
             <Link
               to="/benchmark"
-              className="inline-flex items-center gap-2 rounded-full border border-charcoal-600 px-6 py-3 text-sm font-semibold tracking-widest text-gray-300 transition-colors hover:border-neon-green hover:text-neon-green"
+              className="inline-flex items-center gap-2 rounded-full border border-charcoal-600 px-6 py-3 text-sm font-semibold tracking-widest text-gray-300 transition-colors hover:border-neon-violet hover:text-neon-violet"
             >
               <BarChart3 size={14} /> See the Arena
             </Link>
@@ -264,15 +317,18 @@ export const RecruiterStoryPage: React.FC = () => {
               </div>
             </motion.div>
 
-            <div className="col-span-1 lg:col-span-2 overflow-hidden border-t border-charcoal-700 bg-charcoal-800/60">
-              {/* TODO capture: 2P-vs-4P split-tree graphic → frontend/public/assets/story/split_tree.png
-                  Candidates: NB3 prompt in plan doc §Remaining, or render with matplotlib
-                  (nx.DiGraph tree with 2 vs 534 children). */}
-              <CapturePlaceholder
-                label="Split-screen 2P vs 4P tree bloom. Left: tidy binary tree. Right: radial 534-branch explosion."
-                cmd={'# generate via matplotlib or NB3 prompt (see plan)\n# → frontend/public/assets/story/split_tree.png'}
-                aspect="aspect-[21/9]"
-              />
+            <div className="col-span-1 overflow-hidden border-t border-charcoal-700 bg-charcoal-900/40 lg:col-span-2">
+              <div className="editorial-vignette relative">
+                <img
+                  src="/assets/story/editorial/02-multiplayer-branching.png"
+                  alt="Four-player branching complexity visualization — a central game state fans out into a rapidly widening tree of possible futures"
+                  loading="lazy"
+                  className="aspect-[21/9] w-full object-cover object-center"
+                />
+                <figcaption className="relative z-10 border-t border-charcoal-700/80 bg-charcoal-900/60 px-4 py-3 text-xs uppercase tracking-widest text-gray-500 backdrop-blur-sm">
+                  Four opponents · compounding branching factor · no stable minimax
+                </figcaption>
+              </div>
             </div>
           </motion.div>
         </div>
@@ -281,10 +337,10 @@ export const RecruiterStoryPage: React.FC = () => {
       {/* ================================================================== */}
       {/*  3. WHY NAÏVE MCTS FAILS                                             */}
       {/* ================================================================== */}
-      <section className="border-t border-charcoal-800 bg-charcoal-900 px-6 py-24 md:px-12 lg:px-24">
+      <section className="story-divider bg-charcoal-900 px-6 py-24 md:px-12 lg:px-24">
         <div className="mx-auto grid max-w-6xl gap-12 lg:grid-cols-2 lg:items-center">
           <div>
-            <SectionEyebrow color="yellow">The First Failure</SectionEyebrow>
+            <SectionEyebrow color="violet">The First Failure</SectionEyebrow>
             <h2 className="mt-4 text-3xl font-bold leading-tight text-white md:text-5xl">
               The first MCTS implementation <span className="text-neon-red">lost to heuristic rollouts</span>
             </h2>
@@ -293,19 +349,19 @@ export const RecruiterStoryPage: React.FC = () => {
             </p>
             <ul className="mt-8 space-y-4">
               <li className="flex items-start gap-3">
-                <Target className="mt-1 shrink-0 text-neon-yellow" size={18} />
+                <Target className="mt-1 shrink-0 text-neon-violet" size={18} />
                 <span className="text-sm text-gray-300">
                   <strong className="text-white">Iteration efficiency 11%</strong> across 80 turn indices; 78/80 turns below 50% utilization.
                 </span>
               </li>
               <li className="flex items-start gap-3">
-                <Gauge className="mt-1 shrink-0 text-neon-yellow" size={18} />
+                <Gauge className="mt-1 shrink-0 text-neon-violet" size={18} />
                 <span className="text-sm text-gray-300">
                   <strong className="text-white">Q-values collapse</strong> when each child sees 3–4 visits — UCB1 can't discriminate.
                 </span>
               </li>
               <li className="flex items-start gap-3">
-                <AlertTriangle className="mt-1 shrink-0 text-neon-yellow" size={18} />
+                <AlertTriangle className="mt-1 shrink-0 text-neon-violet" size={18} />
                 <span className="text-sm text-gray-300">
                   <strong className="text-white">Takeaway:</strong> Throwing more iterations at a broken baseline will never close the gap. Every layer that followed was shaped by this result.
                 </span>
@@ -319,7 +375,7 @@ export const RecruiterStoryPage: React.FC = () => {
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ duration: 0.8 }}
-              className="relative flex aspect-square items-center justify-center overflow-hidden rounded-full border border-charcoal-700 bg-charcoal-800 p-12 shadow-2xl shadow-neon-yellow/5"
+              className="relative flex aspect-square items-center justify-center overflow-hidden rounded-full border border-charcoal-700 bg-charcoal-800 p-12 shadow-2xl shadow-neon-violet/10"
             >
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-neon-red/10 via-charcoal-800/20 to-transparent blur-md" />
               <div className="relative z-10 text-center">
@@ -334,12 +390,23 @@ export const RecruiterStoryPage: React.FC = () => {
             </motion.div>
           </div>
         </div>
+
+        {/* Editorial band: "naive search hits a wall" */}
+        <div className="mx-auto mt-16 max-w-6xl">
+          <EditorialFigure
+            src="/assets/story/editorial/03-naive-search-wall.png"
+            alt="Early system limitations — a promising search pipeline becomes bottlenecked and congested under scale"
+            aspect="aspect-[21/9]"
+            accent="violet"
+            caption="Naïve MCTS · works, but cannot scale"
+          />
+        </div>
       </section>
 
       {/* ================================================================== */}
       {/*  4. ENGINE PERFORMANCE FOUNDATION                                     */}
       {/* ================================================================== */}
-      <section className="border-t border-charcoal-800 bg-charcoal-900 px-6 py-24 md:px-12 lg:px-24">
+      <section className="story-divider bg-charcoal-900 px-6 py-24 md:px-12 lg:px-24">
         <div className="mx-auto max-w-6xl">
           <div className="mb-12 max-w-3xl">
             <SectionEyebrow color="blue">Engine Foundation</SectionEyebrow>
@@ -349,6 +416,17 @@ export const RecruiterStoryPage: React.FC = () => {
             <p className="mt-6 text-gray-400">
               Before search quality could improve, the engine had to be fast enough to run real experiments. Bitboard state with O(1) legality checks and frontier-based move generation cut candidate placements 10–20×. Even so, rollout depth carries a brutal cliff — in the opening, depth-0 evaluation runs at 466 iter/s while depth-5 rollouts crawl at 3.5 iter/s.
             </p>
+          </div>
+
+          {/* Editorial band: engine throughput visualization */}
+          <div className="mb-12">
+            <EditorialFigure
+              src="/assets/story/editorial/04-engine-throughput.png"
+              alt="Engine throughput — a streamlined, dense computation pipeline delivering higher iteration velocity"
+              aspect="aspect-[21/9]"
+              accent="blue"
+              caption="Dense throughput · lower overhead · higher experiment velocity"
+            />
           </div>
 
           <div className="grid gap-6 md:grid-cols-3">
@@ -371,10 +449,10 @@ export const RecruiterStoryPage: React.FC = () => {
               transition={{ delay: 0.1 }}
               className="rounded-2xl border border-charcoal-700 bg-charcoal-800/70 p-6"
             >
-              <Workflow className="text-neon-green" />
+              <Workflow className="text-neon-cyan" />
               <h3 className="mt-4 text-lg font-bold text-white">Frontier-first enumeration</h3>
               <p className="mt-2 text-sm text-gray-400">
-                Legal placements are scanned against the <span className="text-neon-green">20–30 active frontier cells</span>, not all 400 board squares. 10–20× fewer candidates, same correctness.
+                Legal placements are scanned against the <span className="text-neon-cyan">20–30 active frontier cells</span>, not all 400 board squares. 10–20× fewer candidates, same correctness.
               </p>
             </motion.div>
             <motion.div
@@ -418,12 +496,38 @@ export const RecruiterStoryPage: React.FC = () => {
       </section>
 
       {/* ================================================================== */}
+      {/*  4.5 SYSTEM ARCHITECTURE (interstitial)                              */}
+      {/* ================================================================== */}
+      <section className="story-divider bg-charcoal-900 px-6 py-24 md:px-12 lg:px-24">
+        <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-2">
+          <EditorialFigure
+            src="/assets/story/editorial/11-system-architecture.png"
+            alt="Layered architecture of the MCTS Laboratory — distinct layers for representation, search, evaluation, experimentation, analytics"
+            aspect="aspect-[3/4]"
+            accent="violet"
+          />
+          <div>
+            <SectionEyebrow color="violet">Architecture</SectionEyebrow>
+            <h2 className="mt-4 text-3xl font-bold text-white md:text-5xl">
+              Layered by concern,<br />measured independently
+            </h2>
+            <p className="mt-6 text-gray-400">
+              The system factors cleanly across nine concerns — representation, move generation, selection, rollout, evaluation, history, opponent modeling, parallelization, meta-control. Each layer exposes a measurable contract, so wins, regressions, and stalemates can be attributed to a single knob instead of a black-box release.
+            </p>
+            <p className="mt-4 text-gray-400">
+              Every downstream section on this page maps back to one of these layers. Nothing ships without an arena-validated delta.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ================================================================== */}
       {/*  5. THE PIPELINE (sticky scroll — aesthetic preserved)                */}
       {/* ================================================================== */}
-      <section className="border-t border-charcoal-800 bg-charcoal-900">
+      <section className="story-divider bg-charcoal-900">
         <div className="mx-auto max-w-7xl px-6 md:px-12 lg:px-24">
           <div className="pt-24">
-            <SectionEyebrow color="green">How It Works</SectionEyebrow>
+            <SectionEyebrow color="cyan">How It Works</SectionEyebrow>
             <h2 className="mt-4 text-3xl font-bold text-white md:text-5xl">The Search Pipeline</h2>
             <p className="mt-4 max-w-2xl text-gray-400">
               Four stages run every turn, under a fixed wall-clock budget. Every stage is instrumented — diagnostics flow straight through to the frontend.
@@ -474,12 +578,21 @@ export const RecruiterStoryPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="sticky top-0 hidden h-screen py-24 lg:block lg:w-1/2">
-              <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-2xl border border-charcoal-700 bg-charcoal-800/50 p-6">
+            <div className="sticky top-0 hidden h-screen flex-col gap-4 py-24 lg:flex lg:w-1/2">
+              <div className="editorial-vignette relative flex-[3] overflow-hidden rounded-2xl border border-charcoal-700 bg-charcoal-800/50 shadow-[0_0_40px_rgba(34,211,238,0.08)]">
                 <img
-                  src="/assets/innovation_split_screen_1776109569579.png"
-                  alt="MCTS loop and evaluation split-screen"
-                  className="max-h-full max-w-full object-contain"
+                  src="/assets/story/editorial/05-causal-chain.png"
+                  alt="Causal chain — engine performance enables experimentation, which enables gameplay optimization"
+                  loading="lazy"
+                  className="h-full w-full object-cover object-center"
+                />
+              </div>
+              <div className="flex-[2]">
+                <MediaPlaceholder
+                  kind="video"
+                  label="Live MCTS frontier-focus screen recording — search exploring the decision frontier in real time."
+                  cmd={'# recorded via /play with MCTS viz open\n# upload to frontend/public/assets/story/editorial/mcts-frontier.mp4'}
+                  aspect="aspect-[16/10]"
                 />
               </div>
             </div>
@@ -490,7 +603,7 @@ export const RecruiterStoryPage: React.FC = () => {
       {/* ================================================================== */}
       {/*  6. EXPERIMENTATION INFRASTRUCTURE                                    */}
       {/* ================================================================== */}
-      <section className="border-t border-charcoal-800 bg-charcoal-900 px-6 py-24 md:px-12 lg:px-24">
+      <section className="story-divider bg-charcoal-900 px-6 py-24 md:px-12 lg:px-24">
         <div className="mx-auto max-w-6xl">
           <div className="mb-12 max-w-3xl">
             <SectionEyebrow color="blue">Infrastructure</SectionEyebrow>
@@ -504,9 +617,9 @@ export const RecruiterStoryPage: React.FC = () => {
 
           <div className="mb-10 grid gap-4 md:grid-cols-4">
             <MetricChip value="88" label="Archived Arena Runs" accent="blue" />
-            <MetricChip value="700" label="Self-Play Games" accent="green" />
+            <MetricChip value="700" label="Self-Play Games" accent="cyan" />
             <MetricChip value="13,332" label="Labeled States" accent="white" />
-            <MetricChip value="p < 0.05" label="Seat-Bias Corrected" accent="yellow" />
+            <MetricChip value="p < 0.05" label="Seat-Bias Corrected" accent="violet" />
           </div>
 
           <div className="grid gap-8 lg:grid-cols-5">
@@ -519,19 +632,19 @@ export const RecruiterStoryPage: React.FC = () => {
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <TrendingUp className="mt-1 shrink-0 text-neon-green" size={16} />
+                  <TrendingUp className="mt-1 shrink-0 text-neon-cyan" size={16} />
                   <span className="text-gray-300">
                     <strong className="text-white">TrueSkill (μ, σ)</strong> per agent with pairwise head-to-head records.
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <Target className="mt-1 shrink-0 text-neon-yellow" size={16} />
+                  <Target className="mt-1 shrink-0 text-neon-violet" size={16} />
                   <span className="text-gray-300">
                     <strong className="text-white">Seat-position bias</strong> detected at p &lt; 0.05 and corrected across configs.
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <Workflow className="mt-1 shrink-0 text-neon-red" size={16} />
+                  <Workflow className="mt-1 shrink-0 text-neon-cyan" size={16} />
                   <span className="text-gray-300">
                     <strong className="text-white">Full reproducibility</strong>: configs, seeds, summaries, game logs preserved in <code className="text-xs">arena_runs/</code>.
                   </span>
@@ -539,11 +652,12 @@ export const RecruiterStoryPage: React.FC = () => {
               </ul>
             </div>
             <div className="lg:col-span-3">
-              {/* TODO capture: run benchmark page → frontend/public/assets/story/capture_benchmark.png */}
-              <CapturePlaceholder
-                label="Benchmark page · TrueSkill leaderboard + pairwise win matrix for a layer-comparison tournament."
-                cmd={'cd frontend && npm run dev\n# open http://localhost:3000/benchmark\n# capture 1920×1080 → frontend/public/assets/story/capture_benchmark.png'}
+              <EditorialFigure
+                src="/assets/story/editorial/06-experimentation-lab.png"
+                alt="AI experimentation laboratory — benchmarking, tournament evaluation, parameter tuning, analytics orchestrated as modules"
                 aspect="aspect-[16/10]"
+                accent="blue"
+                caption="Arena · TrueSkill · seat-bias corrected · reproducible"
               />
             </div>
           </div>
@@ -553,16 +667,27 @@ export const RecruiterStoryPage: React.FC = () => {
       {/* ================================================================== */}
       {/*  7. GAMEPLAY OPTIMIZATION LAYERS (L3 → L9)                            */}
       {/* ================================================================== */}
-      <section className="border-t border-charcoal-800 bg-charcoal-900 px-6 py-24 md:px-12 lg:px-24">
+      <section className="story-divider bg-charcoal-900 px-6 py-24 md:px-12 lg:px-24">
         <div className="mx-auto max-w-6xl">
           <div className="mb-12 max-w-3xl">
-            <SectionEyebrow color="green">Layers 3 → 9</SectionEyebrow>
+            <SectionEyebrow color="cyan">Layers 3 → 9</SectionEyebrow>
             <h2 className="mt-4 text-3xl font-bold text-white md:text-5xl">
               Seven layers of search quality,<br />each isolated and measured
             </h2>
             <p className="mt-6 text-gray-400">
               Each enhancement was added as its own layer with an isolated arena evaluation. The honest result: some layers won big, some taught us that <em>less is more</em>, and a few lost outright. Shipping the losses alongside the wins is the whole point of the lab.
             </p>
+          </div>
+
+          {/* Editorial band: comparative evaluation of agents under controlled conditions */}
+          <div className="mb-8">
+            <EditorialFigure
+              src="/assets/story/editorial/07-comparative-evaluation.png"
+              alt="Comparative evaluation — multiple AI agents under controlled competitive conditions"
+              aspect="aspect-[21/9]"
+              accent="cyan"
+              caption="Controlled head-to-head · fair seeds · seat-corrected rankings"
+            />
           </div>
 
           <figure className="mb-12 overflow-hidden rounded-2xl border border-charcoal-700 bg-charcoal-800/60">
@@ -639,15 +764,15 @@ export const RecruiterStoryPage: React.FC = () => {
       {/* ================================================================== */}
       {/*  8. ML-DRIVEN EVALUATION (Layer 6 headline)                           */}
       {/* ================================================================== */}
-      <section className="border-t border-charcoal-800 bg-charcoal-900 px-6 py-24 md:px-12 lg:px-24">
+      <section className="story-divider bg-charcoal-900 px-6 py-24 md:px-12 lg:px-24">
         <div className="mx-auto max-w-6xl">
           <div className="mb-12 max-w-3xl">
-            <SectionEyebrow color="green">The Headline Finding</SectionEyebrow>
+            <SectionEyebrow color="cyan">The Headline Finding</SectionEyebrow>
             <h2 className="mt-4 text-3xl font-bold text-white md:text-5xl">
               The hand-tuned weights<br />had a <span className="text-neon-red">sign bug</span>
             </h2>
             <p className="mt-6 text-gray-400">
-              Regression on 13,332 labeled states didn't just refine the evaluator — it surfaced three misspecifications that no amount of MCTS iteration could have fixed. The biggest: <code className="text-gray-200">largest_remaining_piece_size</code> carried the wrong sign. After ML calibration: <strong className="text-neon-green">76% arena win rate vs. 12% for the defaults</strong>.
+              Regression on 13,332 labeled states didn't just refine the evaluator — it surfaced three misspecifications that no amount of MCTS iteration could have fixed. The biggest: <code className="text-gray-200">largest_remaining_piece_size</code> carried the wrong sign. After ML calibration: <strong className="text-neon-cyan">76% arena win rate vs. 12% for the defaults</strong>.
             </p>
           </div>
 
@@ -672,14 +797,14 @@ export const RecruiterStoryPage: React.FC = () => {
                   <tr>
                     <td className="px-4 py-3 font-mono text-xs">opponent_avg_mobility</td>
                     <td className="px-4 py-3 text-gray-400">−0.10</td>
-                    <td className="px-4 py-3 font-semibold text-neon-yellow">−0.30</td>
-                    <td className="px-4 py-3 text-xs text-neon-yellow">3× underweighted</td>
+                    <td className="px-4 py-3 font-semibold text-neon-violet">−0.30</td>
+                    <td className="px-4 py-3 text-xs text-neon-violet">3× underweighted</td>
                   </tr>
                   <tr>
                     <td className="px-4 py-3 font-mono text-xs">squares_placed</td>
                     <td className="px-4 py-3 text-gray-400">+0.30</td>
-                    <td className="px-4 py-3 font-semibold text-neon-yellow">+0.03</td>
-                    <td className="px-4 py-3 text-xs text-neon-yellow">10× overweighted</td>
+                    <td className="px-4 py-3 font-semibold text-neon-violet">+0.03</td>
+                    <td className="px-4 py-3 text-xs text-neon-violet">10× overweighted</td>
                   </tr>
                 </tbody>
               </table>
@@ -729,7 +854,7 @@ export const RecruiterStoryPage: React.FC = () => {
       {/* ================================================================== */}
       {/*  9. PARALLELIZATION & ADAPTIVE CONTROL                                */}
       {/* ================================================================== */}
-      <section className="border-t border-charcoal-800 bg-charcoal-900 px-6 py-24 md:px-12 lg:px-24">
+      <section className="story-divider bg-charcoal-900 px-6 py-24 md:px-12 lg:px-24">
         <div className="mx-auto max-w-6xl">
           <div className="mb-12 max-w-3xl">
             <SectionEyebrow color="blue">Systems Leverage</SectionEyebrow>
@@ -743,10 +868,10 @@ export const RecruiterStoryPage: React.FC = () => {
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
-            <div className="rounded-2xl border border-neon-green/30 bg-charcoal-800/70 p-6">
+            <div className="rounded-2xl border border-neon-cyan/30 bg-charcoal-800/70 p-6">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-bold text-white">Root Parallelization</h3>
-                <span className="inline-flex items-center gap-1 rounded-full border border-neon-green/30 bg-neon-green/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-neon-green">
+                <span className="inline-flex items-center gap-1 rounded-full border border-neon-cyan/30 bg-neon-cyan/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-neon-cyan">
                   <CheckCircle2 size={12} /> Win
                 </span>
               </div>
@@ -760,10 +885,10 @@ export const RecruiterStoryPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-neon-yellow/30 bg-charcoal-800/70 p-6">
+            <div className="rounded-2xl border border-neon-violet/30 bg-charcoal-800/70 p-6">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-bold text-white">Adaptive Meta-Control</h3>
-                <span className="inline-flex items-center gap-1 rounded-full border border-neon-yellow/30 bg-neon-yellow/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-neon-yellow">
+                <span className="inline-flex items-center gap-1 rounded-full border border-neon-violet/30 bg-neon-violet/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-neon-violet">
                   <AlertTriangle size={12} /> Mixed
                 </span>
               </div>
@@ -794,10 +919,10 @@ export const RecruiterStoryPage: React.FC = () => {
       {/* ================================================================== */}
       {/*  10. ANALYTICS & EXPLAINABILITY                                       */}
       {/* ================================================================== */}
-      <section className="border-t border-charcoal-800 bg-charcoal-900 px-6 py-24 md:px-12 lg:px-24">
+      <section className="story-divider bg-charcoal-900 px-6 py-24 md:px-12 lg:px-24">
         <div className="mx-auto max-w-6xl">
           <div className="mb-12 max-w-3xl">
-            <SectionEyebrow color="yellow">Analytics & Explainability</SectionEyebrow>
+            <SectionEyebrow color="violet">Analytics & Explainability</SectionEyebrow>
             <h2 className="mt-4 text-3xl font-bold text-white md:text-5xl">
               Every move carries<br />its own rationale
             </h2>
@@ -810,7 +935,7 @@ export const RecruiterStoryPage: React.FC = () => {
             <div className="flex flex-col gap-4">
               <div className="rounded-2xl border border-charcoal-700 bg-charcoal-800/70 p-6">
                 <div className="flex items-center gap-3">
-                  <Eye className="text-neon-yellow" size={20} />
+                  <Eye className="text-neon-violet" size={20} />
                   <h3 className="text-lg font-bold text-white">Explain This Move</h3>
                 </div>
                 <p className="mt-2 text-sm text-gray-400">
@@ -851,17 +976,19 @@ export const RecruiterStoryPage: React.FC = () => {
             </div>
 
             <div className="grid gap-4">
-              {/* TODO capture: Explain panel screenshot → frontend/public/assets/story/capture_explain.png */}
-              <CapturePlaceholder
-                label="Explain This Move panel · top-k moves, visit counts, Q-values, rationale text."
-                cmd={'cd frontend && npm run dev\n# open /play, start MCTS vs MCTS, let run to ~turn 12\n# capture ExplainMovePanel → frontend/public/assets/story/capture_explain.png'}
+              <EditorialFigure
+                src="/assets/story/editorial/08-explainability.png"
+                alt="AI decision explainability — a chosen move emerges from candidates with surrounding evaluation signals"
                 aspect="aspect-[4/5]"
+                accent="violet"
+                caption="Explain This Move · why one decision was preferred"
               />
-              {/* TODO capture: MCTS viz right panel → frontend/public/assets/story/capture_mcts_viz.png */}
-              <CapturePlaceholder
-                label="MCTS viz panel · UCT breakdown + board exploration heatmap during live search."
-                cmd={'# from the same game, open the MCTS viz tab on the right panel\n# capture → frontend/public/assets/story/capture_mcts_viz.png'}
+              <EditorialFigure
+                src="/assets/story/editorial/09-analytics-instrumentation.png"
+                alt="Deep instrumentation — layered analytic signals across throughput, search depth, branching, and evaluation"
                 aspect="aspect-[4/5]"
+                accent="blue"
+                caption="MCTS viz · throughput · depth · rollout distributions"
               />
             </div>
           </div>
@@ -871,8 +998,18 @@ export const RecruiterStoryPage: React.FC = () => {
       {/* ================================================================== */}
       {/*  11. RESULTS & RECRUITER TAKEAWAY                                     */}
       {/* ================================================================== */}
-      <section className="border-t border-charcoal-800 bg-gradient-to-b from-charcoal-900 to-charcoal-800 px-6 py-24 md:px-12 lg:px-24">
-        <div className="mx-auto max-w-6xl">
+      <section className="story-divider relative overflow-hidden bg-gradient-to-b from-charcoal-900 to-charcoal-800 px-6 py-24 md:px-12 lg:px-24">
+        {/* Editorial full-bleed atmospheric backdrop for the closing section */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0">
+          <img
+            src="/assets/story/editorial/10-results-takeaway.png"
+            alt=""
+            className="h-full w-full object-cover object-center opacity-20"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-charcoal-900/90 via-charcoal-900/70 to-charcoal-900" />
+        </div>
+
+        <div className="relative z-10 mx-auto max-w-6xl">
           <div className="mb-12 text-center">
             <SectionEyebrow color="blue">What Ships</SectionEyebrow>
             <h2 className="mt-4 text-3xl font-bold text-white md:text-5xl">Ready for Production</h2>
@@ -882,9 +1019,9 @@ export const RecruiterStoryPage: React.FC = () => {
           </div>
 
           <div className="mb-10 grid gap-4 md:grid-cols-3">
-            <MetricChip value="76%" label="Calibrated Eval WR" accent="green" />
+            <MetricChip value="76%" label="Calibrated Eval WR" accent="cyan" />
             <MetricChip value="54% vs 0%" label="Quality > Quantity" accent="blue" />
-            <MetricChip value="3.1×" label="Parallel Throughput" accent="yellow" />
+            <MetricChip value="3.1×" label="Parallel Throughput" accent="violet" />
           </div>
 
           <div className="grid gap-8 lg:grid-cols-5">
@@ -932,7 +1069,7 @@ export const RecruiterStoryPage: React.FC = () => {
             </Link>
             <Link
               to="/play"
-              className="inline-flex items-center gap-2 rounded-full border border-charcoal-600 px-8 py-4 font-bold tracking-widest text-gray-300 transition-colors hover:border-neon-green hover:text-neon-green"
+              className="inline-flex items-center gap-2 rounded-full border border-charcoal-600 px-8 py-4 font-bold tracking-widest text-gray-300 transition-colors hover:border-neon-violet hover:text-neon-violet"
             >
               <Activity size={16} /> Play a Game
             </Link>
