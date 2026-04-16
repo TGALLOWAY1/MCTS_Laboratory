@@ -27,8 +27,6 @@ def register_research_routes(
     get_training_run: AsyncHandler,
     list_agents: AsyncHandler,
     get_training_run_evaluations: AsyncHandler,
-    list_arena_runs: AsyncHandler,
-    get_arena_run: AsyncHandler,
 ) -> None:
     app.add_api_route("/api/health/db", health_check_db, methods=["GET"])
     app.add_api_route("/debug/mongo", mongo_debug, methods=["GET"])
@@ -42,5 +40,5 @@ def register_research_routes(
     app.add_api_route("/api/training-runs/{run_id}", get_training_run, methods=["GET"])
     app.add_api_route("/api/training-runs/agents/list", list_agents, methods=["GET"])
     app.add_api_route("/api/training-runs/{run_id}/evaluations", get_training_run_evaluations, methods=["GET"])
-    app.add_api_route("/api/arena-runs", list_arena_runs, methods=["GET"])
-    app.add_api_route("/api/arena-runs/{run_id}", get_arena_run, methods=["GET"])
+    # NOTE: /api/arena-runs moved to routes_gameplay so the deploy profile can surface a
+    # "Current Best" opponent picker from the same leaderboard data.

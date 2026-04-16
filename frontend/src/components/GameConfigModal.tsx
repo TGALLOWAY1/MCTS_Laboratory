@@ -1,6 +1,13 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { API_BASE, DEPLOY_MCTS_PRESETS, IS_DEPLOY_PROFILE } from '../constants/gameConstants';
+import {
+  useArenaLeaderboard,
+  pickDeployCurrentBestTrio,
+  clampAgentConfigForDeploy,
+  DEPLOY_TIME_BUDGET_CAP_MS,
+  type LeaderboardAgent,
+} from '../hooks/useArenaLeaderboard';
 
 interface GameConfigModalProps {
   isOpen: boolean;
@@ -10,317 +17,81 @@ interface GameConfigModalProps {
   canClose?: boolean;
 }
 
+const PLAYER_COLORS_ORDER = ['RED', 'BLUE', 'GREEN', 'YELLOW'] as const;
+
+const buildDeployTierConfig = () => ({
+  players: [
+    { player: 'RED', agent_type: 'human', agent_config: {} },
+    { player: 'BLUE', agent_type: 'mcts', agent_config: { difficulty: 'easy', time_budget_ms: DEPLOY_MCTS_PRESETS.easy } },
+    { player: 'GREEN', agent_type: 'mcts', agent_config: { difficulty: 'medium', time_budget_ms: DEPLOY_MCTS_PRESETS.medium } },
+    { player: 'YELLOW', agent_type: 'mcts', agent_config: { difficulty: 'hard', time_budget_ms: DEPLOY_MCTS_PRESETS.hard } },
+  ],
+  auto_start: true,
+});
+
+const formatMu = (mu: number) => mu.toFixed(1);
+
 export const GameConfigModal: React.FC<GameConfigModalProps> = ({
   isOpen,
   onClose,
   onGameCreated,
-  canClose = true
+  canClose = true,
 }) => {
-  const deployConfig = {
-    players: [
-      { player: 'RED', agent_type: 'human', agent_config: {} },
-      { player: 'BLUE', agent_type: 'mcts', agent_config: { difficulty: 'easy', time_budget_ms: DEPLOY_MCTS_PRESETS.easy } },
-      { player: 'GREEN', agent_type: 'mcts', agent_config: { difficulty: 'medium', time_budget_ms: DEPLOY_MCTS_PRESETS.medium } },
-      { player: 'YELLOW', agent_type: 'mcts', agent_config: { difficulty: 'hard', time_budget_ms: DEPLOY_MCTS_PRESETS.hard } }
-    ],
-    auto_start: true
-  };
-
-  const researchDefaultConfig = {
-    players: [
-      { player: 'RED', agent_type: 'human', agent_config: {} },
-      { player: 'BLUE', agent_type: 'mcts', agent_config: { difficulty: 'easy', time_budget_ms: DEPLOY_MCTS_PRESETS.easy } },
-      { player: 'GREEN', agent_type: 'mcts', agent_config: { difficulty: 'medium', time_budget_ms: DEPLOY_MCTS_PRESETS.medium } },
-      { player: 'YELLOW', agent_type: 'mcts', agent_config: { difficulty: 'hard', time_budget_ms: DEPLOY_MCTS_PRESETS.hard } }
-    ],
-    auto_start: true
-  };
-
   const { createGame, connect, loadGame } = useGameStore();
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [maxTime, setMaxTime] = useState<number>(DEPLOY_MCTS_PRESETS.hard);
+  const [deployMode, setDeployMode] = useState<'tiers' | 'best'>('tiers');
 
-  const [gameConfig, setGameConfig] = useState<any>(IS_DEPLOY_PROFILE ? deployConfig : researchDefaultConfig);
+  const leaderboard = useArenaLeaderboard();
+
+  // --- Research-mode config state -------------------------------------------------
+  const researchDefaultConfig = useMemo(
+    () => ({
+      players: [
+        { player: 'RED', agent_type: 'human', agent_config: {} },
+        { player: 'BLUE', agent_type: 'mcts', agent_config: { time_budget_ms: 1000 } },
+        { player: 'GREEN', agent_type: 'mcts', agent_config: { time_budget_ms: 1000 } },
+        { player: 'YELLOW', agent_type: 'mcts', agent_config: { time_budget_ms: 1000 } },
+      ],
+      auto_start: true,
+    }),
+    []
+  );
+
+  const [gameConfig, setGameConfig] = useState<any>(
+    IS_DEPLOY_PROFILE ? buildDeployTierConfig() : researchDefaultConfig
+  );
+  // Track which leaderboard agent_id backs each research slot (null = custom/non-arena).
+  const [slotArenaAgent, setSlotArenaAgent] = useState<Record<number, string | null>>({});
+  const [expandedAdvanced, setExpandedAdvanced] = useState<number | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  const handleCreateGame = async () => {
-    console.log('🎮 Starting game creation...');
+  // --- Shared helpers -------------------------------------------------------------
+
+  const startFromConfig = async (config: any) => {
     setIsCreating(true);
     setError(null);
-
     try {
-      console.log('📋 Creating game with config:', gameConfig);
-      const gameId = await createGame(gameConfig);
-      console.log('🎯 Game created with ID:', gameId);
-
-      console.log('Connecting to WebSocket...');
+      const gameId = await createGame(config);
       await connect(gameId);
-      console.log('WebSocket connected');
-
-      // Check store state
       const storeState = useGameStore.getState();
-      console.log('Store state after connection:', {
-        gameState: storeState.gameState,
-        connectionStatus: storeState.connectionStatus,
-        error: storeState.error
-      });
-
-      // If no game state, try to fetch it via REST API as fallback
       if (!storeState.gameState) {
-        console.log('No game state from WebSocket, fetching via REST API...');
         try {
           const response = await fetch(`${API_BASE}/api/games/${gameId}`);
           if (response.ok) {
             const gameState = await response.json();
-            console.log('Game state from REST API:', gameState);
             useGameStore.getState().setGameState(gameState);
           }
         } catch (err) {
           console.error('Failed to fetch game state via REST API:', err);
         }
       }
-
       onGameCreated();
       onClose();
     } catch (err) {
       console.error('Error creating game:', err);
-      setError(err instanceof Error ? err.message : 'Failed to create game');
-    } finally {
-      setIsCreating(false);
-    }
-  };
-
-  const updatePlayer = (index: number, field: string, value: string) => {
-    if (IS_DEPLOY_PROFILE) {
-      return;
-    }
-    setGameConfig((prev: any) => ({
-      ...prev,
-      players: prev.players.map((player: any, i: number) =>
-        i === index ? { ...player, [field]: value } : player
-      )
-    }));
-  };
-
-  const addPlayer = () => {
-    if (IS_DEPLOY_PROFILE) {
-      return;
-    }
-    if (gameConfig.players.length < 4) {
-      const playerColors = ['RED', 'BLUE', 'GREEN', 'YELLOW'];
-      const nextColor = playerColors[gameConfig.players.length];
-      setGameConfig((prev: any) => ({
-        ...prev,
-        players: [...prev.players, { player: nextColor, agent_type: 'random', agent_config: {} }]
-      }));
-    }
-  };
-
-  const removePlayer = (index: number) => {
-    if (IS_DEPLOY_PROFILE) {
-      return;
-    }
-    if (gameConfig.players.length > 2) {
-      setGameConfig((prev: any) => ({
-        ...prev,
-        players: prev.players.filter((_: any, i: number) => i !== index)
-      }));
-    }
-  };
-
-  const [expandedAdvanced, setExpandedAdvanced] = useState<number | null>(null);
-
-  const MCTS_LAYER_PRESETS: Record<string, { label: string; description: string; config: Record<string, any> }> = {
-    'baseline': {
-      label: 'Baseline',
-      description: 'Vanilla MCTS (no layers)',
-      config: { time_budget_ms: 1000 },
-    },
-    'layer3': {
-      label: 'L3: Action Reduction',
-      description: 'Progressive widening + history',
-      config: { time_budget_ms: 1000, progressive_widening_enabled: true, pw_c: 2.0, pw_alpha: 0.5, progressive_history_enabled: true },
-    },
-    'layer4': {
-      label: 'L4: Simulation',
-      description: 'Heuristic rollouts + cutoff',
-      config: { time_budget_ms: 1000, progressive_widening_enabled: true, progressive_history_enabled: true, rollout_policy: 'heuristic', rollout_cutoff_depth: 10, minimax_backup_alpha: 0.25 },
-    },
-    'layer5': {
-      label: 'L5: RAVE',
-      description: 'RAVE value estimation',
-      config: { time_budget_ms: 1000, progressive_widening_enabled: true, progressive_history_enabled: true, rollout_policy: 'heuristic', rollout_cutoff_depth: 10, rave_enabled: true, rave_k: 1000 },
-    },
-    'layer7': {
-      label: 'L7: Opponents',
-      description: 'Opponent modeling + alliances',
-      config: { time_budget_ms: 1000, progressive_widening_enabled: true, progressive_history_enabled: true, rollout_policy: 'heuristic', rollout_cutoff_depth: 10, rave_enabled: true, rave_k: 1000, opponent_modeling_enabled: true, alliance_detection_enabled: true, kingmaker_detection_enabled: true },
-    },
-    'layer9': {
-      label: 'L9: Full Stack',
-      description: 'All layers + meta-optimization',
-      config: { time_budget_ms: 1500, progressive_widening_enabled: true, progressive_history_enabled: true, rollout_policy: 'heuristic', rollout_cutoff_depth: 10, minimax_backup_alpha: 0.25, rave_enabled: true, rave_k: 1000, opponent_modeling_enabled: true, alliance_detection_enabled: true, kingmaker_detection_enabled: true, adaptive_exploration_enabled: true, sufficiency_threshold_enabled: true },
-    },
-  };
-
-  const updateAdvancedConfig = (playerIndex: number, key: string, value: any) => {
-    setGameConfig((prev: any) => ({
-      ...prev,
-      players: prev.players.map((p: any, i: number) =>
-        i === playerIndex
-          ? { ...p, agent_config: { ...p.agent_config, [key]: value } }
-          : p
-      ),
-    }));
-  };
-
-  const applyMctsPreset = (playerIndex: number, presetKey: string) => {
-    const preset = MCTS_LAYER_PRESETS[presetKey];
-    if (!preset) return;
-    setGameConfig((prev: any) => ({
-      ...prev,
-      players: prev.players.map((p: any, i: number) =>
-        i === playerIndex
-          ? { ...p, agent_type: 'mcts', agent_config: { ...preset.config } }
-          : p
-      ),
-    }));
-  };
-
-  const researchQuickStartPresets = [
-    {
-      name: '4 Players',
-      description: `Human vs MCTS Easy/Medium/Hard (${DEPLOY_MCTS_PRESETS.easy}/${DEPLOY_MCTS_PRESETS.medium}/${DEPLOY_MCTS_PRESETS.hard}ms)`,
-      config: {
-        players: [
-          { player: 'RED', agent_type: 'human', agent_config: {} },
-          { player: 'BLUE', agent_type: 'mcts', agent_config: { difficulty: 'easy', time_budget_ms: DEPLOY_MCTS_PRESETS.easy } },
-          { player: 'GREEN', agent_type: 'mcts', agent_config: { difficulty: 'medium', time_budget_ms: DEPLOY_MCTS_PRESETS.medium } },
-          { player: 'YELLOW', agent_type: 'mcts', agent_config: { difficulty: 'hard', time_budget_ms: DEPLOY_MCTS_PRESETS.hard } }
-        ],
-        auto_start: true
-      }
-    },
-    {
-      name: 'vs Random',
-      description: 'Easy opponent',
-      config: {
-        players: [
-          { player: 'RED', agent_type: 'human', agent_config: {} },
-          { player: 'BLUE', agent_type: 'random', agent_config: {} }
-        ],
-        auto_start: true
-      }
-    },
-    {
-      name: 'vs Heuristic',
-      description: 'Medium opponent',
-      config: {
-        players: [
-          { player: 'RED', agent_type: 'human', agent_config: {} },
-          { player: 'BLUE', agent_type: 'heuristic', agent_config: {} }
-        ],
-        auto_start: true
-      }
-    },
-    {
-      name: 'vs MCTS 1s',
-      description: 'Fast opponent',
-      config: {
-        players: [
-          { player: 'RED', agent_type: 'human', agent_config: {} },
-          { player: 'BLUE', agent_type: 'mcts', agent_config: { time_budget_ms: 1000 } }
-        ],
-        auto_start: true
-      }
-    },
-    {
-      name: 'vs MCTS 3s',
-      description: 'Balanced opponent',
-      config: {
-        players: [
-          { player: 'RED', agent_type: 'human', agent_config: {} },
-          { player: 'BLUE', agent_type: 'mcts', agent_config: { time_budget_ms: 3000 } }
-        ],
-        auto_start: true
-      }
-    },
-    {
-      name: 'vs MCTS 5s',
-      description: 'Deep-thinking opponent',
-      config: {
-        players: [
-          { player: 'RED', agent_type: 'human', agent_config: {} },
-          { player: 'BLUE', agent_type: 'mcts', agent_config: { time_budget_ms: 5000 } }
-        ],
-        auto_start: true
-      }
-    },
-    {
-      name: 'Layer Battle',
-      description: 'Baseline vs L3 vs L5 vs L9',
-      config: {
-        players: [
-          { player: 'RED', agent_type: 'mcts', agent_config: { ...MCTS_LAYER_PRESETS.baseline.config } },
-          { player: 'BLUE', agent_type: 'mcts', agent_config: { ...MCTS_LAYER_PRESETS.layer3.config } },
-          { player: 'GREEN', agent_type: 'mcts', agent_config: { ...MCTS_LAYER_PRESETS.layer5.config } },
-          { player: 'YELLOW', agent_type: 'mcts', agent_config: { ...MCTS_LAYER_PRESETS.layer9.config } }
-        ],
-        auto_start: true
-      }
-    },
-    {
-      name: 'MCTS Arena',
-      description: '4-way AI Battle (Easy/Med/Hard/Pro)',
-      config: {
-        players: [
-          { player: 'RED', agent_type: 'mcts', agent_config: { difficulty: 'easy', time_budget_ms: 100 } },
-          { player: 'BLUE', agent_type: 'mcts', agent_config: { difficulty: 'medium', time_budget_ms: 450 } },
-          { player: 'GREEN', agent_type: 'mcts', agent_config: { difficulty: 'hard', time_budget_ms: 1000 } },
-          { player: 'YELLOW', agent_type: 'mcts', agent_config: { difficulty: 'pro', time_budget_ms: 2500 } }
-        ],
-        auto_start: true
-      }
-    }
-  ];
-
-  const deployQuickStartPresets = [
-    {
-      name: 'Deploy Preset',
-      description: `Human vs MCTS Easy/Medium/Hard (${DEPLOY_MCTS_PRESETS.easy}/${DEPLOY_MCTS_PRESETS.medium}/${DEPLOY_MCTS_PRESETS.hard}ms)`,
-      config: deployConfig
-    }
-  ];
-
-  const quickStartPresets = IS_DEPLOY_PROFILE ? deployQuickStartPresets : researchQuickStartPresets;
-
-  const applyQuickStart = async (preset: typeof quickStartPresets[0]) => {
-    setGameConfig(preset.config);
-    setIsCreating(true);
-    setError(null);
-
-    try {
-      const gameId = await createGame(preset.config);
-      await connect(gameId);
-
-      const storeState = useGameStore.getState();
-      if (!storeState.gameState) {
-        try {
-          const response = await fetch(`${API_BASE}/api/games/${gameId}`);
-          if (response.ok) {
-            const gameState = await response.json();
-            useGameStore.getState().setGameState(gameState);
-          }
-        } catch (err) {
-          console.error('Failed to fetch game state via REST API:', err);
-        }
-      }
-
-      onGameCreated();
-      onClose();
-    } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create game');
     } finally {
       setIsCreating(false);
@@ -339,45 +110,204 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
       try {
         const content = e.target?.result as string;
         const history = JSON.parse(content);
-
         if (!Array.isArray(history)) {
-          throw new Error("Invalid save file format (expected array)");
+          throw new Error('Invalid save file format (expected array)');
         }
-
         await loadGame(history);
         onGameCreated();
         onClose();
       } catch (err) {
-        console.error("Failed to load game:", err);
-        setError(err instanceof Error ? err.message : "Failed to load game file");
+        console.error('Failed to load game:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load game file');
       } finally {
         setIsCreating(false);
-        if (fileInputRef.current) {
-          fileInputRef.current.value = ''; // Reset input
-        }
+        if (fileInputRef.current) fileInputRef.current.value = '';
       }
     };
     reader.onerror = () => {
-      setError("Failed to read the file");
+      setError('Failed to read the file');
       setIsCreating(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     };
     reader.readAsText(file);
   };
 
+  // --- Deploy mode ---------------------------------------------------------------
+
+  const deployTrio = useMemo(
+    () => pickDeployCurrentBestTrio(leaderboard.agents),
+    [leaderboard.agents]
+  );
+
+  const buildDeployCurrentBestConfig = () => {
+    if (!deployTrio) return null;
+    const mkSlot = (
+      player: 'BLUE' | 'GREEN' | 'YELLOW',
+      difficulty: 'easy' | 'medium' | 'hard',
+      source: LeaderboardAgent,
+    ) => {
+      const { config } = clampAgentConfigForDeploy(source.params);
+      return {
+        player,
+        agent_type: 'mcts',
+        agent_config: {
+          ...config,
+          difficulty, // required by deploy_validation.py
+        },
+      };
+    };
+    return {
+      players: [
+        { player: 'RED', agent_type: 'human', agent_config: {} },
+        mkSlot('BLUE', 'easy', deployTrio.easy),
+        mkSlot('GREEN', 'medium', deployTrio.medium),
+        mkSlot('YELLOW', 'hard', deployTrio.hard),
+      ],
+      auto_start: true,
+    };
+  };
+
+  const startDeployGame = () => {
+    if (deployMode === 'best') {
+      const config = buildDeployCurrentBestConfig();
+      if (!config) {
+        setError('No arena agents available — run scripts/arena.py first.');
+        return;
+      }
+      return startFromConfig(config);
+    }
+    // Tiers mode: rescale by maxTime slider just like the original behavior did.
+    return startFromConfig({
+      players: [
+        { player: 'RED', agent_type: 'human', agent_config: {} },
+        { player: 'BLUE', agent_type: 'mcts', agent_config: { difficulty: 'easy', time_budget_ms: Math.floor(maxTime / 4.5) } },
+        { player: 'GREEN', agent_type: 'mcts', agent_config: { difficulty: 'medium', time_budget_ms: Math.floor(maxTime / 2) } },
+        { player: 'YELLOW', agent_type: 'mcts', agent_config: { difficulty: 'hard', time_budget_ms: maxTime } },
+      ],
+      auto_start: true,
+    });
+  };
+
+  const startDeployArena = () => {
+    // "Watch AI Battle" — all 4 seats are MCTS. Stamp easy/med/hard/pro labels
+    // so deploy validation still accepts it (human required → fall back: just
+    // use easy/med/hard + one extra distinct slot? No — deploy requires 1 human.
+    // Keep arena a research-only feature for now by posting a 4-MCTS payload;
+    // in deploy the backend will 400 because it requires 1 human. To keep the
+    // button working in deploy we skip validation by only running it when a
+    // human is included. Since this is a "watch" feature, we put the human at
+    // seat RED but give them a random agent anyway is not allowed in deploy.
+    // → Simplest: in deploy, arena just starts the 3-tier Human-vs-AI game too.
+    return startFromConfig(buildDeployTierConfig());
+  };
+
+  // --- Research mode -------------------------------------------------------------
+
+  const arenaMctsAgents = useMemo(
+    () => leaderboard.agents.filter((a) => a.type === 'mcts'),
+    [leaderboard.agents]
+  );
+  const arenaNonMctsAgents = useMemo(
+    () => leaderboard.agents.filter((a) => a.type !== 'mcts'),
+    [leaderboard.agents]
+  );
+
+  const setPlayerField = (index: number, field: string, value: string) => {
+    setGameConfig((prev: any) => ({
+      ...prev,
+      players: prev.players.map((player: any, i: number) =>
+        i === index ? { ...player, [field]: value } : player
+      ),
+    }));
+  };
+
+  const addPlayer = () => {
+    if (gameConfig.players.length < 4) {
+      const usedColors = new Set(gameConfig.players.map((p: any) => p.player));
+      const nextColor = PLAYER_COLORS_ORDER.find((c) => !usedColors.has(c)) ?? 'YELLOW';
+      setGameConfig((prev: any) => ({
+        ...prev,
+        players: [
+          ...prev.players,
+          { player: nextColor, agent_type: 'random', agent_config: {} },
+        ],
+      }));
+    }
+  };
+
+  const removePlayer = (index: number) => {
+    if (gameConfig.players.length > 2) {
+      setGameConfig((prev: any) => ({
+        ...prev,
+        players: prev.players.filter((_: any, i: number) => i !== index),
+      }));
+      setSlotArenaAgent((prev) => {
+        const next: Record<number, string | null> = {};
+        Object.entries(prev).forEach(([k, v]) => {
+          const i = Number(k);
+          if (i < index) next[i] = v;
+          else if (i > index) next[i - 1] = v;
+        });
+        return next;
+      });
+    }
+  };
+
+  const updateAdvancedConfig = (playerIndex: number, key: string, value: any) => {
+    setGameConfig((prev: any) => ({
+      ...prev,
+      players: prev.players.map((p: any, i: number) =>
+        i === playerIndex
+          ? { ...p, agent_config: { ...p.agent_config, [key]: value } }
+          : p
+      ),
+    }));
+    // Any manual edit means the slot no longer matches its source arena agent verbatim.
+    setSlotArenaAgent((prev) => ({ ...prev, [playerIndex]: null }));
+  };
+
+  const handleAgentTypeChange = (index: number, nextType: string) => {
+    setGameConfig((prev: any) => ({
+      ...prev,
+      players: prev.players.map((p: any, i: number) => {
+        if (i !== index) return p;
+        if (nextType === 'mcts') {
+          return { ...p, agent_type: 'mcts', agent_config: { time_budget_ms: 1000 } };
+        }
+        return { ...p, agent_type: nextType, agent_config: {} };
+      }),
+    }));
+    setSlotArenaAgent((prev) => ({ ...prev, [index]: null }));
+  };
+
+  const applyArenaAgentToSlot = (index: number, agentId: string) => {
+    if (!agentId) {
+      setSlotArenaAgent((prev) => ({ ...prev, [index]: null }));
+      return;
+    }
+    const agent = leaderboard.agents.find((a) => a.agent_id === agentId);
+    if (!agent) return;
+    setGameConfig((prev: any) => ({
+      ...prev,
+      players: prev.players.map((p: any, i: number) =>
+        i === index
+          ? { ...p, agent_type: agent.type, agent_config: { ...agent.params } }
+          : p
+      ),
+    }));
+    setSlotArenaAgent((prev) => ({ ...prev, [index]: agentId }));
+  };
+
+  const handleCreateGame = () => startFromConfig(gameConfig);
+
   if (!isOpen) return null;
 
-  // Deploy profile: minimal first-page UI — Human vs MCTS (easy/medium/hard) only, no config
+  // ================================================================================
+  // DEPLOY PROFILE
+  // ================================================================================
   if (IS_DEPLOY_PROFILE) {
-    const arenaConfig = {
-      players: [
-        { player: 'RED', agent_type: 'mcts', agent_config: { difficulty: 'easy', time_budget_ms: 100 } },
-        { player: 'BLUE', agent_type: 'mcts', agent_config: { difficulty: 'medium', time_budget_ms: 450 } },
-        { player: 'GREEN', agent_type: 'mcts', agent_config: { difficulty: 'hard', time_budget_ms: 1000 } },
-        { player: 'YELLOW', agent_type: 'mcts', agent_config: { difficulty: 'pro', time_budget_ms: 2500 } }
-      ],
-      auto_start: true
-    };
+    const hasArena = deployTrio !== null;
+    const trio = deployTrio;
 
     return (
       <div className="fixed inset-0 bg-charcoal-900 flex items-center justify-center z-50 p-4">
@@ -405,7 +335,7 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
           )}
           <h1 className="text-3xl font-bold text-gray-200 mb-2">Blokus</h1>
 
-          {showSettings && (
+          {showSettings && deployMode === 'tiers' && (
             <div className="mb-6 bg-charcoal-900 p-4 rounded-lg border border-charcoal-700 text-left">
               <label className="block text-sm text-gray-300 font-medium mb-2">
                 Max AI Thinking Time: {maxTime / 1000}s
@@ -413,28 +343,10 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
               <input
                 type="range"
                 min="400"
-                max="9000"
+                max={DEPLOY_TIME_BUDGET_CAP_MS}
                 step="100"
                 value={maxTime}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                  const val = parseInt(e.target.value);
-                  setMaxTime(val);
-                  setGameConfig((prev: any) => ({
-                    ...prev,
-                    players: prev.players.map((p: any) => {
-                      if (p.agent_type === 'mcts') {
-                        let budget = val;
-                        if (p.agent_config.difficulty === 'easy') budget = Math.floor(val / 4.5);
-                        else if (p.agent_config.difficulty === 'medium') budget = Math.floor(val / 2);
-                        return {
-                          ...p,
-                          agent_config: { ...p.agent_config, time_budget_ms: budget }
-                        };
-                      }
-                      return p;
-                    })
-                  }));
-                }}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMaxTime(parseInt(e.target.value))}
                 className="w-full accent-neon-blue h-2 bg-charcoal-700 rounded-lg appearance-none cursor-pointer"
               />
               <p className="text-xs text-gray-500 mt-2">
@@ -449,42 +361,122 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
             </div>
           )}
 
-          {/* Mode Selector */}
-          <div className="flex flex-col gap-3 mb-4">
-            {/* Human vs AI */}
-            <div className="text-left">
-              <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 font-bold">Play vs AI</p>
-              <button
-                onClick={handleCreateGame}
-                disabled={isCreating}
-                className={`w-full py-3 px-6 rounded-lg font-medium transition-colors duration-200 text-left flex items-center justify-between ${isCreating ? 'bg-gray-600 cursor-not-allowed text-gray-400' : 'bg-neon-blue hover:bg-neon-blue/80 text-black'
-                  }`}
-              >
-                <span>{isCreating ? 'Starting...' : 'Start Game'}</span>
-                <span className="text-xs opacity-70">You (Red) vs Easy · Med · Hard</span>
-              </button>
-            </div>
+          {/* Mode tabs */}
+          <div className="flex mb-4 rounded-lg overflow-hidden border border-charcoal-700">
+            <button
+              onClick={() => setDeployMode('tiers')}
+              className={`flex-1 py-2 text-xs font-semibold uppercase tracking-wider transition-colors ${
+                deployMode === 'tiers'
+                  ? 'bg-neon-blue text-black'
+                  : 'bg-charcoal-900 text-gray-400 hover:text-gray-200'
+              }`}
+            >
+              Quick Tiers
+            </button>
+            <button
+              onClick={() => setDeployMode('best')}
+              disabled={!hasArena && !leaderboard.isLoading}
+              title={
+                !hasArena && !leaderboard.isLoading
+                  ? 'No arena runs yet — run scripts/arena.py to populate the leaderboard.'
+                  : undefined
+              }
+              className={`flex-1 py-2 text-xs font-semibold uppercase tracking-wider transition-colors ${
+                deployMode === 'best'
+                  ? 'bg-neon-blue text-black'
+                  : 'bg-charcoal-900 text-gray-400 hover:text-gray-200 disabled:opacity-40 disabled:cursor-not-allowed'
+              }`}
+            >
+              Current Best
+            </button>
+          </div>
 
-            {/* MCTS Arena */}
-            <div className="text-left">
-              <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 font-bold">Watch AI Battle</p>
-              <button
-                onClick={() => applyQuickStart({ name: 'MCTS Arena', description: '', config: arenaConfig })}
-                disabled={isCreating}
-                className={`w-full py-3 px-6 rounded-lg font-medium border transition-colors duration-200 text-left flex items-center justify-between ${isCreating
-                    ? 'border-charcoal-600 bg-charcoal-700 text-gray-500 cursor-not-allowed'
-                    : 'border-neon-blue bg-neon-blue/5 hover:bg-neon-blue/10 text-neon-blue'
+          {/* Mode body */}
+          <div className="flex flex-col gap-3 mb-4">
+            {deployMode === 'tiers' ? (
+              <div className="text-left">
+                <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 font-bold">Play vs AI</p>
+                <button
+                  onClick={startDeployGame}
+                  disabled={isCreating}
+                  className={`w-full py-3 px-6 rounded-lg font-medium transition-colors duration-200 text-left flex items-center justify-between ${
+                    isCreating
+                      ? 'bg-gray-600 cursor-not-allowed text-gray-400'
+                      : 'bg-neon-blue hover:bg-neon-blue/80 text-black'
                   }`}
-              >
-                <span className="flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  {isCreating ? 'Starting...' : 'MCTS Arena'}
-                </span>
-                <span className="text-xs opacity-70">Easy · Med · Hard · Pro (full auto)</span>
-              </button>
-            </div>
+                >
+                  <span>{isCreating ? 'Starting...' : 'Start Game'}</span>
+                  <span className="text-xs opacity-70">You (Red) vs Easy · Med · Hard</span>
+                </button>
+              </div>
+            ) : (
+              <div className="text-left">
+                <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 font-bold">
+                  Play vs Current Best
+                </p>
+                {leaderboard.isLoading ? (
+                  <div className="text-xs text-gray-500 py-4 text-center">Loading leaderboard…</div>
+                ) : leaderboard.error ? (
+                  <div className="text-xs text-red-400 py-4">{leaderboard.error}</div>
+                ) : !trio ? (
+                  <div className="text-xs text-gray-500 py-4">
+                    No arena runs yet. Run <code>scripts/arena.py</code> to populate the leaderboard.
+                  </div>
+                ) : (
+                  <>
+                    <div className="mb-3 rounded-lg border border-charcoal-700 bg-charcoal-900 p-3 text-xs">
+                      {[
+                        { label: 'Easy', agent: trio.easy, color: 'text-gray-400' },
+                        { label: 'Medium', agent: trio.medium, color: 'text-gray-200' },
+                        { label: 'Hard', agent: trio.hard, color: 'text-neon-blue' },
+                      ].map(({ label, agent, color }) => (
+                        <div key={label} className="flex items-center justify-between py-0.5">
+                          <span className={`font-semibold ${color}`}>{label}</span>
+                          <span className="text-gray-300 font-mono truncate ml-3">{agent.agent_id}</span>
+                          <span className="text-gray-500 ml-2">μ {formatMu(agent.mu)} · #{agent.rank}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      onClick={startDeployGame}
+                      disabled={isCreating}
+                      className={`w-full py-3 px-6 rounded-lg font-medium transition-colors duration-200 text-left flex items-center justify-between ${
+                        isCreating
+                          ? 'bg-gray-600 cursor-not-allowed text-gray-400'
+                          : 'bg-neon-blue hover:bg-neon-blue/80 text-black'
+                      }`}
+                    >
+                      <span>{isCreating ? 'Starting...' : 'Start Game'}</span>
+                      <span className="text-xs opacity-70">You (Red) vs reigning agents</span>
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Watch AI Battle (tiers only) */}
+            {deployMode === 'tiers' && (
+              <div className="text-left">
+                <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 font-bold">Watch AI Battle</p>
+                <button
+                  onClick={startDeployArena}
+                  disabled={isCreating}
+                  className={`w-full py-3 px-6 rounded-lg font-medium border transition-colors duration-200 text-left flex items-center justify-between ${
+                    isCreating
+                      ? 'border-charcoal-600 bg-charcoal-700 text-gray-500 cursor-not-allowed'
+                      : 'border-neon-blue bg-neon-blue/5 hover:bg-neon-blue/10 text-neon-blue'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    {isCreating ? 'Starting...' : 'MCTS Arena'}
+                  </span>
+                  <span className="text-xs opacity-70">Easy · Med · Hard</span>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Load game */}
@@ -498,10 +490,11 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={isCreating}
-            className={`w-full py-2 px-6 rounded-lg font-medium border transition-colors duration-200 text-sm ${isCreating
+            className={`w-full py-2 px-6 rounded-lg font-medium border transition-colors duration-200 text-sm ${
+              isCreating
                 ? 'bg-charcoal-700 border-charcoal-600 text-gray-500 cursor-not-allowed'
                 : 'bg-charcoal-800 border-charcoal-600 text-gray-400 hover:bg-charcoal-700 hover:text-white'
-              }`}
+            }`}
           >
             Load Saved Game
           </button>
@@ -510,21 +503,25 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
     );
   }
 
+  // ================================================================================
+  // RESEARCH PROFILE
+  // ================================================================================
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-charcoal-800 border border-charcoal-700 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
-          {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-gray-200">Game Configuration</h2>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-200 transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+            {canClose && (
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-gray-200 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
           </div>
 
           {error && (
@@ -533,59 +530,46 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
             </div>
           )}
 
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-200 mb-3">Quick Start</h3>
-            <div className="grid grid-cols-2 gap-3">
-              {quickStartPresets.map((preset, idx) => {
-                const isArena = preset.name === 'MCTS Arena';
-                return (
-                  <button
-                    key={idx}
-                    onClick={() => applyQuickStart(preset)}
-                    disabled={isCreating}
-                    className={`p-4 border rounded-lg transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed ${isArena
-                      ? 'border-neon-blue bg-neon-blue/5 hover:bg-neon-blue/10 col-span-2'
-                      : 'border-charcoal-700 hover:border-neon-blue hover:bg-charcoal-700'
-                      }`}
-                  >
-                    <div className={`text-sm font-medium flex items-center gap-2 ${isArena ? 'text-neon-blue' : 'text-gray-200'}`}>
-                      {isArena && (
-                        <svg className="w-4 h-4 flex-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                      )}
-                      {preset.name}
-                    </div>
-                    <div className="text-xs text-gray-400 mt-1">{preset.description}</div>
-                    {isArena && (
-                      <div className="flex gap-2 mt-2">
-                        {['Easy·100ms', 'Med·450ms', 'Hard·1s', 'Pro·2.5s'].map((label, i) => (
-                          <span key={i} className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-charcoal-700 text-gray-400 tracking-wider">{label}</span>
-                        ))}
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
+          {/* Arena leaderboard banner */}
+          <div className="mb-6 p-4 bg-charcoal-900 border border-charcoal-700 rounded-lg text-sm">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-gray-200 font-semibold">Arena Leaderboard</span>
+              <span className="text-xs text-gray-500">
+                {leaderboard.isLoading
+                  ? 'loading…'
+                  : leaderboard.error
+                  ? 'error'
+                  : leaderboard.runId
+                  ? `run ${leaderboard.runId}`
+                  : 'no runs yet'}
+              </span>
             </div>
+            {leaderboard.error ? (
+              <div className="text-xs text-red-400">{leaderboard.error}</div>
+            ) : leaderboard.agents.length === 0 && !leaderboard.isLoading ? (
+              <div className="text-xs text-gray-500">
+                Run <code>python scripts/arena.py</code> to populate rated agents.
+              </div>
+            ) : (
+              <div className="text-xs text-gray-400">
+                {leaderboard.agents.length} rated agents available as opponents. Pick any per slot below.
+              </div>
+            )}
           </div>
 
-          <div className="border-t border-charcoal-700 pt-6">
-            <h3 className="text-lg font-semibold text-gray-200 mb-4">Custom Configuration</h3>
+          <div className="border-t border-charcoal-700 pt-2">
+            <h3 className="text-lg font-semibold text-gray-200 mb-4">Players ({gameConfig.players.length}/4)</h3>
 
-            {/* Players */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Players ({gameConfig.players.length}/4)
-              </label>
-              <div className="space-y-3">
-                {gameConfig.players.map((player: any, index: number) => (
+            <div className="space-y-3 mb-4">
+              {gameConfig.players.map((player: any, index: number) => {
+                const currentArenaId = slotArenaAgent[index] ?? '';
+                return (
                   <div key={index} className="space-y-2">
                     <div className="flex items-center space-x-3">
                       <div className="w-24">
                         <select
                           value={player.player}
-                          onChange={(e) => updatePlayer(index, 'player', e.target.value)}
+                          onChange={(e) => setPlayerField(index, 'player', e.target.value)}
                           className="w-full bg-charcoal-900 border border-charcoal-700 text-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-neon-blue"
                         >
                           <option value="RED">Red</option>
@@ -597,7 +581,7 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
                       <div className="flex-1">
                         <select
                           value={player.agent_type}
-                          onChange={(e) => updatePlayer(index, 'agent_type', e.target.value)}
+                          onChange={(e) => handleAgentTypeChange(index, e.target.value)}
                           className="w-full bg-charcoal-900 border border-charcoal-700 text-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-neon-blue"
                         >
                           <option value="human">Human</option>
@@ -608,11 +592,17 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
                       </div>
                       {player.agent_type === 'mcts' && (
                         <button
-                          onClick={() => setExpandedAdvanced(expandedAdvanced === index ? null : index)}
-                          className={`text-xs px-2 py-1 rounded border transition-colors ${expandedAdvanced === index ? 'border-neon-blue text-neon-blue bg-neon-blue/10' : 'border-charcoal-600 text-gray-400 hover:text-neon-blue hover:border-neon-blue'}`}
-                          title="Advanced MCTS Settings"
+                          onClick={() =>
+                            setExpandedAdvanced(expandedAdvanced === index ? null : index)
+                          }
+                          className={`text-xs px-2 py-1 rounded border transition-colors ${
+                            expandedAdvanced === index
+                              ? 'border-neon-blue text-neon-blue bg-neon-blue/10'
+                              : 'border-charcoal-600 text-gray-400 hover:text-neon-blue hover:border-neon-blue'
+                          }`}
+                          title="Edit MCTS parameters"
                         >
-                          Layers
+                          Tune
                         </button>
                       )}
                       {gameConfig.players.length > 2 && (
@@ -624,63 +614,116 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
                         </button>
                       )}
                     </div>
+
+                    {/* Arena agent picker (per slot, when agent is MCTS or any rated type) */}
+                    {(player.agent_type === 'mcts' ||
+                      player.agent_type === 'random' ||
+                      player.agent_type === 'heuristic') &&
+                      leaderboard.agents.length > 0 && (
+                        <div className="ml-[6.5rem] pl-0">
+                          <label className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">
+                            From arena leaderboard
+                          </label>
+                          <select
+                            value={currentArenaId}
+                            onChange={(e) => applyArenaAgentToSlot(index, e.target.value)}
+                            className="mt-1 w-full bg-charcoal-900 border border-charcoal-700 text-gray-200 rounded-md px-3 py-2 text-xs focus:outline-none focus:border-neon-blue"
+                          >
+                            <option value="">— Custom / default —</option>
+                            {player.agent_type === 'mcts' && arenaMctsAgents.length > 0 && (
+                              <optgroup label="MCTS agents">
+                                {arenaMctsAgents.map((a) => (
+                                  <option key={a.agent_id} value={a.agent_id}>
+                                    {a.agent_id} — μ {formatMu(a.mu)} (rank {a.rank})
+                                  </option>
+                                ))}
+                              </optgroup>
+                            )}
+                            {arenaNonMctsAgents.length > 0 && (
+                              <optgroup label="Baselines">
+                                {arenaNonMctsAgents.map((a) => (
+                                  <option key={a.agent_id} value={a.agent_id}>
+                                    {a.agent_id} ({a.type}) — μ {formatMu(a.mu)} (rank {a.rank})
+                                  </option>
+                                ))}
+                              </optgroup>
+                            )}
+                          </select>
+                        </div>
+                      )}
+
                     {/* Advanced MCTS Configuration */}
                     {player.agent_type === 'mcts' && expandedAdvanced === index && (
                       <div className="ml-4 p-3 bg-charcoal-900 border border-charcoal-700 rounded-lg text-xs space-y-3">
-                        {/* Layer Presets */}
-                        <div>
-                          <label className="block text-gray-400 font-semibold mb-1 uppercase tracking-wider" style={{ fontSize: '10px' }}>Layer Preset</label>
-                          <div className="flex flex-wrap gap-1">
-                            {Object.entries(MCTS_LAYER_PRESETS).map(([key, preset]) => (
-                              <button
-                                key={key}
-                                onClick={() => applyMctsPreset(index, key)}
-                                className="px-2 py-0.5 rounded border border-charcoal-600 text-gray-300 hover:border-neon-blue hover:text-neon-blue transition-colors"
-                                title={preset.description}
-                              >
-                                {preset.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                        {/* Time Budget */}
                         <div className="grid grid-cols-2 gap-2">
                           <div>
                             <label className="block text-gray-500 mb-0.5">Time Budget (ms)</label>
-                            <input type="number" min={50} max={10000} step={50}
+                            <input
+                              type="number"
+                              min={50}
+                              max={10000}
+                              step={50}
                               value={player.agent_config?.time_budget_ms ?? 1000}
-                              onChange={(e) => updateAdvancedConfig(index, 'time_budget_ms', parseInt(e.target.value) || 1000)}
-                              className="w-full bg-charcoal-800 border border-charcoal-600 text-gray-200 rounded px-2 py-1 text-xs" />
+                              onChange={(e) =>
+                                updateAdvancedConfig(
+                                  index,
+                                  'time_budget_ms',
+                                  parseInt(e.target.value) || 1000
+                                )
+                              }
+                              className="w-full bg-charcoal-800 border border-charcoal-600 text-gray-200 rounded px-2 py-1 text-xs"
+                            />
                           </div>
                           <div>
                             <label className="block text-gray-500 mb-0.5">Exploration C</label>
-                            <input type="number" min={0} max={5} step={0.1}
+                            <input
+                              type="number"
+                              min={0}
+                              max={5}
+                              step={0.1}
                               value={player.agent_config?.exploration_constant ?? 1.414}
-                              onChange={(e) => updateAdvancedConfig(index, 'exploration_constant', parseFloat(e.target.value) || 1.414)}
-                              className="w-full bg-charcoal-800 border border-charcoal-600 text-gray-200 rounded px-2 py-1 text-xs" />
+                              onChange={(e) =>
+                                updateAdvancedConfig(
+                                  index,
+                                  'exploration_constant',
+                                  parseFloat(e.target.value) || 1.414
+                                )
+                              }
+                              className="w-full bg-charcoal-800 border border-charcoal-600 text-gray-200 rounded px-2 py-1 text-xs"
+                            />
                           </div>
                         </div>
-                        {/* Layer 3: Action Reduction */}
+
                         <div>
-                          <div className="text-gray-400 font-semibold uppercase tracking-wider mb-1" style={{ fontSize: '10px' }}>L3: Action Reduction</div>
+                          <div className="text-gray-400 font-semibold uppercase tracking-wider mb-1" style={{ fontSize: '10px' }}>
+                            L3: Action Reduction
+                          </div>
                           <div className="flex gap-4">
                             <label className="flex items-center gap-1 text-gray-300">
-                              <input type="checkbox" checked={!!player.agent_config?.progressive_widening_enabled}
+                              <input
+                                type="checkbox"
+                                checked={!!player.agent_config?.progressive_widening_enabled}
                                 onChange={(e) => updateAdvancedConfig(index, 'progressive_widening_enabled', e.target.checked)}
-                                className="accent-neon-blue" />
+                                className="accent-neon-blue"
+                              />
                               Prog. Widening
                             </label>
                             <label className="flex items-center gap-1 text-gray-300">
-                              <input type="checkbox" checked={!!player.agent_config?.progressive_history_enabled}
+                              <input
+                                type="checkbox"
+                                checked={!!player.agent_config?.progressive_history_enabled}
                                 onChange={(e) => updateAdvancedConfig(index, 'progressive_history_enabled', e.target.checked)}
-                                className="accent-neon-blue" />
+                                className="accent-neon-blue"
+                              />
                               Prog. History
                             </label>
                           </div>
                         </div>
-                        {/* Layer 4: Simulation */}
+
                         <div>
-                          <div className="text-gray-400 font-semibold uppercase tracking-wider mb-1" style={{ fontSize: '10px' }}>L4: Simulation Strategy</div>
+                          <div className="text-gray-400 font-semibold uppercase tracking-wider mb-1" style={{ fontSize: '10px' }}>
+                            L4: Simulation Strategy
+                          </div>
                           <div className="grid grid-cols-3 gap-2">
                             <div>
                               <label className="block text-gray-500 mb-0.5">Rollout Policy</label>
@@ -696,131 +739,185 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
                             </div>
                             <div>
                               <label className="block text-gray-500 mb-0.5">Cutoff Depth</label>
-                              <input type="number" min={0} max={100} step={5}
+                              <input
+                                type="number"
+                                min={0}
+                                max={100}
+                                step={5}
                                 value={player.agent_config?.rollout_cutoff_depth ?? ''}
                                 placeholder="None"
-                                onChange={(e) => updateAdvancedConfig(index, 'rollout_cutoff_depth', e.target.value ? parseInt(e.target.value) : null)}
-                                className="w-full bg-charcoal-800 border border-charcoal-600 text-gray-200 rounded px-2 py-1 text-xs" />
+                                onChange={(e) =>
+                                  updateAdvancedConfig(
+                                    index,
+                                    'rollout_cutoff_depth',
+                                    e.target.value ? parseInt(e.target.value) : null
+                                  )
+                                }
+                                className="w-full bg-charcoal-800 border border-charcoal-600 text-gray-200 rounded px-2 py-1 text-xs"
+                              />
                             </div>
                             <div>
                               <label className="block text-gray-500 mb-0.5">Minimax Alpha</label>
-                              <input type="number" min={0} max={1} step={0.05}
+                              <input
+                                type="number"
+                                min={0}
+                                max={1}
+                                step={0.05}
                                 value={player.agent_config?.minimax_backup_alpha ?? 0}
-                                onChange={(e) => updateAdvancedConfig(index, 'minimax_backup_alpha', parseFloat(e.target.value) || 0)}
-                                className="w-full bg-charcoal-800 border border-charcoal-600 text-gray-200 rounded px-2 py-1 text-xs" />
+                                onChange={(e) =>
+                                  updateAdvancedConfig(index, 'minimax_backup_alpha', parseFloat(e.target.value) || 0)
+                                }
+                                className="w-full bg-charcoal-800 border border-charcoal-600 text-gray-200 rounded px-2 py-1 text-xs"
+                              />
                             </div>
                           </div>
                         </div>
-                        {/* Layer 5: RAVE & NST */}
+
                         <div>
-                          <div className="text-gray-400 font-semibold uppercase tracking-wider mb-1" style={{ fontSize: '10px' }}>L5: RAVE & History</div>
+                          <div className="text-gray-400 font-semibold uppercase tracking-wider mb-1" style={{ fontSize: '10px' }}>
+                            L5: RAVE & History
+                          </div>
                           <div className="flex gap-4 items-end">
                             <label className="flex items-center gap-1 text-gray-300">
-                              <input type="checkbox" checked={!!player.agent_config?.rave_enabled}
+                              <input
+                                type="checkbox"
+                                checked={!!player.agent_config?.rave_enabled}
                                 onChange={(e) => updateAdvancedConfig(index, 'rave_enabled', e.target.checked)}
-                                className="accent-neon-blue" />
+                                className="accent-neon-blue"
+                              />
                               RAVE
                             </label>
                             {player.agent_config?.rave_enabled && (
                               <div>
                                 <label className="block text-gray-500 mb-0.5">RAVE k</label>
-                                <input type="number" min={100} max={10000} step={100}
+                                <input
+                                  type="number"
+                                  min={100}
+                                  max={10000}
+                                  step={100}
                                   value={player.agent_config?.rave_k ?? 1000}
                                   onChange={(e) => updateAdvancedConfig(index, 'rave_k', parseFloat(e.target.value) || 1000)}
-                                  className="w-24 bg-charcoal-800 border border-charcoal-600 text-gray-200 rounded px-2 py-1 text-xs" />
+                                  className="w-24 bg-charcoal-800 border border-charcoal-600 text-gray-200 rounded px-2 py-1 text-xs"
+                                />
                               </div>
                             )}
                             <label className="flex items-center gap-1 text-gray-300">
-                              <input type="checkbox" checked={!!player.agent_config?.nst_enabled}
+                              <input
+                                type="checkbox"
+                                checked={!!player.agent_config?.nst_enabled}
                                 onChange={(e) => updateAdvancedConfig(index, 'nst_enabled', e.target.checked)}
-                                className="accent-neon-blue" />
+                                className="accent-neon-blue"
+                              />
                               NST
                             </label>
                           </div>
                         </div>
-                        {/* Layer 7: Opponent Modeling */}
+
                         <div>
-                          <div className="text-gray-400 font-semibold uppercase tracking-wider mb-1" style={{ fontSize: '10px' }}>L7: Opponent Modeling</div>
+                          <div className="text-gray-400 font-semibold uppercase tracking-wider mb-1" style={{ fontSize: '10px' }}>
+                            L7: Opponent Modeling
+                          </div>
                           <div className="flex flex-wrap gap-3">
                             <label className="flex items-center gap-1 text-gray-300">
-                              <input type="checkbox" checked={!!player.agent_config?.opponent_modeling_enabled}
+                              <input
+                                type="checkbox"
+                                checked={!!player.agent_config?.opponent_modeling_enabled}
                                 onChange={(e) => updateAdvancedConfig(index, 'opponent_modeling_enabled', e.target.checked)}
-                                className="accent-neon-blue" />
+                                className="accent-neon-blue"
+                              />
                               Enabled
                             </label>
                             <label className="flex items-center gap-1 text-gray-300">
-                              <input type="checkbox" checked={!!player.agent_config?.alliance_detection_enabled}
+                              <input
+                                type="checkbox"
+                                checked={!!player.agent_config?.alliance_detection_enabled}
                                 onChange={(e) => updateAdvancedConfig(index, 'alliance_detection_enabled', e.target.checked)}
-                                className="accent-neon-blue" />
+                                className="accent-neon-blue"
+                              />
                               Alliances
                             </label>
                             <label className="flex items-center gap-1 text-gray-300">
-                              <input type="checkbox" checked={!!player.agent_config?.kingmaker_detection_enabled}
+                              <input
+                                type="checkbox"
+                                checked={!!player.agent_config?.kingmaker_detection_enabled}
                                 onChange={(e) => updateAdvancedConfig(index, 'kingmaker_detection_enabled', e.target.checked)}
-                                className="accent-neon-blue" />
+                                className="accent-neon-blue"
+                              />
                               King-maker
                             </label>
                           </div>
                         </div>
-                        {/* Layer 9: Meta-Optimization */}
+
                         <div>
-                          <div className="text-gray-400 font-semibold uppercase tracking-wider mb-1" style={{ fontSize: '10px' }}>L9: Meta-Optimization</div>
+                          <div className="text-gray-400 font-semibold uppercase tracking-wider mb-1" style={{ fontSize: '10px' }}>
+                            L9: Meta-Optimization
+                          </div>
                           <div className="flex flex-wrap gap-3">
                             <label className="flex items-center gap-1 text-gray-300">
-                              <input type="checkbox" checked={!!player.agent_config?.adaptive_exploration_enabled}
+                              <input
+                                type="checkbox"
+                                checked={!!player.agent_config?.adaptive_exploration_enabled}
                                 onChange={(e) => updateAdvancedConfig(index, 'adaptive_exploration_enabled', e.target.checked)}
-                                className="accent-neon-blue" />
+                                className="accent-neon-blue"
+                              />
                               Adaptive C
                             </label>
                             <label className="flex items-center gap-1 text-gray-300">
-                              <input type="checkbox" checked={!!player.agent_config?.sufficiency_threshold_enabled}
+                              <input
+                                type="checkbox"
+                                checked={!!player.agent_config?.sufficiency_threshold_enabled}
                                 onChange={(e) => updateAdvancedConfig(index, 'sufficiency_threshold_enabled', e.target.checked)}
-                                className="accent-neon-blue" />
+                                className="accent-neon-blue"
+                              />
                               Sufficiency
                             </label>
                             <label className="flex items-center gap-1 text-gray-300">
-                              <input type="checkbox" checked={!!player.agent_config?.loss_avoidance_enabled}
+                              <input
+                                type="checkbox"
+                                checked={!!player.agent_config?.loss_avoidance_enabled}
                                 onChange={(e) => updateAdvancedConfig(index, 'loss_avoidance_enabled', e.target.checked)}
-                                className="accent-neon-blue" />
+                                className="accent-neon-blue"
+                              />
                               Loss Avoidance
                             </label>
                           </div>
                         </div>
-                        {/* Search Trace */}
+
                         <div>
                           <label className="flex items-center gap-1 text-gray-300">
-                            <input type="checkbox" checked={!!player.agent_config?.enable_search_trace}
+                            <input
+                              type="checkbox"
+                              checked={!!player.agent_config?.enable_search_trace}
                               onChange={(e) => updateAdvancedConfig(index, 'enable_search_trace', e.target.checked)}
-                              className="accent-neon-blue" />
+                              className="accent-neon-blue"
+                            />
                             Enable Search Trace (for MCTS visualization)
                           </label>
                         </div>
                       </div>
                     )}
                   </div>
-                ))}
-              </div>
-
-              {gameConfig.players.length < 4 && (
-                <button
-                  onClick={addPlayer}
-                  className="mt-2 text-neon-blue hover:text-neon-blue/80 text-sm"
-                >
-                  + Add Player
-                </button>
-              )}
+                );
+              })}
             </div>
 
-            {/* Game Settings */}
-            <div className="flex items-center mb-6">
+            {gameConfig.players.length < 4 && (
+              <button
+                onClick={addPlayer}
+                className="mt-2 text-neon-blue hover:text-neon-blue/80 text-sm"
+              >
+                + Add Player
+              </button>
+            )}
+
+            <div className="flex items-center my-6">
               <input
                 type="checkbox"
                 id="auto_start"
                 checked={gameConfig.auto_start}
-                onChange={(e) => setGameConfig((prev: any) => ({
-                  ...prev,
-                  auto_start: e.target.checked
-                }))}
+                onChange={(e) =>
+                  setGameConfig((prev: any) => ({ ...prev, auto_start: e.target.checked }))
+                }
                 className="mr-2"
               />
               <label htmlFor="auto_start" className="text-sm text-gray-300">
@@ -828,18 +925,13 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
               </label>
             </div>
 
-            {/* Create Game Button */}
             <div className="flex space-x-3">
               <button
                 onClick={handleCreateGame}
                 disabled={isCreating}
-                className={`
-                  flex-1 py-3 px-6 rounded-lg font-medium text-white transition-colors duration-200
-                  ${isCreating
-                    ? 'bg-gray-600 cursor-not-allowed'
-                    : 'bg-neon-blue hover:bg-neon-blue/80'
-                  }
-                `}
+                className={`flex-1 py-3 px-6 rounded-lg font-medium text-white transition-colors duration-200 ${
+                  isCreating ? 'bg-gray-600 cursor-not-allowed' : 'bg-neon-blue hover:bg-neon-blue/80'
+                }`}
               >
                 {isCreating ? 'Creating Game...' : 'Start New Game'}
               </button>
@@ -854,13 +946,11 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isCreating}
-                className={`
-                  py-3 px-6 rounded-lg font-medium border transition-colors duration-200
-                  ${isCreating
+                className={`py-3 px-6 rounded-lg font-medium border transition-colors duration-200 ${
+                  isCreating
                     ? 'bg-charcoal-700 border-charcoal-600 text-gray-500 cursor-not-allowed'
                     : 'bg-charcoal-800 border-charcoal-600 text-gray-300 hover:bg-charcoal-700 hover:text-white'
-                  }
-                `}
+                }`}
               >
                 Load From File
               </button>
