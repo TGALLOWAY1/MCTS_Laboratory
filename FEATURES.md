@@ -60,6 +60,7 @@
 - 7 feature extraction modules: territory, blocking, proximity, mobility, pieces, corners, center — `analytics/metrics/`
 - Baseline analysis: branching factor, iteration efficiency, Q-value convergence, simulation quality — `analytics/baseline/`
 - Heatmap visualization and spatial analysis — `analytics/heatmap/`
+- Frontier-overlay board rendering from captured turn snapshots — `analytics/heatmap/renderer.py`
 - Win probability modeling — `analytics/winprob/`
 - Game aggregation and phase splitting — `analytics/aggregate/`
 - Arena visualization generation (layer progression charts) — `scripts/generate_arena_visuals.py`, `arena_visuals/`
@@ -76,7 +77,7 @@
 - Analysis page with MCTS diagnostics — `frontend/src/pages/Analysis.tsx`
 - ExplainMove panel — `frontend/src/components/ExplainMovePanel.tsx`
 - Game history browser with agent config badges and active layer indicators — `frontend/src/pages/History.tsx`
-- Recruiter-facing scrolling story page with architecture narrative, animation specs, and impact framing — `frontend/src/pages/RecruiterStoryPage.tsx`, `docs/frontend/recruiter_scrolling_story_page.md`
+- Recruiter-facing story page reframed as "Engine → Laboratory" narrative: 12-section structure covering engine foundation, experimentation framework, controlled findings, evaluator calibration, systems insights, and explainability. Integrates 9 Gemini-generated editorial images, throughput data table, TrueSkill vs ELO explanation, regression methodology, and research references — `frontend/src/pages/RecruiterStoryPage.tsx`
 
 ## Web API
 
@@ -111,6 +112,8 @@
 - TrueSkill computation from JSONL logs — `scripts/compute_trueskill_from_jsonl.py`
 - Training data generation — `scripts/generate_training_data.py`
 - Tournament runner (single-command) — `scripts/run_tournament.py`
+- Frontier video generation for per-turn board snapshots — `scripts/generate_frontier_video.py`
+- Legal-move-count plot generation from per-turn board snapshots — `scripts/plot_legal_move_counts.py`
 
 ## Testing
 
