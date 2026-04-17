@@ -1,4 +1,9 @@
-"""Shared matplotlib plotting utilities for Layer 1 baseline analyses."""
+"""Shared matplotlib plotting utilities for Layer 1 baseline analyses.
+
+This module now delegates the visual theme to :mod:`analytics.plot_style` so
+all baseline charts match the `/story` page aesthetic (dark charcoal
+background, Inter typography, neon accent palette).
+"""
 
 from __future__ import annotations
 
@@ -10,40 +15,37 @@ import matplotlib
 matplotlib.use("Agg")  # non-interactive backend for headless environments
 import matplotlib.pyplot as plt
 
+from analytics.plot_style import (
+    CHARCOAL_900,
+    TEXT_SECONDARY,
+    apply_lab_style,
+    save_figure,
+)
+
 
 def setup_plot_style() -> None:
-    """Apply a clean, publication-ready plot style."""
-    plt.rcParams.update(
-        {
-            "figure.figsize": (10, 6),
-            "figure.dpi": 150,
-            "axes.grid": True,
-            "axes.spines.top": False,
-            "axes.spines.right": False,
-            "grid.alpha": 0.3,
-            "font.size": 11,
-            "axes.titlesize": 13,
-            "axes.labelsize": 12,
-        }
-    )
+    """Apply the shared LAB theme to all matplotlib output."""
+    apply_lab_style()
+    # Baseline charts historically run a little taller; preserve that framing.
+    plt.rcParams["figure.figsize"] = (10, 6)
 
 
 def save_plot(fig: plt.Figure, path: str | Path) -> None:
-    """Save figure to *path*, creating parent directories as needed."""
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(path, bbox_inches="tight")
-    plt.close(fig)
+    """Save figure to *path* with the LAB background baked in."""
+    save_figure(fig, path, tight=True)
 
 
 def annotate_threshold(
     ax: plt.Axes,
     y_value: float,
     label: str,
-    color: str = "red",
+    color: Optional[str] = None,
     linestyle: str = "--",
 ) -> None:
     """Draw a horizontal threshold line with a text label."""
+    from analytics.plot_style import NEON_RED
+
+    color = color or NEON_RED
     ax.axhline(y=y_value, color=color, linestyle=linestyle, alpha=0.7, linewidth=1)
     ax.text(
         ax.get_xlim()[1],
@@ -61,9 +63,12 @@ def annotate_peak(
     x: float,
     y: float,
     label: str,
-    color: str = "red",
+    color: Optional[str] = None,
 ) -> None:
     """Annotate a peak point on the plot."""
+    from analytics.plot_style import NEON_RED
+
+    color = color or NEON_RED
     ax.annotate(
         label,
         xy=(x, y),

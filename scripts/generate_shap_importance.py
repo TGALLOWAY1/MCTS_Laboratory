@@ -7,6 +7,9 @@ import sys
 from sklearn.inspection import permutation_importance
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from analytics.plot_style import NEON_VIOLET, apply_lab_style, save_figure, style_axes
 
 def generate_importance():
     model_path = PROJECT_ROOT / "models" / "eval_from_overnight.pkl"
@@ -55,22 +58,22 @@ def generate_importance():
     # Sort descending
     df = df.sort_values(by='Importance', ascending=True)
 
-    # We want a nice looking horizontal bar chart
-    plt.style.use('dark_background')  # Looks cool for portfolio
-    plt.figure(figsize=(10, 8))
-    
+    # We want a nice looking horizontal bar chart — LAB theme.
+    apply_lab_style()
+    fig, ax = plt.subplots(figsize=(10, 8))
+    style_axes(ax)
+
     # We only take top 15 features to avoid clutter
     top_df = df.tail(15)
 
-    bars = plt.barh(top_df['Feature'], top_df['Importance'], color='#FF3366', alpha=0.8)
-    
-    plt.xlabel('Permutation Importance', fontsize=12)
-    plt.title('Learned Evaluator: Top 15 Feature Importances', fontsize=16, fontweight='bold', pad=20)
-    plt.tight_layout()
+    ax.barh(top_df['Feature'], top_df['Importance'], color=NEON_VIOLET, alpha=0.9)
+
+    ax.set_xlabel('Permutation Importance')
+    ax.set_title('Learned Evaluator: Top 15 Feature Importances', pad=20)
 
     # Save to docs
     out_path = PROJECT_ROOT / "docs" / "feature_importance.png"
-    plt.savefig(out_path, dpi=300, facecolor='#111111')
+    save_figure(fig, out_path)
     print(f"Successfully saved high-DPI feature importance chart to {out_path}")
 
 if __name__ == "__main__":

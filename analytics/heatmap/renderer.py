@@ -25,9 +25,21 @@ PLAYER_COLORS = {
 
 PLAYER_NAMES = {1: "Red", 2: "Blue", 3: "Yellow", 4: "Green"}
 
-# Background color matching the mockup dark theme
-BG_COLOR = "#161622"
-GRID_COLOR = "#2a3a4a"
+# Background color — sourced from the shared LAB theme so all charts share
+# a single dark palette (matches frontend/tailwind.config.js charcoal tokens
+# and the /story page aesthetic).
+from analytics.plot_style import (  # noqa: E402  (grouped with module constants)
+    CHARCOAL_900 as _CHARCOAL_900,
+    CHARCOAL_700 as _CHARCOAL_700,
+    apply_lab_style as _apply_lab_style,
+)
+
+BG_COLOR = _CHARCOAL_900
+GRID_COLOR = _CHARCOAL_700
+
+# Ensure matplotlib picks up the Inter typography + neon defaults for heatmap
+# renders. Safe to call at import time — it only mutates rcParams.
+_apply_lab_style()
 
 
 def load_turn_data(path: Path) -> Dict[str, Any]:

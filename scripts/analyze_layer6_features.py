@@ -181,6 +181,14 @@ def _residual_analysis(
         import matplotlib
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
+        from analytics.plot_style import (
+            NEON_CYAN,
+            NEON_RED,
+            apply_lab_style,
+            save_figure,
+            style_axes,
+        )
+        apply_lab_style()
         has_mpl = True
     except ImportError:
         has_mpl = False
@@ -220,49 +228,45 @@ def _residual_analysis(
 
         # 1. Residuals vs board occupancy
         fig, ax = plt.subplots(figsize=(10, 6))
-        ax.scatter(occ, residuals, alpha=0.15, s=8)
-        ax.axhline(0, color="red", linestyle="--", linewidth=0.8)
+        style_axes(ax)
+        ax.scatter(occ, residuals, alpha=0.35, s=10, color=NEON_CYAN)
+        ax.axhline(0, color=NEON_RED, linestyle="--", linewidth=0.9)
         ax.set_xlabel("Board Occupancy")
         ax.set_ylabel("Residual (actual - predicted)")
         ax.set_title("Residuals vs Board Occupancy")
-        fig.tight_layout()
-        fig.savefig(str(plot_dir / "residuals_vs_occupancy.png"), dpi=150)
-        plt.close(fig)
+        save_figure(fig, plot_dir / "residuals_vs_occupancy.png")
 
         # 2. Residuals vs turn index
         if turn is not None:
             fig, ax = plt.subplots(figsize=(10, 6))
-            ax.scatter(turn, residuals, alpha=0.15, s=8)
-            ax.axhline(0, color="red", linestyle="--", linewidth=0.8)
+            style_axes(ax)
+            ax.scatter(turn, residuals, alpha=0.35, s=10, color=NEON_CYAN)
+            ax.axhline(0, color=NEON_RED, linestyle="--", linewidth=0.9)
             ax.set_xlabel("Turn Index")
             ax.set_ylabel("Residual")
             ax.set_title("Residuals vs Turn Index")
-            fig.tight_layout()
-            fig.savefig(str(plot_dir / "residuals_vs_turn.png"), dpi=150)
-            plt.close(fig)
+            save_figure(fig, plot_dir / "residuals_vs_turn.png")
 
         # 3. Residuals vs score difference
         fig, ax = plt.subplots(figsize=(10, 6))
-        ax.scatter(score_diff, residuals, alpha=0.15, s=8)
-        ax.axhline(0, color="red", linestyle="--", linewidth=0.8)
+        style_axes(ax)
+        ax.scatter(score_diff, residuals, alpha=0.35, s=10, color=NEON_CYAN)
+        ax.axhline(0, color=NEON_RED, linestyle="--", linewidth=0.9)
         ax.set_xlabel("Score Difference (from mean)")
         ax.set_ylabel("Residual")
         ax.set_title("Residuals vs Score Difference")
-        fig.tight_layout()
-        fig.savefig(str(plot_dir / "residuals_vs_score_diff.png"), dpi=150)
-        plt.close(fig)
+        save_figure(fig, plot_dir / "residuals_vs_score_diff.png")
 
         # 4. Predicted vs actual
         fig, ax = plt.subplots(figsize=(8, 8))
-        ax.scatter(predictions, y, alpha=0.15, s=8)
+        style_axes(ax)
+        ax.scatter(predictions, y, alpha=0.35, s=10, color=NEON_CYAN)
         mn, mx = min(predictions.min(), y.min()), max(predictions.max(), y.max())
-        ax.plot([mn, mx], [mn, mx], "r--", linewidth=0.8)
+        ax.plot([mn, mx], [mn, mx], linestyle="--", color=NEON_RED, linewidth=0.9)
         ax.set_xlabel("Predicted Score")
         ax.set_ylabel("Actual Score")
         ax.set_title("Predicted vs Actual Final Score")
-        fig.tight_layout()
-        fig.savefig(str(plot_dir / "predicted_vs_actual.png"), dpi=150)
-        plt.close(fig)
+        save_figure(fig, plot_dir / "predicted_vs_actual.png")
 
         print(f"  Plots saved to {plot_dir}/")
 
@@ -345,6 +349,14 @@ def _plot_feature_importance(
         import matplotlib
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
+        from analytics.plot_style import (
+            NEON_GREEN,
+            NEON_RED,
+            apply_lab_style,
+            save_figure,
+            style_axes,
+        )
+        apply_lab_style()
     except ImportError:
         return
 
@@ -352,16 +364,15 @@ def _plot_feature_importance(
     vals = [c[key] for c in coef_table[:20]]
 
     fig, ax = plt.subplots(figsize=(10, max(6, len(names) * 0.35)))
-    colors = ["#2ecc71" if v >= 0 else "#e74c3c" for v in vals]
+    style_axes(ax)
+    colors = [NEON_GREEN if v >= 0 else NEON_RED for v in vals]
     ax.barh(range(len(names)), vals, color=colors)
     ax.set_yticks(range(len(names)))
     ax.set_yticklabels(names, fontsize=9)
     ax.set_xlabel(key.replace("_", " ").title())
     ax.set_title(title)
     ax.invert_yaxis()
-    fig.tight_layout()
-    fig.savefig(str(filename), dpi=150)
-    plt.close(fig)
+    save_figure(fig, filename)
 
 
 # ---------------------------------------------------------------------------
@@ -377,6 +388,8 @@ def _plot_shap_summary(rf_result: Dict, feature_cols: List[str], plot_dir: Path)
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
         import shap
+        from analytics.plot_style import apply_lab_style, save_figure
+        apply_lab_style()
     except ImportError:
         return
 
@@ -389,8 +402,7 @@ def _plot_shap_summary(rf_result: Dict, feature_cols: List[str], plot_dir: Path)
         max_display=20,
     )
     fig = plt.gcf()
-    fig.tight_layout()
-    fig.savefig(str(plot_dir / "shap_summary.png"), dpi=150, bbox_inches="tight")
+    save_figure(fig, plot_dir / "shap_summary.png", tight=True)
     plt.close("all")
 
 
