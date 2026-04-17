@@ -24,6 +24,7 @@ export const Play: React.FC = () => {
     error,
     isPaused,
     togglePause,
+    setPendingPlacement,
   } = useGameStore();
 
   const [isMakingMove, setIsMakingMove] = useState(false);
@@ -105,13 +106,19 @@ export const Play: React.FC = () => {
       return;
     }
 
-    // Reset any previous error state
-    setError(null);
-
     // Check if it's a human player's turn (not an agent)
     const currentPlayer = gameState?.current_player;
     const playerConfig = gameState?.players?.find((p: any) => p.player === currentPlayer);
     const isHumanPlayer = playerConfig?.agent_type === 'human';
+
+    // Silently ignore clicks outside the human's turn — users may pre-select
+    // pieces during opponent turns and the click lands on the board.
+    if (gameState?.players && !isHumanPlayer) {
+      return;
+    }
+
+    // Reset any previous error state
+    setError(null);
 
     // Check if the selected piece is already used
     const piecesUsed = gameState?.pieces_used || {};
@@ -120,12 +127,6 @@ export const Play: React.FC = () => {
 
     if (isPieceAlreadyUsed) {
       setError(`Piece ${selectedPiece} has already been used by ${currentPlayer}`);
-      return;
-    }
-
-    // If we don't have player info, assume it's a human player for now
-    if (gameState?.players && !isHumanPlayer) {
-      setError('Only human players can make manual moves');
       return;
     }
 
@@ -143,15 +144,28 @@ export const Play: React.FC = () => {
 
 
     try {
-      const currentPlayer = gameState?.current_player || '';
+      const playerForMove = (currentPlayer || '').toUpperCase();
 
       const moveRequest = {
-        player: currentPlayer.toUpperCase(),
+        player: playerForMove,
         piece_id: selectedPiece,
         orientation: pieceOrientation,
         anchor_row: row,
         anchor_col: col
       };
+
+      // Optimistic UI: paint the piece on the board immediately so the user
+      // gets instant feedback while the Pyodide worker processes the move.
+      setPendingPlacement({
+        player: playerForMove,
+        piece_id: selectedPiece,
+        orientation: pieceOrientation,
+        anchor_row: row,
+        anchor_col: col,
+      });
+      // Clear the ghost preview right away — the optimistic piece replaces it.
+      selectPiece(null);
+      setPieceOrientation(0);
 
       // Send the move to the backend
       console.log('[UI] Sending move', {
@@ -166,23 +180,24 @@ export const Play: React.FC = () => {
 
       if (response && response.success) {
         console.log('✅ Move successful');
-        // Clear the selected piece only after successful move
-        selectPiece(null);
-        setPieceOrientation(0);
       } else {
-        // Move failed - display the specific error message from the backend
+        // Move failed — optimistic overlay is cleared in the store's
+        // move_response handler; restore the piece so the user can retry.
         console.log('❌ Move failed, response:', response);
         const errorMessage = response?.message || 'Move failed';
         console.log('📝 Error message from backend:', errorMessage);
         setError(errorMessage);
+        selectPiece(selectedPiece);
+        setPieceOrientation(pieceOrientation);
       }
     } catch (err) {
       console.error('Move error:', err);
       setError(err instanceof Error ? err.message : String(err));
+      setPendingPlacement(null);
     } finally {
       setIsMakingMove(false);
     }
-  }, [selectedPiece, isMakingMove, gameState, pieceOrientation, makeMove, selectPiece, setPieceOrientation, setError]);
+  }, [selectedPiece, isMakingMove, gameState, pieceOrientation, makeMove, selectPiece, setPieceOrientation, setError, setPendingPlacement]);
 
   const handleCellHover = useCallback(() => {
     // Could add hover effects here

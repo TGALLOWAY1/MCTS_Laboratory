@@ -68,7 +68,7 @@
 ## Frontend
 
 - React 18 + TypeScript SPA with Zustand state management — `frontend/`
-- Interactive Blokus board with piece selection and placement — `frontend/src/components/Board.tsx`
+- Interactive Blokus board with piece selection and placement (cursor-centered piece preview, optimistic-UI placement, cross-turn pre-selection) — `frontend/src/components/Board.tsx`, `frontend/src/components/PieceTray.tsx`, `frontend/src/utils/pieceUtils.ts`
 - MCTS visualization suite: rollout histograms, UCT breakdown, exploration/exploitation charts — `frontend/src/components/mcts-viz/`
 - Move impact panels: waterfall charts, strategy-mix radar, move-delta diverging bars — `frontend/src/components/telemetry/`
 - Advanced MCTS configuration UI with Layer 3-9 parameter controls and layer presets — `frontend/src/components/GameConfigModal.tsx`

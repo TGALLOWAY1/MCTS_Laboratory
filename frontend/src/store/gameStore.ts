@@ -167,6 +167,14 @@ export interface GameHistoryEntry {
   mcts_diagnostics?: MctsDiagnosticsV1;
 }
 
+export interface PendingPlacement {
+  player: string;
+  piece_id: number;
+  orientation: number;
+  anchor_row: number;
+  anchor_col: number;
+}
+
 // Store interface
 interface GameStore {
   gameState: GameState | null;
@@ -175,6 +183,7 @@ interface GameStore {
   selectedPiece: number | null;
   pieceOrientation: number;
   previewMove: MctsTopMove | null;
+  pendingPlacement: PendingPlacement | null;
   pollIntervalId: ReturnType<typeof setInterval> | null;
   isAdvancingTurn: boolean;
   isPaused: boolean;
@@ -192,6 +201,7 @@ interface GameStore {
   selectPiece: (pieceId: number | null) => void;
   setPieceOrientation: (orientation: number) => void;
   setPreviewMove: (move: MctsTopMove | null) => void;
+  setPendingPlacement: (placement: PendingPlacement | null) => void;
   makeMove: (move: MoveRequest) => Promise<MoveResponse>;
   passTurn: () => Promise<MoveResponse>;
   createGame: (config: any) => Promise<string>;
@@ -232,7 +242,7 @@ function setupWorker() {
     } else if (data.type === 'move_response') {
       const resp = data.response;
       useGameStore.getState().setGameState(resp.game_state);
-      useGameStore.setState({ isAdvancingTurn: false });
+      useGameStore.setState({ isAdvancingTurn: false, pendingPlacement: null });
       if (moveResolver) {
         moveResolver(resp);
         moveResolver = null;
@@ -241,6 +251,7 @@ function setupWorker() {
     } else if (data.type === 'error' || data.type === 'init_error') {
       console.error("Worker Error:", data.error);
       useGameStore.getState().setError(data.error);
+      useGameStore.setState({ pendingPlacement: null });
       useGameStore.getState().addLog("Worker Error: " + data.error, "ERROR");
     }
   };
@@ -270,6 +281,7 @@ export const useGameStore = create<GameStore>()(
     selectedPiece: null,
     pieceOrientation: 0,
     previewMove: null,
+    pendingPlacement: null,
     pollIntervalId: null,
     isAdvancingTurn: false,
     isPaused: false,
@@ -307,6 +319,7 @@ export const useGameStore = create<GameStore>()(
         currentSliderTurn: null,
         isAdvancingTurn: false,
         isPaused: false,
+        pendingPlacement: null,
       });
     },
 
@@ -324,6 +337,10 @@ export const useGameStore = create<GameStore>()(
 
     setPreviewMove: (move: MctsTopMove | null) => {
       set({ previewMove: move });
+    },
+
+    setPendingPlacement: (placement: PendingPlacement | null) => {
+      set({ pendingPlacement: placement });
     },
 
     passTurn: async (): Promise<MoveResponse> => {
