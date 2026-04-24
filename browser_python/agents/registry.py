@@ -9,7 +9,6 @@ from typing import Optional, Protocol
 
 import numpy as np
 
-from agents.fast_mcts_agent import FastMCTSAgent
 from agents.heuristic_agent import HeuristicAgent
 from agents.random_agent import RandomAgent
 from mcts.mcts_agent import MCTSAgent
@@ -85,27 +84,6 @@ class MCTSAgentAdapter:
         return base_env.move_to_action.get((move.piece_id, move.orientation, move.anchor_row, move.anchor_col))
 
 
-class FastMCTSAgentAdapter:
-    def __init__(self, seed: Optional[int] = None, time_limit: float = 0.1):
-        self.agent = FastMCTSAgent(time_limit=time_limit, seed=seed)
-
-    def act(self, observation: np.ndarray, legal_mask: np.ndarray, env=None) -> Optional[int]:
-        if env is None:
-            return None
-        base_env = env.env if hasattr(env, "env") else env
-        player_name = base_env.agent_selection
-        legal_moves = env.get_legal_moves(player_name) if hasattr(env, "get_legal_moves") else base_env.move_generator.get_legal_moves(
-            base_env.game.board, base_env._agent_to_player(player_name)
-        )
-        if not legal_moves:
-            return None
-        player = base_env._agent_to_player(player_name)
-        move = self.agent.select_action(base_env.game.board, player, legal_moves)
-        if move is None:
-            return None
-        return base_env.move_to_action.get((move.piece_id, move.orientation, move.anchor_row, move.anchor_col))
-
-
 class RLPolicyAgent:
     def __init__(self, model):
         self.model = model
@@ -126,5 +104,8 @@ def build_baseline_agent(agent_type: str, seed: Optional[int] = None) -> AgentPr
     if agent_type == "mcts":
         return MCTSAgentAdapter(seed=seed)
     if agent_type == "fast_mcts":
-        return FastMCTSAgentAdapter(seed=seed)
+        raise ValueError(
+            "FastMCTS is not a valid MCTS implementation and has been removed "
+            "from competitive use. See docs/audits/mcts_audit_remediation_plan.md"
+        )
     raise ValueError(f"Unknown agent type: {agent_type}")

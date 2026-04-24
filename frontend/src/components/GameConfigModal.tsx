@@ -1,6 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import { useGameStore } from '../store/gameStore';
-import { API_BASE, DEPLOY_MCTS_PRESETS, IS_DEPLOY_PROFILE } from '../constants/gameConstants';
+import {
+  API_BASE,
+  CHALLENGE_CHAMPION_BUDGET_MS,
+  CHALLENGE_CHAMPION_PROFILE,
+  DEPLOY_MCTS_PRESETS,
+  IS_DEPLOY_PROFILE,
+} from '../constants/gameConstants';
 import {
   useArenaLeaderboard,
   pickDeployCurrentBestTrio,
@@ -25,6 +31,37 @@ const buildDeployTierConfig = () => ({
     { player: 'BLUE', agent_type: 'mcts', agent_config: { difficulty: 'easy', time_budget_ms: DEPLOY_MCTS_PRESETS.easy } },
     { player: 'GREEN', agent_type: 'mcts', agent_config: { difficulty: 'medium', time_budget_ms: DEPLOY_MCTS_PRESETS.medium } },
     { player: 'YELLOW', agent_type: 'mcts', agent_config: { difficulty: 'hard', time_budget_ms: DEPLOY_MCTS_PRESETS.hard } },
+  ],
+  auto_start: true,
+});
+
+const buildChallengeChampionConfig = () => ({
+  players: [
+    { player: 'RED', agent_type: 'human', agent_config: {} },
+    {
+      player: 'BLUE',
+      agent_type: 'mcts',
+      agent_config: {
+        profile: CHALLENGE_CHAMPION_PROFILE,
+        time_budget_ms: CHALLENGE_CHAMPION_BUDGET_MS,
+      },
+    },
+    {
+      player: 'GREEN',
+      agent_type: 'mcts',
+      agent_config: {
+        profile: CHALLENGE_CHAMPION_PROFILE,
+        time_budget_ms: CHALLENGE_CHAMPION_BUDGET_MS,
+      },
+    },
+    {
+      player: 'YELLOW',
+      agent_type: 'mcts',
+      agent_config: {
+        profile: CHALLENGE_CHAMPION_PROFILE,
+        time_budget_ms: CHALLENGE_CHAMPION_BUDGET_MS,
+      },
+    },
   ],
   auto_start: true,
 });
@@ -200,6 +237,8 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
     // → Simplest: in deploy, arena just starts the 3-tier Human-vs-AI game too.
     return startFromConfig(buildDeployTierConfig());
   };
+
+  const startChallengeChampion = () => startFromConfig(buildChallengeChampionConfig());
 
   // --- Research mode -------------------------------------------------------------
 
@@ -396,18 +435,32 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
             {deployMode === 'tiers' ? (
               <div className="text-left">
                 <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 font-bold">Play vs AI</p>
-                <button
-                  onClick={startDeployGame}
-                  disabled={isCreating}
-                  className={`w-full py-3 px-6 rounded-lg font-medium transition-colors duration-200 text-left flex items-center justify-between ${
-                    isCreating
-                      ? 'bg-gray-600 cursor-not-allowed text-gray-400'
-                      : 'bg-neon-blue hover:bg-neon-blue/80 text-black'
-                  }`}
-                >
-                  <span>{isCreating ? 'Starting...' : 'Start Game'}</span>
-                  <span className="text-xs opacity-70">You (Red) vs Easy · Med · Hard</span>
-                </button>
+                <div className="space-y-2">
+                  <button
+                    onClick={startDeployGame}
+                    disabled={isCreating}
+                    className={`w-full py-3 px-6 rounded-lg font-medium transition-colors duration-200 text-left flex items-center justify-between ${
+                      isCreating
+                        ? 'bg-gray-600 cursor-not-allowed text-gray-400'
+                        : 'bg-neon-blue hover:bg-neon-blue/80 text-black'
+                    }`}
+                  >
+                    <span>{isCreating ? 'Starting...' : 'Start Game'}</span>
+                    <span className="text-xs opacity-70">You (Red) vs Easy · Med · Hard</span>
+                  </button>
+                  <button
+                    onClick={startChallengeChampion}
+                    disabled={isCreating}
+                    className={`w-full py-3 px-6 rounded-lg font-medium border transition-colors duration-200 text-left flex items-center justify-between ${
+                      isCreating
+                        ? 'border-charcoal-600 bg-charcoal-700 text-gray-500 cursor-not-allowed'
+                        : 'border-neon-green bg-neon-green/10 hover:bg-neon-green/20 text-neon-green'
+                    }`}
+                  >
+                    <span>{isCreating ? 'Starting...' : 'Challenge Champion'}</span>
+                    <span className="text-xs opacity-70">Adaptive full-stack MCTS trio</span>
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="text-left">
@@ -555,6 +608,28 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
                 {leaderboard.agents.length} rated agents available as opponents. Pick any per slot below.
               </div>
             )}
+          </div>
+
+          <div className="mb-6 rounded-lg border border-neon-green/30 bg-neon-green/5 p-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <div className="text-sm font-semibold text-neon-green">Challenge Champion</div>
+                <div className="text-xs text-gray-400">
+                  Start immediately against the adaptive human-play profile used in challenge mode.
+                </div>
+              </div>
+              <button
+                onClick={startChallengeChampion}
+                disabled={isCreating}
+                className={`shrink-0 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                  isCreating
+                    ? 'bg-charcoal-700 text-gray-500 cursor-not-allowed'
+                    : 'bg-neon-green text-black hover:bg-neon-green/80'
+                }`}
+              >
+                {isCreating ? 'Starting...' : 'Start Challenge'}
+              </button>
+            </div>
           </div>
 
           <div className="border-t border-charcoal-700 pt-2">

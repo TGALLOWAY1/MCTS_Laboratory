@@ -23,6 +23,9 @@ export const DEPLOY_MCTS_PRESETS = {
   hard: 900,
 } as const;
 
+export const CHALLENGE_CHAMPION_PROFILE = 'challenge_champion';
+export const CHALLENGE_CHAMPION_BUDGET_MS = 30000;
+
 // Derive WebSocket URL from API URL if VITE_WS_URL is not set
 // Convert http:// to ws:// and https:// to wss://
 const getWebSocketURL = (): string => {

@@ -1,0 +1,41 @@
+{
+  "profile": "challenge_champion",
+  "version": "v1",
+  "description": "Playable non-learned Challenge Champion profile for human challenge mode.",
+  "max_budget_ms": 30000,
+  "warmup_budget_ms": 750,
+  "tier_budgets_ms": {
+    "trivial": 1000,
+    "normal": 5000,
+    "critical": 30000
+  },
+  "mcts": {
+    "iterations": 500000,
+    "exploration_constant": 1.414,
+    "use_transposition_table": true,
+    "rollout_policy": "random",
+    "rollout_cutoff_depth": 5,
+    "minimax_backup_alpha": 0.25,
+    "rave_enabled": true,
+    "rave_k": 1000,
+    "progressive_widening_enabled": true,
+    "pw_c": 2.0,
+    "pw_alpha": 0.5,
+    "adaptive_rollout_depth_enabled": true,
+    "adaptive_rollout_depth_base": 5,
+    "adaptive_rollout_depth_avg_bf": 80.0,
+    "adaptive_exploration_enabled": false,
+    "sufficiency_threshold_enabled": false,
+    "loss_avoidance_enabled": false,
+    "state_eval_weights": {
+      "squares_placed": 0.0295,
+      "remaining_piece_area": -0.0295,
+      "accessible_corners": 0.243,
+      "reachable_empty_squares": 0.081,
+      "largest_remaining_piece_size": -0.231,
+      "opponent_avg_mobility": -0.3,
+      "center_proximity": 0.0,
+      "territory_enclosure_area": 0.0
+    }
+  }
+}

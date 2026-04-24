@@ -2,6 +2,7 @@ import pytest
 from fastapi import HTTPException
 
 from schemas.game_state import AgentType, GameConfig, Player, PlayerConfig
+from mcts.champion_profile import CHALLENGE_CHAMPION_PROFILE
 from webapi.deploy_validation import (
     DEPLOY_DIFFICULTY_TO_MS,
     DEPLOY_TIME_BUDGET_CAP_MS,
@@ -74,3 +75,32 @@ def test_deploy_rejects_budget_over_cap():
         normalize_deploy_game_config(cfg)
     assert exc.value.status_code == 400
     assert "exceeds deploy cap" in str(exc.value.detail)
+
+
+def test_deploy_allows_challenge_champion_profile():
+    cfg = GameConfig(
+        players=[
+            PlayerConfig(player=Player.RED, agent_type=AgentType.HUMAN, agent_config={}),
+            PlayerConfig(player=Player.BLUE, agent_type=AgentType.MCTS, agent_config={"profile": CHALLENGE_CHAMPION_PROFILE}),
+            PlayerConfig(player=Player.GREEN, agent_type=AgentType.MCTS, agent_config={"profile": CHALLENGE_CHAMPION_PROFILE}),
+            PlayerConfig(player=Player.YELLOW, agent_type=AgentType.MCTS, agent_config={"profile": CHALLENGE_CHAMPION_PROFILE}),
+        ],
+        auto_start=True,
+    )
+
+    normalized = normalize_deploy_game_config(cfg)
+
+    for player_cfg in normalized.players:
+        if player_cfg.agent_type == AgentType.MCTS:
+            assert player_cfg.agent_config["profile"] == CHALLENGE_CHAMPION_PROFILE
+            assert player_cfg.agent_config["time_budget_ms"] == 30000
+
+
+def test_deploy_rejects_mixed_challenge_and_difficulty_modes():
+    cfg = _valid_deploy_config()
+    cfg.players[1].agent_config = {"profile": CHALLENGE_CHAMPION_PROFILE}
+
+    with pytest.raises(HTTPException) as exc:
+        normalize_deploy_game_config(cfg)
+    assert exc.value.status_code == 400
+    assert "cannot mix" in str(exc.value.detail)

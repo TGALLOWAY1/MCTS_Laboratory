@@ -62,6 +62,7 @@ out/
 *.db
 
 # Project Artifacts
+.worktrees/
 checkpoints/
 logs/
 runs/
