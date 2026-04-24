@@ -12,6 +12,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "framer-motion": "^12.38.0",
+    "lucide-react": "^1.8.0",
     "pyodide": "^0.29.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

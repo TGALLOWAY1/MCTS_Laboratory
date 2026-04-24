@@ -28,6 +28,8 @@ def register_gameplay_routes(
     list_games: AsyncHandler,
     advance_turn: AsyncHandler,
     pass_turn: AsyncHandler,
+    list_arena_runs: AsyncHandler,
+    get_arena_run: AsyncHandler,
 ) -> None:
     app.add_api_route("/health", health, methods=["GET"])
     app.add_api_route("/", root, methods=["GET"])
@@ -39,3 +41,8 @@ def register_gameplay_routes(
     app.add_api_route("/api/agents", get_agents, methods=["GET"], response_model=List[AgentInfo])
     app.add_api_route("/api/games", list_games, methods=["GET"], response_model=List[GameState])
     app.add_api_route("/api/games/{game_id}/advance_turn", advance_turn, methods=["POST"], response_model=MoveResponse)
+    # Arena leaderboard reads are deploy-safe (read-only, no sensitive data) and power the
+    # "Current Best" opponent picker in the game-setup UI, so they register here rather than
+    # in the research-only group.
+    app.add_api_route("/api/arena-runs", list_arena_runs, methods=["GET"])
+    app.add_api_route("/api/arena-runs/{run_id}", get_arena_run, methods=["GET"])

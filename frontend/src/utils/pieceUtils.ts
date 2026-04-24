@@ -59,14 +59,14 @@ export const getPieceShape = (pieceId: number, orientation: number): number[][] 
 };
 
 export const calculatePiecePositions = (
-  pieceId: number, 
-  orientation: number, 
-  anchorRow: number, 
+  pieceId: number,
+  orientation: number,
+  anchorRow: number,
   anchorCol: number
 ): Position[] => {
   const shape = getPieceShape(pieceId, orientation);
   const positions: Position[] = [];
-  
+
   for (let row = 0; row < shape.length; row++) {
     for (let col = 0; col < shape[row].length; col++) {
       if (shape[row][col] === 1) {
@@ -77,6 +77,50 @@ export const calculatePiecePositions = (
       }
     }
   }
-  
+
   return positions;
+};
+
+/**
+ * Offset (relative to anchor = bounding-box top-left) of the piece cell that
+ * should sit under the cursor. Picks the filled square nearest the shape's
+ * centroid; ties resolve to top-most, then left-most. Guarantees the cursor
+ * always overlaps an actual piece square.
+ */
+export const getPieceCursorOffset = (
+  pieceId: number,
+  orientation: number
+): Position => {
+  const shape = getPieceShape(pieceId, orientation);
+  const filled: Position[] = [];
+  for (let row = 0; row < shape.length; row++) {
+    for (let col = 0; col < shape[row].length; col++) {
+      if (shape[row][col] === 1) filled.push({ row, col });
+    }
+  }
+  if (filled.length === 0) return { row: 0, col: 0 };
+
+  let sumR = 0;
+  let sumC = 0;
+  for (const p of filled) {
+    sumR += p.row;
+    sumC += p.col;
+  }
+  const cR = sumR / filled.length;
+  const cC = sumC / filled.length;
+
+  let best = filled[0];
+  let bestD = Infinity;
+  for (const p of filled) {
+    const dr = p.row - cR;
+    const dc = p.col - cC;
+    const d = dr * dr + dc * dc;
+    if (d < bestD - 1e-9 ||
+        (Math.abs(d - bestD) < 1e-9 && (p.row < best.row ||
+          (p.row === best.row && p.col < best.col)))) {
+      best = p;
+      bestD = d;
+    }
+  }
+  return best;
 };

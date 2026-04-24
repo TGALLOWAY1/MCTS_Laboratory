@@ -142,7 +142,11 @@ export const PieceTray: React.FC<PieceTrayProps> = ({
             // Check if piece is already used for the display player
             const pieceUsedList = gameState?.pieces_used?.[displayPlayer || ''] || [];
             const isPieceUsed = pieceUsedList.includes(pieceId);
-            const isViewingOther = viewingPlayer !== null && viewingPlayer !== undefined && viewingPlayer !== (gameState?.current_player);
+            // Block selection only when the tray shows a non-human player's pieces.
+            // If the human hasn't been identified (no players config), allow selection
+            // so offline / default modes keep working.
+            const humanPlayerColor = gameState?.players?.find((p: any) => p.agent_type === 'human')?.player ?? null;
+            const isViewingOther = humanPlayerColor !== null && displayPlayer !== humanPlayerColor;
 
             return (
               <div

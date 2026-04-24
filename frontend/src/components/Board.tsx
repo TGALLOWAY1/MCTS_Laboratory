@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { PLAYER_COLORS, BOARD_SIZE, CELL_SIZE } from '../constants/gameConstants';
-import { calculatePiecePositions } from '../utils/pieceUtils';
+import { calculatePiecePositions, getPieceCursorOffset } from '../utils/pieceUtils';
 
 export interface CellOverlay {
   color: string;
@@ -54,9 +54,38 @@ export const Board: React.FC<BoardProps> = ({
   pieceOrientation,
   overlayMap,
 }) => {
-  const { gameState, previewMove, setPreviewMove, currentSliderTurn } = useGameStore();
+  const { gameState, previewMove, setPreviewMove, currentSliderTurn, pendingPlacement } = useGameStore();
   const [hoveredCell, setHoveredCell] = useState<{ row: number, col: number } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+
+  const cursorOffset = useMemo(
+    () => (selectedPiece ? getPieceCursorOffset(selectedPiece, pieceOrientation) : { row: 0, col: 0 }),
+    [selectedPiece, pieceOrientation]
+  );
+
+  // Optimistic placement: paint the pending piece immediately with the player's
+  // color, skipping squares already filled on the authoritative board (so an
+  // illegal overlap never hides the real state).
+  const pendingCells = useMemo<Record<string, string>>(() => {
+    if (!pendingPlacement) return {};
+    const positions = calculatePiecePositions(
+      pendingPlacement.piece_id,
+      pendingPlacement.orientation,
+      pendingPlacement.anchor_row,
+      pendingPlacement.anchor_col
+    );
+    const playerColor =
+      PLAYER_COLORS[pendingPlacement.player.toLowerCase() as keyof typeof PLAYER_COLORS] ||
+      PLAYER_COLORS.empty;
+    const board = gameState?.board;
+    const out: Record<string, string> = {};
+    for (const p of positions) {
+      if (p.row < 0 || p.row >= BOARD_SIZE || p.col < 0 || p.col >= BOARD_SIZE) continue;
+      if (board && board[p.row]?.[p.col]) continue;
+      out[`${p.row}-${p.col}`] = playerColor;
+    }
+    return out;
+  }, [pendingPlacement, gameState?.board]);
 
   // Performance instrumentation - measure render time
   useEffect(() => {
@@ -103,23 +132,16 @@ export const Board: React.FC<BoardProps> = ({
 
     if (previewMove) setPreviewMove(null);
 
-    // Anchor = top-left of piece. Preview uses hoveredCell as anchor, so when user
-    // clicks a preview cell, pass hoveredCell (the anchor), not the clicked cell.
-    if (selectedPiece && hoveredCell) {
-      const previewPositions = calculatePiecePositions(
-        selectedPiece,
-        pieceOrientation,
-        hoveredCell.row,
-        hoveredCell.col
-      );
-      const isOnPreview = previewPositions.some((p) => p.row === row && p.col === col);
-      if (isOnPreview) {
-        onCellClick(hoveredCell.row, hoveredCell.col);
-        return;
-      }
+    // With a selected piece, cursor sits on cursorOffset within the piece, so
+    // translate the cursor cell back to the piece's bounding-box anchor.
+    if (selectedPiece) {
+      const anchorRow = row - cursorOffset.row;
+      const anchorCol = col - cursorOffset.col;
+      onCellClick(anchorRow, anchorCol);
+      return;
     }
     onCellClick(row, col);
-  }, [onCellClick, selectedPiece, pieceOrientation, hoveredCell, previewMove, setPreviewMove]);
+  }, [onCellClick, selectedPiece, cursorOffset, previewMove, setPreviewMove]);
 
   // Memoize cell color calculation to avoid recomputation
   const cellColors = useMemo(() => {
@@ -176,7 +198,15 @@ export const Board: React.FC<BoardProps> = ({
     return piecePreview.some(pos => pos.row === row && pos.col === col);
   };
 
+  const getPendingColor = (row: number, col: number): string | undefined => {
+    return pendingCells[`${row}-${col}`];
+  };
+
   const getCellFillColor = (row: number, col: number) => {
+    // Optimistic pending placement renders as a solid placed piece.
+    const pending = getPendingColor(row, col);
+    if (pending) return pending;
+
     // Preview cells (ghost piece) should be transparent (hollow)
     if (isPreviewCell(row, col)) {
       return 'transparent';
@@ -197,6 +227,8 @@ export const Board: React.FC<BoardProps> = ({
   };
 
   const getCellStroke = (row: number, col: number) => {
+    // Pending (optimistic) cells render as solid placed pieces — no stroke.
+    if (getPendingColor(row, col)) return 'none';
     // Ghost piece cells get preview color stroke only (hollow rectangle)
     if (isPreviewCell(row, col)) {
       return PLAYER_COLORS.preview;
@@ -205,6 +237,7 @@ export const Board: React.FC<BoardProps> = ({
   };
 
   const getCellStrokeWidth = (row: number, col: number) => {
+    if (getPendingColor(row, col)) return 0;
     // Ghost piece cells get 2px border
     if (isPreviewCell(row, col)) {
       return 2;
@@ -213,6 +246,7 @@ export const Board: React.FC<BoardProps> = ({
   };
 
   const hasPlacedPiece = (row: number, col: number) => {
+    if (getPendingColor(row, col)) return true;
     // Check if this cell has a placed piece (not empty, not preview, not hover)
     const cellColor = getCellColor(row, col);
     return cellColor !== PLAYER_COLORS.empty && !isPreviewCell(row, col);
@@ -240,8 +274,12 @@ export const Board: React.FC<BoardProps> = ({
     }
     if (!selectedPiece || !hoveredCell) return [];
 
-    // Calculate piece positions based on shape and orientation
-    const positions = calculatePiecePositions(selectedPiece, pieceOrientation, hoveredCell.row, hoveredCell.col);
+    // Calculate piece positions based on shape and orientation.
+    // cursorOffset is the cell within the piece that sits under the cursor,
+    // so the bounding-box anchor is hoveredCell minus that offset.
+    const anchorRow = hoveredCell.row - cursorOffset.row;
+    const anchorCol = hoveredCell.col - cursorOffset.col;
+    const positions = calculatePiecePositions(selectedPiece, pieceOrientation, anchorRow, anchorCol);
 
     // Filter out positions that are outside the board
     const validPositions = positions.filter(

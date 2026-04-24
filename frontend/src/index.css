@@ -34,6 +34,25 @@
   .panel {
     @apply bg-charcoal-800 border-r border-charcoal-700 flex flex-col;
   }
+
+  /* Gradient hairline used as a premium section separator on the /story page */
+  .story-divider {
+    border-top: 1px solid transparent;
+    border-image: linear-gradient(90deg, transparent, #3E3E42, transparent) 1;
+  }
+
+  /* Radial vignette overlay for editorial hero images on /story */
+  .editorial-vignette {
+    position: relative;
+  }
+  .editorial-vignette::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
+    border-radius: inherit;
+  }
 }
 
 /* Custom scrollbar for dark theme */

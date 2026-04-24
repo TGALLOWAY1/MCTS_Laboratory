@@ -1802,6 +1802,8 @@ def create_app(
         list_games=list_games,
         advance_turn=advance_turn,
         pass_turn=pass_turn,
+        list_arena_runs=list_arena_runs,
+        get_arena_run=get_arena_run,
     )
 
     register_research = (
@@ -1824,8 +1826,6 @@ def create_app(
             get_training_run=get_training_run,
             list_agents=list_agents,
             get_training_run_evaluations=get_training_run_evaluations,
-            list_arena_runs=list_arena_runs,
-            get_arena_run=get_arena_run,
         )
 
     app_instance.add_exception_handler(HTTPException, http_exception_handler)
