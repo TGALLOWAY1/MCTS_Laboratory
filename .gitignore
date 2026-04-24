@@ -71,6 +71,7 @@ baseline_runs/
 validation_runs/
 heatmap_output/
 heatmap_output_*/
+frontier_output/
 
 # Runtime logs
 *.log
