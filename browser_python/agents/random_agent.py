@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 
 from engine.board import Board, Player
-from engine.move_generator import LegalMoveGenerator, Move
+from engine.move_generator import LegalMoveGenerator, Move, get_shared_generator
 from engine.pieces import PieceGenerator
 
 
@@ -27,7 +27,7 @@ class RandomAgent:
             seed: Random seed for reproducible behavior
         """
         self.rng = np.random.RandomState(seed)
-        self.move_generator = LegalMoveGenerator()
+        self.move_generator = get_shared_generator()
         self.piece_generator = PieceGenerator()
 
     def select_action(self, board: Board, player: Player, legal_moves: List[Move]) -> Optional[Move]:

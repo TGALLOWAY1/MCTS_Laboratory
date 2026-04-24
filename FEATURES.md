@@ -29,6 +29,7 @@
 - Adaptive rollout cutoff depth based on branching factor (Layer 9) — `mcts/mcts_agent.py`
 - UCT sufficiency threshold (Layer 9) — `mcts/mcts_agent.py`
 - Loss avoidance for catastrophic nodes (Layer 9) — `mcts/mcts_agent.py`
+- Challenge Champion profile and adaptive human-play budget controller — `config/challenge_champion_config.json`, `mcts/champion_profile.py`, `mcts/adaptive_budget.py`
 - Learned evaluator (GBT model) for state scoring (Layer 2) — `mcts/learned_evaluator.py`
 - Move heuristic scoring — `mcts/move_heuristic.py`
 - Search trace diagnostics (per-node Q-values, visits, depths) — `mcts/search_trace.py`
@@ -86,6 +87,7 @@
 - Arena results API: list and detail endpoints for tournament data (`/api/arena-runs`) — `webapi/app.py`, `webapi/routes_research.py`
 - Game orchestration with full MCTSAgent (Layers 3-9) — `webapi/app.py`
 - Agent factory using MCTSAgent with gameplay adapter — `webapi/gameplay_agent_factory.py`
+- Challenge Champion gameplay profile with tier/cap/reason move stats — `webapi/gameplay_agent_factory.py`, `schemas/game_state.py`
 - MongoDB integration — `webapi/db/`
 - Research and deploy profiles — `webapi/profile.py`
 
@@ -93,6 +95,7 @@
 
 - Pyodide mirror of engine, MCTS, and agents — `browser_python/`
 - WebWorker bridge for background computation — `browser_python/worker_bridge.py`
+- Browser Challenge Champion gameplay using the full MCTS profile bundle — `browser_python/worker_bridge.py`, `frontend/public/blokus_core.zip`
 - Zero-backend Blokus gameplay in the browser
 
 ## League Infrastructure

@@ -33,6 +33,7 @@ from analytics.winprob.features import (
 from engine.board import Player
 from engine.game import BlokusGame
 from engine.move_generator import LegalMoveGenerator, Move
+from mcts.champion_profile import CHALLENGE_CHAMPION_PROFILE, build_mcts_kwargs, load_challenge_champion_profile
 from mcts.mcts_agent import MCTSAgent
 
 try:
@@ -361,6 +362,10 @@ def build_agent(config: AgentConfig, seed: int) -> _ArenaAgentAdapter:
         return _SelectActionAdapter(agent)
 
     if agent_type == "mcts":
+        if params.get("profile") == CHALLENGE_CHAMPION_PROFILE:
+            profile_kwargs = build_mcts_kwargs(load_challenge_champion_profile())
+            profile_kwargs.update({k: v for k, v in params.items() if k != "profile"})
+            params = profile_kwargs
         deterministic_time_budget = bool(params.get("deterministic_time_budget", True))
         iterations_per_ms = float(params.get("iterations_per_ms", 10.0))
         iterations = int(params.get("iterations", 1000))

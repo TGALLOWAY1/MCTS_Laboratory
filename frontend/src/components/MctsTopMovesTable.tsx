@@ -86,11 +86,13 @@ export const MctsTopMovesTable: React.FC = () => {
         </div>
         {mctsStats && (
           <div className="text-[10px] text-gray-500 font-mono flex gap-2">
-            <span>{mctsStats.timeSpentMs}ms</span>
+            <span>{mctsStats.timeSpentMs ?? 0}ms</span>
             <span className="opacity-30">|</span>
-            <span>{mctsStats.nodesEvaluated.toLocaleString()} sim</span>
+            <span>{(mctsStats.nodesEvaluated ?? mctsStats.iterations_run ?? 0).toLocaleString()} sim</span>
             <span className="opacity-30">|</span>
-            <span className="text-neon-blue">{Math.round(mctsStats.nodesEvaluated / (mctsStats.timeSpentMs / 1000 || 1)).toLocaleString()} s/s</span>
+            <span className="text-neon-blue">
+              {Math.round((mctsStats.nodesEvaluated ?? mctsStats.iterations_run ?? 0) / ((mctsStats.timeSpentMs ?? 0) / 1000 || 1)).toLocaleString()} s/s
+            </span>
           </div>
         )}
       </div>
@@ -102,20 +104,42 @@ export const MctsTopMovesTable: React.FC = () => {
             <div className="h-1 bg-charcoal-900 rounded-full mt-1 overflow-hidden">
               <div
                 className="h-full bg-neon-blue shadow-[0_0_5px_rgba(0,243,255,0.5)]"
-                style={{ width: `${Math.min(100, (mctsStats.timeSpentMs / mctsStats.timeBudgetMs) * 100)}%` }}
+                style={{ width: `${Math.min(100, ((mctsStats.timeSpentMs ?? 0) / (mctsStats.timeBudgetMs || mctsStats.budgetCapMs || 1)) * 100)}%` }}
               />
             </div>
             <div className="text-[10px] text-gray-400 mt-1">
-              {mctsStats.timeSpentMs} / {mctsStats.timeBudgetMs} ms
+              {mctsStats.timeSpentMs ?? 0} / {mctsStats.timeBudgetMs ?? mctsStats.budgetCapMs ?? 0} ms
             </div>
           </div>
           <div className="bg-charcoal-800/80 p-1.5 rounded border border-charcoal-700/50">
             <div className="text-[9px] text-gray-500 uppercase">Search Effort</div>
             <div className="text-[11px] text-neon-blue font-bold">
-              {mctsStats.nodesEvaluated.toLocaleString()}
+              {(mctsStats.nodesEvaluated ?? mctsStats.iterations_run ?? 0).toLocaleString()}
             </div>
             <div className="text-[9px] text-gray-500">simulations</div>
           </div>
+          {(mctsStats.budgetTier || mctsStats.earlyStopReason) && (
+            <div className="bg-charcoal-800/80 p-1.5 rounded border border-charcoal-700/50">
+              <div className="text-[9px] text-gray-500 uppercase">Budget Tier</div>
+              <div className="text-[11px] text-gray-200 font-bold capitalize">
+                {mctsStats.budgetTier ?? 'standard'}
+              </div>
+              <div className="text-[9px] text-gray-500">
+                {mctsStats.earlyStopReason ?? (mctsStats.budgetReasons || []).join(', ')}
+              </div>
+            </div>
+          )}
+          {(typeof mctsStats.regret_gap === 'number' || typeof mctsStats.visit_entropy === 'number') && (
+            <div className="bg-charcoal-800/80 p-1.5 rounded border border-charcoal-700/50">
+              <div className="text-[9px] text-gray-500 uppercase">Uncertainty</div>
+              <div className="text-[10px] text-gray-400">
+                Q gap {typeof mctsStats.regret_gap === 'number' ? mctsStats.regret_gap.toFixed(3) : 'n/a'}
+              </div>
+              <div className="text-[10px] text-gray-400">
+                Entropy {typeof mctsStats.visit_entropy === 'number' ? mctsStats.visit_entropy.toFixed(2) : 'n/a'}
+              </div>
+            </div>
+          )}
         </div>
       )}
       <div className="overflow-x-auto">

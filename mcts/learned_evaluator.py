@@ -7,15 +7,25 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, Dict, Tuple
 
-import joblib
 import numpy as np
 
-from analytics.winprob.features import (
-    SNAPSHOT_FEATURE_COLUMNS,
-    build_snapshot_runtime_context,
-    coerce_feature_dict,
-    extract_player_snapshot_features,
-)
+try:  # Optional in the Pyodide gameplay bundle; only required for learned models.
+    import joblib
+except Exception:  # pragma: no cover - exercised in browser bundle import smoke
+    joblib = None
+
+try:
+    from analytics.winprob.features import (
+        SNAPSHOT_FEATURE_COLUMNS,
+        build_snapshot_runtime_context,
+        coerce_feature_dict,
+        extract_player_snapshot_features,
+    )
+except Exception:  # pragma: no cover - deploy/browser bundles may omit analytics
+    SNAPSHOT_FEATURE_COLUMNS = []
+    build_snapshot_runtime_context = None
+    coerce_feature_dict = None
+    extract_player_snapshot_features = None
 from engine.board import Board, Player
 from engine.move_generator import LegalMoveGenerator
 
@@ -58,6 +68,17 @@ class LearnedWinProbabilityEvaluator:
             self.model_type = "dummy"
             self.feature_columns = []
             return
+
+        if joblib is None:
+            raise RuntimeError("joblib is required to load learned evaluator artifacts.")
+        if (
+            build_snapshot_runtime_context is None
+            or coerce_feature_dict is None
+            or extract_player_snapshot_features is None
+        ):
+            raise RuntimeError(
+                "analytics.winprob.features is required to use learned evaluator artifacts."
+            )
 
         self.artifact: Dict[str, Any] = joblib.load(Path(self.artifact_path))
         self.model_type = str(self.artifact.get("model_type", ""))

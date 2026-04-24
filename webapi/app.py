@@ -152,6 +152,9 @@ class GameManager:
             elif agent_type == AgentType.MCTS:
                 budget_ms = int(agent_config.get('time_budget_ms', 1000))
                 cfg = dict(agent_config)
+                if cfg.get("profile") == "challenge_champion":
+                    agents[player] = build_deploy_gameplay_agent(agent_type, cfg)
+                    continue
                 agents[player] = MCTSAgent(
                     iterations=int(cfg.get('iterations', 5000)),
                     time_limit=max(budget_ms, 1) / 1000.0,
@@ -365,7 +368,7 @@ class GameManager:
                                 return move_obj, payload.get("stats", {})
                         except Exception as engine_exc:
                             logger.warning(f"Engine service failed, falling back local MCTS: {engine_exc}")
-                    if self.app_profile == APP_PROFILE_DEPLOY and is_gameplay_adapter(agent):
+                    if is_gameplay_adapter(agent):
                         move_obj, adapter_stats = agent.choose_move(game.board, player, legal_moves, budget_ms)
                         return move_obj, adapter_stats
                     think_fn = getattr(agent, 'think', None)
@@ -380,7 +383,7 @@ class GameManager:
                             agent_stats['searchTrace'] = trace
                     if hasattr(agent, 'get_action_info'):
                         info = agent.get_action_info()
-                        if 'stats' in info:
+                        if isinstance(info, dict) and 'stats' in info:
                             agent_stats.update(info['stats'])
                     return move_result, agent_stats
 
@@ -427,6 +430,7 @@ class GameManager:
                 # Store MCTS explainability for next game state fetch
                 game_data['last_mcts_top_moves'] = stats.get('topMoves') or []
                 game_data['last_search_trace'] = stats.get('searchTrace')
+                game_data['last_mcts_stats'] = stats
                 # Prepare move information for broadcast
                 last_move = {
                     "piece_id": move.piece_id,
@@ -456,6 +460,7 @@ class GameManager:
 
                 end_total = time.perf_counter()
                 total_time = end_total - start_total
+                broadcast_time = 0.0
                 logger.info(f"AGENT MOVE timing: total={total_time:.4f}s, legal={legal_time:.4f}s, agent={agent_time:.4f}s, apply={apply_time:.4f}s, broadcast={broadcast_time:.4f}s")
             else:
                 logger.warning(f"AGENT MOVE: Invalid move from agent {type(agent).__name__} for player {player.name}")
@@ -938,6 +943,7 @@ class GameManager:
             "frontierSize": frontier_size,
         }
         mcts_top_moves = game_data.get('last_mcts_top_moves')
+        mcts_stats = game_data.get('last_mcts_stats')
         search_trace = game_data.get('last_search_trace')
 
         return GameState(
@@ -957,6 +963,7 @@ class GameManager:
             heatmap=heatmap,
             mobility_metrics=mobility_metrics,
             mcts_top_moves=mcts_top_moves,
+            mcts_stats=mcts_stats,
             search_trace=search_trace,
         )
 

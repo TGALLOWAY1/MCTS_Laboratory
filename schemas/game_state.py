@@ -88,6 +88,10 @@ class GameState(BaseModel):
         default=None,
         description="Top MCTS candidate moves from last agent think (visits, q_value)"
     )
+    mcts_stats: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Timing, budget, and search statistics from the last MCTS move"
+    )
     search_trace: Optional[Dict[str, Any]] = Field(
         default=None,
         description="MCTS search trace for visualization (depth/breadth over time, UCT breakdown, etc.)"

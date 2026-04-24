@@ -890,6 +890,20 @@ class MCTSAgent:
                 if child.visits > 0:
                     q_values.append((child.total_reward / child.visits, child.visits, child))
             q_values.sort(key=lambda x: x[1], reverse=True)  # sort by visits (best move selection)
+            top_moves = []
+            for q_value, visits, child in q_values[:10]:
+                if child.move is None:
+                    continue
+                move = child.move
+                top_moves.append({
+                    "piece_id": move.piece_id,
+                    "orientation": move.orientation,
+                    "anchor_row": move.anchor_row,
+                    "anchor_col": move.anchor_col,
+                    "visits": visits,
+                    "q_value": q_value,
+                })
+            self.stats["topMoves"] = top_moves
 
             if q_values:
                 best_q, best_visits, _ = q_values[0]
@@ -913,6 +927,7 @@ class MCTSAgent:
             self.stats["second_best_q"] = None
             self.stats["regret_gap"] = None
             self.stats["visit_entropy"] = 0.0
+            self.stats["topMoves"] = []
 
         # --- tree size and depth via BFS ---
         total_nodes = 0
@@ -2124,6 +2139,7 @@ class MCTSAgent:
             "adaptive_rollout_depth": 0,
             "sufficiency_activations": 0,
             "loss_avoidance_triggers": 0,
+            "topMoves": [],
         }
 
         self._last_root_children_data = None

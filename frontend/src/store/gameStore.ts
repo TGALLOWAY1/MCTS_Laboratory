@@ -54,10 +54,17 @@ export interface GameState {
   mobility_metrics?: PlayerMobilityMetrics;
   mcts_top_moves?: MctsTopMove[];
   mcts_stats?: {
-    timeSpentMs: number;
-    timeBudgetMs: number;
-    nodesEvaluated: number;
-    maxDepthReached: number;
+    timeSpentMs?: number;
+    timeBudgetMs?: number;
+    nodesEvaluated?: number;
+    maxDepthReached?: number;
+    iterations_run?: number;
+    budgetTier?: 'trivial' | 'normal' | 'critical' | string;
+    budgetCapMs?: number;
+    budgetReasons?: string[];
+    earlyStopReason?: string | null;
+    visit_entropy?: number;
+    regret_gap?: number | null;
   };
   mcts_diagnostics?: MctsDiagnosticsV1;
   influence_map?: number[][];

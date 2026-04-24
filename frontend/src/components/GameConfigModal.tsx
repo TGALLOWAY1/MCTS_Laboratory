@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 import { useGameStore } from '../store/gameStore';
-import { API_BASE, DEPLOY_MCTS_PRESETS, IS_DEPLOY_PROFILE } from '../constants/gameConstants';
+import {
+  API_BASE,
+  CHALLENGE_CHAMPION_BUDGET_MS,
+  CHALLENGE_CHAMPION_PROFILE,
+  DEPLOY_MCTS_PRESETS,
+  IS_DEPLOY_PROFILE,
+} from '../constants/gameConstants';
 
 interface GameConfigModalProps {
   isOpen: boolean;
@@ -22,6 +28,16 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
       { player: 'BLUE', agent_type: 'mcts', agent_config: { difficulty: 'easy', time_budget_ms: DEPLOY_MCTS_PRESETS.easy } },
       { player: 'GREEN', agent_type: 'mcts', agent_config: { difficulty: 'medium', time_budget_ms: DEPLOY_MCTS_PRESETS.medium } },
       { player: 'YELLOW', agent_type: 'mcts', agent_config: { difficulty: 'hard', time_budget_ms: DEPLOY_MCTS_PRESETS.hard } }
+    ],
+    auto_start: true
+  };
+
+  const challengeChampionConfig = {
+    players: [
+      { player: 'RED', agent_type: 'human', agent_config: {} },
+      { player: 'BLUE', agent_type: 'mcts', agent_config: { profile: CHALLENGE_CHAMPION_PROFILE, time_budget_ms: CHALLENGE_CHAMPION_BUDGET_MS } },
+      { player: 'GREEN', agent_type: 'mcts', agent_config: { profile: CHALLENGE_CHAMPION_PROFILE, time_budget_ms: CHALLENGE_CHAMPION_BUDGET_MS } },
+      { player: 'YELLOW', agent_type: 'mcts', agent_config: { profile: CHALLENGE_CHAMPION_PROFILE, time_budget_ms: CHALLENGE_CHAMPION_BUDGET_MS } }
     ],
     auto_start: true
   };
@@ -191,6 +207,11 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
 
   const researchQuickStartPresets = [
     {
+      name: 'Challenge Champion',
+      description: 'Human vs adaptive arena-tested champion profile',
+      config: challengeChampionConfig
+    },
+    {
       name: '4 Players',
       description: `Human vs MCTS Easy/Medium/Hard (${DEPLOY_MCTS_PRESETS.easy}/${DEPLOY_MCTS_PRESETS.medium}/${DEPLOY_MCTS_PRESETS.hard}ms)`,
       config: {
@@ -287,6 +308,11 @@ export const GameConfigModal: React.FC<GameConfigModalProps> = ({
   ];
 
   const deployQuickStartPresets = [
+    {
+      name: 'Challenge Champion',
+      description: 'Human vs adaptive arena-tested champion profile',
+      config: challengeChampionConfig
+    },
     {
       name: 'Deploy Preset',
       description: `Human vs MCTS Easy/Medium/Hard (${DEPLOY_MCTS_PRESETS.easy}/${DEPLOY_MCTS_PRESETS.medium}/${DEPLOY_MCTS_PRESETS.hard}ms)`,

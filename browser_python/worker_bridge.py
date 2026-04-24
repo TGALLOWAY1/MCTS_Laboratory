@@ -5,7 +5,6 @@ from typing import Any, Dict, List
 # Add current directory to path so engine, mcts, agents modules can be imported
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from agents.fast_mcts_agent import FastMCTSAgent
 from engine.advanced_metrics import (
     compute_center_proximity,
     compute_corner_differential,
@@ -18,6 +17,8 @@ from engine.board import Player as EnginePlayer
 from engine.game import BlokusGame
 from engine.mobility_metrics import compute_player_mobility_metrics
 from engine.move_generator import Move as EngineMove
+from mcts.champion_profile import CHALLENGE_CHAMPION_PROFILE, build_mcts_kwargs, load_challenge_champion_profile
+from mcts.mcts_agent import MCTSAgent
 
 
 class WebWorkerGameBridge:
@@ -98,15 +99,37 @@ class WebWorkerGameBridge:
             agent_config = pc.get("agent_config", {})
             if agent_type == "mcts":
                 budget_ms = int(agent_config.get("time_budget_ms", 1000))
-                self.agents[player_enum] = FastMCTSAgent(
-                    iterations=500000,
-                    time_limit=max(budget_ms, 1) / 1000.0,
-                    exploration_constant=1.414
-                )
+                self.agents[player_enum] = self._build_mcts_agent(agent_config, budget_ms)
             elif agent_type == "human":
                 self.agents[player_enum] = None
 
         return self.get_state()
+
+    def _build_mcts_agent(self, agent_config: Dict[str, Any], budget_ms: int) -> MCTSAgent:
+        if agent_config.get("profile") == CHALLENGE_CHAMPION_PROFILE:
+            profile = load_challenge_champion_profile()
+            kwargs = build_mcts_kwargs(profile)
+        else:
+            kwargs = {
+                "iterations": int(agent_config.get("iterations", 500000)),
+                "exploration_constant": float(agent_config.get("exploration_constant", 1.414)),
+            }
+        kwargs["time_limit"] = max(int(budget_ms), 1) / 1000.0
+        if agent_config.get("seed") is not None:
+            kwargs["seed"] = int(agent_config["seed"])
+        return MCTSAgent(**kwargs)
+
+    def _agent_stats(self, agent: MCTSAgent, budget_ms: int, elapsed_ms: int) -> Dict[str, Any]:
+        info = agent.get_action_info() if hasattr(agent, "get_action_info") else {}
+        raw = dict(info.get("stats", {})) if isinstance(info, dict) and isinstance(info.get("stats"), dict) else {}
+        iterations = int(raw.get("iterations_run") or 0)
+        raw["timeBudgetMs"] = int(budget_ms)
+        raw["timeSpentMs"] = int(elapsed_ms)
+        raw["nodesEvaluated"] = iterations
+        raw["iterations_run"] = iterations
+        raw["maxDepthReached"] = int(raw.get("tree_depth_max") or 0)
+        raw["topMoves"] = list(raw.get("topMoves") or [])
+        return raw
 
     def get_state(self) -> Dict[str, Any]:
         game = self.game
@@ -388,24 +411,25 @@ class WebWorkerGameBridge:
                 budget_ms = int(ac.get("time_budget_ms", 1000))
                 break
                 
-        # Toggle diagnostics based on request
-        if hasattr(agent, 'enable_diagnostics'):
-            agent.enable_diagnostics = enable_diagnostics
-            
-        result = agent.think(self.game.board, current_player, legal_moves, budget_ms)
-        move = result.get("move")
-        if move is None: move = agent.select_action(self.game.board, current_player, legal_moves)
-        if "stats" in result:
-            self.mcts_stats = result["stats"]
-            if "topMoves" in result["stats"]:
+        import time
+        start = time.perf_counter()
+        agent.time_limit = max(int(budget_ms), 1) / 1000.0
+        move = agent.select_action(self.game.board, current_player, legal_moves)
+        self.mcts_stats = self._agent_stats(
+            agent,
+            budget_ms,
+            int((time.perf_counter() - start) * 1000),
+        )
+        if self.mcts_stats:
+            if "topMoves" in self.mcts_stats:
                 translated_top_moves = []
-                for tm in result["stats"]["topMoves"]:
+                for tm in self.mcts_stats["topMoves"]:
                     tm_copy = dict(tm)
                     tm_copy["orientation"] = self._get_frontend_ori(tm_copy["piece_id"], tm_copy["orientation"])
                     translated_top_moves.append(tm_copy)
                 self.mcts_top_moves = translated_top_moves
-            if "diagnostics" in result["stats"]:
-                self.mcts_diagnostics = result["stats"]["diagnostics"]
+            if "diagnostics" in self.mcts_stats:
+                self.mcts_diagnostics = self.mcts_stats["diagnostics"]
             else:
                 self.mcts_diagnostics = None
         if move:

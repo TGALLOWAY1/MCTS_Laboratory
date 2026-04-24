@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional
 
 from .board import Board, Player, Position
-from .move_generator import LegalMoveGenerator, Move
+from .move_generator import LegalMoveGenerator, Move, get_shared_generator
 from .pieces import PieceGenerator
 
 try:
@@ -47,7 +47,7 @@ class BlokusGame:
 
     def __init__(self, enable_telemetry: bool = True, telemetry_fast_mode: bool = True):
         self.board = Board()
-        self.move_generator = LegalMoveGenerator()
+        self.move_generator = get_shared_generator()
         self.piece_generator = PieceGenerator()
         self.game_history = []
         self.winner = None
@@ -101,9 +101,9 @@ class BlokusGame:
             # Fallback to original method
             piece_positions = move.get_positions(orientations)
 
-        # Place the piece (this does validation again, but it's fast now with optimized can_place_piece)
+        # Place the piece (skip validation since is_move_legal already checked above)
         start_place = time.perf_counter()
-        success = self.board.place_piece(piece_positions, player, move.piece_id)
+        success = self.board.place_piece(piece_positions, player, move.piece_id, validate=False)
         end_place = time.perf_counter()
 
         if success:
@@ -217,12 +217,15 @@ class BlokusGame:
         """
         Get the canonical game result with final scores and winner information.
         
-        This method computes final scores for all players using the standard Blokus
-        scoring system:
+        This method computes final scores for all players using a Blokus variant
+        scoring system (includes house bonuses beyond standard Blokus rules):
         - Base score: 1 point per square covered by pieces
         - Bonus: +15 points if player used all 21 pieces
         - Corner control bonus: +5 points per controlled corner (4 corners max)
         - Center control bonus: +2 points per center square (4×4 center area)
+
+        Note: Corner and center bonuses are custom additions, not part of
+        standard Blokus scoring.
         
         The method can be safely called:
         - After the game is over (recommended): Returns accurate final scores
