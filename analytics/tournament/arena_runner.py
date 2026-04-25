@@ -35,6 +35,8 @@ from engine.game import BlokusGame
 from engine.move_generator import LegalMoveGenerator, Move
 from mcts.champion_profile import CHALLENGE_CHAMPION_PROFILE, build_mcts_kwargs, load_challenge_champion_profile
 from mcts.mcts_agent import MCTSAgent
+from schemas.game_state import AgentType
+from webapi.gameplay_agent_factory import build_deploy_gameplay_agent
 
 try:
     import pandas as pd
@@ -346,6 +348,39 @@ class _SelectActionAdapter(_ArenaAgentAdapter):
         return getattr(self.agent, 'opponent_modeling_enabled', False)
 
 
+@dataclass
+class _ChooseMoveAdapter(_ArenaAgentAdapter):
+    """Adapter for gameplay agents exposing choose_move(board, player, legal_moves, budget_ms)."""
+
+    agent: Any
+    default_budget_ms: int = 1000
+
+    def play_turn(
+        self,
+        board: Any,
+        player: Player,
+        legal_moves: List[Move],
+        thinking_time_ms: Optional[int],
+    ) -> Tuple[Optional[Move], Dict[str, Any]]:
+        budget_ms = int(thinking_time_ms) if thinking_time_ms is not None else int(self.default_budget_ms)
+        move, move_stats = self.agent.choose_move(board, player, legal_moves, budget_ms)
+        stats: Dict[str, Any] = dict(move_stats or {})
+        if "timeBudgetMs" not in stats:
+            stats["timeBudgetMs"] = budget_ms
+        return move, stats
+
+    def notify_move(self, board_before: Any, board_after: Any, player: Player) -> None:
+        """Forward move notification to underlying agent for opponent modeling."""
+        if hasattr(self.agent, 'notify_move'):
+            self.agent.notify_move(board_before, board_after, player)
+
+    @property
+    def has_opponent_modeling(self) -> bool:
+        """Check if the underlying agent has opponent modeling enabled."""
+        underlying = getattr(self.agent, "_agent", None)
+        return bool(getattr(underlying, "opponent_modeling_enabled", False))
+
+
 def build_agent(config: AgentConfig, seed: int) -> _ArenaAgentAdapter:
     """Instantiate an agent adapter from configuration."""
     agent_type = config.type.lower()
@@ -360,6 +395,24 @@ def build_agent(config: AgentConfig, seed: int) -> _ArenaAgentAdapter:
         if isinstance(weights, Mapping):
             agent.set_weights(dict(weights))
         return _SelectActionAdapter(agent)
+
+    if agent_type == "challenge_champion_gameplay":
+        profile_name = str(params.get("profile", CHALLENGE_CHAMPION_PROFILE))
+        if profile_name != CHALLENGE_CHAMPION_PROFILE:
+            raise ValueError(
+                f"Unsupported gameplay profile '{profile_name}'. "
+                f"Only '{CHALLENGE_CHAMPION_PROFILE}' is currently supported."
+            )
+        gameplay_cfg = dict(params)
+        gameplay_cfg["profile"] = CHALLENGE_CHAMPION_PROFILE
+        gameplay_cfg.setdefault("seed", seed)
+        gameplay_agent = build_deploy_gameplay_agent(AgentType.MCTS, gameplay_cfg)
+        if gameplay_agent is None:
+            raise ValueError("Failed to construct challenge champion gameplay adapter.")
+        budget_ms = int(config.thinking_time_ms) if config.thinking_time_ms is not None else int(
+            gameplay_cfg.get("time_budget_ms", 1000)
+        )
+        return _ChooseMoveAdapter(gameplay_agent, default_budget_ms=budget_ms)
 
     if agent_type == "mcts":
         if params.get("profile") == CHALLENGE_CHAMPION_PROFILE:

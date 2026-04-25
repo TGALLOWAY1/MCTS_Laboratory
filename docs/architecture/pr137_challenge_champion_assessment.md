@@ -25,10 +25,8 @@ The biggest remaining gap is not model quality code, but **evidence quality**: w
 ### 1) No dedicated challenge-focused arena config/runs checked in
 There are many arena config presets, but none currently target the challenge profile directly. Without this, we cannot track champion strength drift in CI or scheduled experiments.
 
-### 2) Arena does not reproduce full gameplay adapter behavior
-Arena `build_agent` can load the challenge profile into `MCTSAgent` parameters, but it does **not** run the deploy adapter's warmup -> budget-tier -> final-search loop from `webapi/gameplay_agent_factory.py`.
-
-This means arena can estimate base-search strength, but it is not a full proxy for the exact human-facing runtime policy.
+### 2) Arena challenge evaluations must use gameplay adapter mode
+The new `challenge_champion_gameplay` arena agent type now routes through the deploy gameplay adapter (`build_deploy_gameplay_agent`) so arena executes warmup -> budget-tier -> final-search behavior. The operational next step is to standardize on this mode for challenge validation and retire profile-only proxy comparisons for release decisions.
 
 ### 3) No explicit statistical acceptance gates for human-proxy performance
 Current tests verify correctness and constraints, not outcome strength thresholds (e.g., minimum first-place rate vs fixed baselines, confidence intervals, or minimum effect size).
@@ -54,9 +52,9 @@ Telemetry fields are present, but there is no documented routine for:
    - TrueSkill deltas,
    - bootstrap CIs from arena summary artifacts.
 
-## Phase 2 (short term): close proxy gap
+## Phase 2 (short term): enforce adapter-parity experiment policy
 
-Implement a dedicated arena adapter mode that uses the same gameplay adapter path as deploy (`_ChallengeChampionGameplayAdapter`) so arena reflects warmup/tier/early-stop behavior exactly.
+Require challenge validation runs to use `type: "challenge_champion_gameplay"` and reject release decisions backed only by `type: "mcts"` profile loading.
 
 ## Phase 3 (short term): define acceptance policy
 

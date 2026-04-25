@@ -2,12 +2,17 @@
   "agents": [
     {
       "name": "challenge_champion",
-      "type": "mcts",
+      "type": "challenge_champion_gameplay",
       "thinking_time_ms": 900,
       "params": {
         "profile": "challenge_champion",
-        "deterministic_time_budget": false,
-        "time_limit": 0.9
+        "max_budget_ms": 30000,
+        "warmup_budget_ms": 750,
+        "tier_budgets_ms": {
+          "trivial": 1000,
+          "normal": 5000,
+          "critical": 30000
+        }
       }
     },
     {
@@ -74,5 +79,5 @@
     "enabled": false,
     "checkpoints": []
   },
-  "notes": "Challenge Champion validation harness against deploy difficulty proxies. Caveat: arena profile loading does not include deploy gameplay adapter warmup/tier budget loop."
+  "notes": "Challenge Champion validation harness against deploy difficulty proxies. The challenge agent uses the deploy gameplay adapter path (warmup + adaptive budget tiers)."
 }
