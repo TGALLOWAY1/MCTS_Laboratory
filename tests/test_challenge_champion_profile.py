@@ -117,3 +117,37 @@ def test_arena_agent_config_can_use_challenge_profile():
     assert agent.progressive_widening_enabled is True
     assert agent.rollout_policy == "random"
     assert agent.rollout_cutoff_depth == 5
+
+
+def test_arena_agent_config_can_use_challenge_gameplay_adapter():
+    adapter = build_agent(
+        AgentConfig(
+            name="ChallengeChampionGameplay",
+            type="challenge_champion_gameplay",
+            thinking_time_ms=200,
+            params={
+                "profile": CHALLENGE_CHAMPION_PROFILE,
+                "max_budget_ms": 1000,
+                "warmup_budget_ms": 25,
+                "tier_budgets_ms": {"trivial": 50, "normal": 100, "critical": 200},
+                "seed": 321,
+            },
+        ),
+        seed=123,
+    )
+
+    board = Board()
+    legal_moves = LegalMoveGenerator().get_legal_moves(board, Player.RED)
+    move, stats = adapter.play_turn(board, Player.RED, legal_moves, 200)
+
+    assert move is not None
+    legal_signatures = {
+        (candidate.piece_id, candidate.orientation, candidate.anchor_row, candidate.anchor_col)
+        for candidate in legal_moves
+    }
+    move_signature = (move.piece_id, move.orientation, move.anchor_row, move.anchor_col)
+    assert move_signature in legal_signatures
+    assert "budgetTier" in stats
+    assert "budgetCapMs" in stats
+    assert "budgetReasons" in stats
+    assert stats["timeBudgetMs"] <= 200
