@@ -1,0 +1,78 @@
+{
+  "agents": [
+    {
+      "name": "challenge_champion",
+      "type": "mcts",
+      "thinking_time_ms": 900,
+      "params": {
+        "profile": "challenge_champion",
+        "deterministic_time_budget": false,
+        "time_limit": 0.9
+      }
+    },
+    {
+      "name": "deploy_easy_proxy",
+      "type": "mcts",
+      "thinking_time_ms": 200,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 0.5,
+        "exploration_constant": 1.414,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
+        "rave_enabled": true,
+        "rave_k": 1000
+      }
+    },
+    {
+      "name": "deploy_medium_proxy",
+      "type": "mcts",
+      "thinking_time_ms": 450,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 0.5,
+        "exploration_constant": 1.414,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
+        "rave_enabled": true,
+        "rave_k": 1000,
+        "adaptive_rollout_depth_enabled": true,
+        "adaptive_rollout_depth_base": 5,
+        "adaptive_rollout_depth_avg_bf": 80.0
+      }
+    },
+    {
+      "name": "deploy_hard_proxy",
+      "type": "mcts",
+      "thinking_time_ms": 900,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 0.5,
+        "exploration_constant": 1.414,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
+        "rave_enabled": true,
+        "rave_k": 1000,
+        "adaptive_rollout_depth_enabled": true,
+        "adaptive_rollout_depth_base": 5,
+        "adaptive_rollout_depth_avg_bf": 80.0,
+        "sufficiency_threshold_enabled": true,
+        "loss_avoidance_enabled": true,
+        "loss_avoidance_threshold": -50.0
+      }
+    }
+  ],
+  "num_games": 120,
+  "seed": 20260425,
+  "seat_policy": "round_robin",
+  "output_root": "arena_runs",
+  "max_turns": 2500,
+  "snapshots": {
+    "enabled": false,
+    "checkpoints": []
+  },
+  "notes": "Challenge Champion validation harness against deploy difficulty proxies. Caveat: arena profile loading does not include deploy gameplay adapter warmup/tier budget loop."
+}
