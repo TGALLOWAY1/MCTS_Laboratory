@@ -162,6 +162,22 @@ class TrueSkillTracker:
             self._ratings[agent_id] = self._model.rating()
             self._games_played[agent_id] = 0
 
+    def load_ratings(self, saved: Dict[str, Dict[str, float]]) -> None:
+        """Seed the tracker with previously saved ratings.
+
+        Call this before the first ``update_game`` when continuing an
+        ongoing rating series across multiple arena sessions.
+
+        Args:
+            saved: Dict mapping agent_id to a dict with keys 'mu', 'sigma',
+                and optionally 'games_played', as produced by ``get_ratings()``.
+        """
+        for agent_id, r in saved.items():
+            mu = float(r.get("mu", self._mu))
+            sigma = float(r.get("sigma", self._sigma))
+            self._ratings[agent_id] = self._model.rating(mu=mu, sigma=sigma)
+            self._games_played[agent_id] = int(r.get("games_played", 0))
+
     @property
     def agent_ids(self) -> List[str]:
         """List of all tracked agent IDs."""
