@@ -1,0 +1,47 @@
+{
+  "current_version": "v1",
+  "versions": {
+    "v1": {
+      "promoted_at": "2026-04-29T00:00:00+00:00",
+      "promoted_from": null,
+      "promotion_reason": "Initial champion — challenge_champion_config + Layer 9 adaptive rollout depth",
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 0.5,
+        "exploration_constant": 1.414,
+        "use_transposition_table": true,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
+        "rave_enabled": true,
+        "rave_k": 1000,
+        "progressive_widening_enabled": true,
+        "pw_c": 2.0,
+        "pw_alpha": 0.5,
+        "adaptive_rollout_depth_enabled": true,
+        "adaptive_rollout_depth_base": 5,
+        "adaptive_rollout_depth_avg_bf": 80.0,
+        "state_eval_weights": {
+          "squares_placed": 0.0295,
+          "remaining_piece_area": -0.0295,
+          "accessible_corners": 0.243,
+          "reachable_empty_squares": 0.081,
+          "largest_remaining_piece_size": -0.231,
+          "opponent_avg_mobility": -0.3,
+          "center_proximity": 0.0,
+          "territory_enclosure_area": 0.0
+        }
+      },
+      "avg_win_rate": null,
+      "avg_trueskill_mu": null,
+      "avg_score": null,
+      "_wr_acc": 0.0,
+      "_mu_acc": 0.0,
+      "_sc_acc": 0.0,
+      "_count": 0
+    }
+  },
+  "iterations": [],
+  "snapshot_csv_paths": [],
+  "total_games_played": 0
+}
