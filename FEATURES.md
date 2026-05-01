@@ -53,6 +53,7 @@
 - Seat-position bias analysis — `analytics/baseline/seat_bias.py`
 - Arena statistics and aggregation — `analytics/tournament/arena_stats.py`, `analytics/tournament/aggregate.py`
 - Self-improvement loop with metric tracking — `scripts/self_improve.py`
+- Champion self-improvement loop: champion vs randomized opponent pool, snapshot accumulation, periodic Layer 6 evaluator retraining, TrueSkill progression tracking, and detailed markdown progress reports — `scripts/champion_loop.py`, `data/champion_log.json`, `data/champion_progress.md`
 - Throughput calibration — `scripts/calibrate_throughput.py`, `data/throughput_calibration.json`
 
 ## Analytics & Metrics
