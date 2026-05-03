@@ -1,0 +1,149 @@
+{
+  "notes": "Standard champion gauntlet: champion vs one fixed challenger from each tier (weak / mid / strong). Used for reproducible single-run benchmarking. For the full randomized self-improvement loop use champion_loop.py instead.",
+  "agents": [
+    {
+      "name": "champion",
+      "type": "mcts",
+      "thinking_time_ms": 200,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 0.5,
+        "exploration_constant": 1.414,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
+        "rave_enabled": true,
+        "rave_k": 1000,
+        "progressive_widening_enabled": true,
+        "pw_c": 2.0,
+        "pw_alpha": 0.5,
+        "adaptive_rollout_depth_enabled": true,
+        "adaptive_rollout_depth_base": 5,
+        "adaptive_rollout_depth_avg_bf": 80.0,
+        "adaptive_exploration_enabled": true,
+        "adaptive_exploration_base": 1.414,
+        "adaptive_exploration_avg_bf": 80.0,
+        "sufficiency_threshold_enabled": true,
+        "loss_avoidance_enabled": true,
+        "loss_avoidance_threshold": -50.0,
+        "state_eval_phase_weights": {
+          "early": {
+            "squares_placed": -0.17599664484103847,
+            "remaining_piece_area": 0.17599664484103822,
+            "accessible_corners": 0.3,
+            "reachable_empty_squares": 0.0,
+            "largest_remaining_piece_size": 0.0,
+            "opponent_avg_mobility": -0.05287834609528694,
+            "center_proximity": 0.0,
+            "territory_enclosure_area": 0.0
+          },
+          "mid": {
+            "squares_placed": -0.00387502185581506,
+            "remaining_piece_area": 0.0038750218558150614,
+            "accessible_corners": 0.3,
+            "reachable_empty_squares": 0.22774497158891033,
+            "largest_remaining_piece_size": -0.238473591231953,
+            "opponent_avg_mobility": -0.20277351241243552,
+            "center_proximity": 0.0,
+            "territory_enclosure_area": 0.0
+          },
+          "late": {
+            "squares_placed": 0.3,
+            "remaining_piece_area": -0.3,
+            "accessible_corners": 0.17573409689186584,
+            "reachable_empty_squares": 0.13361753070802862,
+            "largest_remaining_piece_size": -0.08518919739412929,
+            "opponent_avg_mobility": -0.06278383996091268,
+            "center_proximity": 0.0,
+            "territory_enclosure_area": 0.0
+          }
+        }
+      }
+    },
+    {
+      "name": "pool_t1_mcts_50ms_rave",
+      "type": "mcts",
+      "thinking_time_ms": 50,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 0.25,
+        "exploration_constant": 1.414,
+        "rollout_policy": "random",
+        "rave_enabled": true,
+        "rave_k": 1000
+      }
+    },
+    {
+      "name": "pool_t2_mcts_100ms_l5",
+      "type": "mcts",
+      "thinking_time_ms": 100,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 0.5,
+        "exploration_constant": 1.414,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
+        "rave_enabled": true,
+        "rave_k": 1000,
+        "state_eval_weights": {
+          "squares_placed": 0.0295,
+          "remaining_piece_area": -0.0295,
+          "accessible_corners": 0.243,
+          "reachable_empty_squares": 0.081,
+          "largest_remaining_piece_size": -0.231,
+          "opponent_avg_mobility": -0.3,
+          "center_proximity": 0.0,
+          "territory_enclosure_area": 0.0
+        }
+      }
+    },
+    {
+      "name": "pool_t3_mcts_200ms_l9_full",
+      "type": "mcts",
+      "thinking_time_ms": 200,
+      "params": {
+        "deterministic_time_budget": true,
+        "iterations_per_ms": 0.5,
+        "exploration_constant": 1.414,
+        "rollout_policy": "random",
+        "rollout_cutoff_depth": 5,
+        "minimax_backup_alpha": 0.25,
+        "rave_enabled": true,
+        "rave_k": 1000,
+        "progressive_widening_enabled": true,
+        "pw_c": 2.0,
+        "pw_alpha": 0.5,
+        "adaptive_rollout_depth_enabled": true,
+        "adaptive_rollout_depth_base": 5,
+        "adaptive_rollout_depth_avg_bf": 80.0,
+        "adaptive_exploration_enabled": true,
+        "adaptive_exploration_base": 1.414,
+        "adaptive_exploration_avg_bf": 80.0,
+        "sufficiency_threshold_enabled": true,
+        "loss_avoidance_enabled": true,
+        "loss_avoidance_threshold": -50.0,
+        "state_eval_weights": {
+          "squares_placed": 0.0295,
+          "remaining_piece_area": -0.0295,
+          "accessible_corners": 0.243,
+          "reachable_empty_squares": 0.081,
+          "largest_remaining_piece_size": -0.231,
+          "opponent_avg_mobility": -0.3,
+          "center_proximity": 0.0,
+          "territory_enclosure_area": 0.0
+        }
+      }
+    }
+  ],
+  "num_games": 20,
+  "seed": 20260503,
+  "seat_policy": "round_robin",
+  "output_root": "arena_runs",
+  "max_turns": 2500,
+  "snapshots": {
+    "enabled": true,
+    "strategy": "fixed_ply",
+    "checkpoints": [8, 16, 24, 32, 40, 48, 56, 64]
+  }
+}

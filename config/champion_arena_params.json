@@ -1,0 +1,56 @@
+{
+  "description": "Champion arena MCTS params. Combines best settings from Layers 3-9 plus calibrated phase weights (Layer 6). Updated by champion_loop.py when a learned evaluator is promoted.",
+  "eval_version": "v0_hand_tuned",
+  "deterministic_time_budget": true,
+  "iterations_per_ms": 0.5,
+  "exploration_constant": 1.414,
+  "rollout_policy": "random",
+  "rollout_cutoff_depth": 5,
+  "minimax_backup_alpha": 0.25,
+  "rave_enabled": true,
+  "rave_k": 1000,
+  "progressive_widening_enabled": true,
+  "pw_c": 2.0,
+  "pw_alpha": 0.5,
+  "adaptive_rollout_depth_enabled": true,
+  "adaptive_rollout_depth_base": 5,
+  "adaptive_rollout_depth_avg_bf": 80.0,
+  "adaptive_exploration_enabled": true,
+  "adaptive_exploration_base": 1.414,
+  "adaptive_exploration_avg_bf": 80.0,
+  "sufficiency_threshold_enabled": true,
+  "loss_avoidance_enabled": true,
+  "loss_avoidance_threshold": -50.0,
+  "state_eval_phase_weights": {
+    "early": {
+      "squares_placed": -0.17599664484103847,
+      "remaining_piece_area": 0.17599664484103822,
+      "accessible_corners": 0.3,
+      "reachable_empty_squares": 0.0,
+      "largest_remaining_piece_size": 0.0,
+      "opponent_avg_mobility": -0.05287834609528694,
+      "center_proximity": 0.0,
+      "territory_enclosure_area": 0.0
+    },
+    "mid": {
+      "squares_placed": -0.00387502185581506,
+      "remaining_piece_area": 0.0038750218558150614,
+      "accessible_corners": 0.3,
+      "reachable_empty_squares": 0.22774497158891033,
+      "largest_remaining_piece_size": -0.238473591231953,
+      "opponent_avg_mobility": -0.20277351241243552,
+      "center_proximity": 0.0,
+      "territory_enclosure_area": 0.0
+    },
+    "late": {
+      "squares_placed": 0.3,
+      "remaining_piece_area": -0.3,
+      "accessible_corners": 0.17573409689186584,
+      "reachable_empty_squares": 0.13361753070802862,
+      "largest_remaining_piece_size": -0.08518919739412929,
+      "opponent_avg_mobility": -0.06278383996091268,
+      "center_proximity": 0.0,
+      "territory_enclosure_area": 0.0
+    }
+  }
+}
