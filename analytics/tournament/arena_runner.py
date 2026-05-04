@@ -35,6 +35,7 @@ from engine.game import BlokusGame
 from engine.move_generator import LegalMoveGenerator, Move
 from mcts.champion_profile import CHALLENGE_CHAMPION_PROFILE, build_mcts_kwargs, load_challenge_champion_profile
 from mcts.mcts_agent import MCTSAgent
+from mcts.state_evaluator import BlokusStateEvaluator
 from schemas.game_state import AgentType
 from webapi.gameplay_agent_factory import build_deploy_gameplay_agent
 
@@ -45,6 +46,9 @@ except Exception:  # pragma: no cover - optional dependency path
 
 
 DEFAULT_OUTPUT_ROOT = "arena_runs"
+
+# Shared evaluator instance for snapshot se_ feature extraction (default weights; raw features only)
+_SE_EVALUATOR = BlokusStateEvaluator()
 DEFAULT_MAX_TURNS = 2500
 SUPPORTED_SEAT_POLICIES = {"randomized", "round_robin"}
 DEFAULT_SNAPSHOT_PLYS = [8, 16, 24, 32, 40, 48, 56, 64]
@@ -623,6 +627,13 @@ def _build_snapshot_rows_for_checkpoint(
             "is_tie": None,
         }
         row.update(coerce_feature_dict(features))
+        # Also extract state-evaluator features (se_ prefix) for evaluator weight re-fitting
+        try:
+            se_features = _SE_EVALUATOR.extract_features(game.board, player)
+            for fname, fval in se_features.items():
+                row[f"se_{fname}"] = float(fval)
+        except Exception:
+            pass
         rows.append(row)
     return rows
 

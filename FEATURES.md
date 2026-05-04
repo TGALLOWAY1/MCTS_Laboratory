@@ -53,6 +53,8 @@
 - Seat-position bias analysis — `analytics/baseline/seat_bias.py`
 - Arena statistics and aggregation — `analytics/tournament/arena_stats.py`, `analytics/tournament/aggregate.py`
 - Self-improvement loop with metric tracking — `scripts/self_improve.py`
+- Champion self-improvement loop: persistent TrueSkill tracking across generations, randomized challenger pool (checkpoints + baselines + MCTS variants), snapshot accumulation, per-phase evaluator weight re-fitting via linear regression, and per-generation markdown progress report — `scripts/champion_loop.py`
+- Arena snapshot rows include state-evaluator (se_) features for evaluator regression — `analytics/tournament/arena_runner.py`
 - Throughput calibration — `scripts/calibrate_throughput.py`, `data/throughput_calibration.json`
 
 ## Analytics & Metrics
